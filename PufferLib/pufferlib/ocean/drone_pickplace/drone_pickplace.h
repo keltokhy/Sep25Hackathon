@@ -9,7 +9,6 @@
 #include <math.h>
 #include "raylib.h"
 
-// Action constants for discrete control (10 actions for quadcopter)
 const unsigned char MOVE_FORWARD = 0;
 const unsigned char MOVE_BACKWARD = 1;
 const unsigned char MOVE_LEFT = 2;
@@ -21,26 +20,23 @@ const unsigned char ROTATE_RIGHT = 7;
 const unsigned char GRIPPER_OPEN = 8;
 const unsigned char GRIPPER_CLOSE = 9;
 
-// State constants
 const unsigned char STATE_SEARCHING = 0;
 const unsigned char STATE_APPROACHING = 1;
 const unsigned char STATE_GRASPING = 2;
 const unsigned char STATE_TRANSPORTING = 3;
 const unsigned char STATE_PLACING = 4;
 
-// Required struct. Only use floats!
 typedef struct {
     float perf; // 0-1 normalized performance metric
     float score; // Unnormalized score
-    float episode_return; // Sum of agent rewards over episode
-    float episode_length; // Number of steps in agent episode
-    float grasp_success; // Success rate of grasping attempts
-    float placement_success; // Success rate of placements
+    float episode_return;
+    float episode_length;
+    float grasp_success;
+    float placement_success;
     float efficiency; // Path efficiency metric
     float n; // Required as the last field 
 } Log;
 
-// Internal tracking for success rates
 typedef struct {
     int grasp_attempts;
     int grasp_successes;
@@ -49,10 +45,10 @@ typedef struct {
 } Stats;
 
 typedef struct {
-    float x, y, z; // Position
-    float vx, vy, vz; // Velocity
+    float x, y, z;
+    float vx, vy, vz;
     float qw, qx, qy, qz; // Orientation quaternion
-    float wx, wy, wz; // Angular velocity
+    float wx, wy, wz;
     float yaw, pitch, roll; // Euler angles for convenience
     float gripper_open; // 0 = closed, 1 = open
     unsigned char state;
@@ -60,17 +56,17 @@ typedef struct {
 } Drone;
 
 typedef struct {
-    float x, y, z; // Position
-    float vx, vy, vz; // Velocity (for physics simulation)
-    float radius; // Object size
+    float x, y, z;
+    float vx, vy, vz;
+    float radius;
     unsigned char is_grasped;
     unsigned char is_placed;
 } Object;
 
 typedef struct {
-    float x, y, z; // Target zone center
-    float radius; // Zone radius
-    unsigned char has_object; // Whether an object is placed here
+    float x, y, z;
+    float radius;
+    unsigned char has_object;
 } TargetZone;
 
 typedef struct {
@@ -78,20 +74,18 @@ typedef struct {
     int initialized;
 } Client;
 
-// Main environment struct
 typedef struct {
     Log log; // Required field
     Stats stats; // Track attempts and successes
     Client* client;
     Drone* drones; // Support multiple drones
-    Object* objects; // Multiple objects to pick
-    TargetZone* targets; // Multiple target zones
+    Object* objects;
+    TargetZone* targets;
     float* observations; // Required - continuous observations
     int* actions; // Required - discrete actions
     float* rewards; // Required
     unsigned char* terminals; // Required
-    
-    // Environment parameters
+
     int num_drones;
     int num_objects;
     int num_targets;
@@ -100,8 +94,14 @@ typedef struct {
     int max_steps;
     int current_step;
     int debug_mode; // Set to 1 for standalone, 0 for vectorized
-    
-    // Physics parameters
+
+    float reward_approach;
+    float reward_complete;
+    float reward_grasp;
+    float reward_place;
+    float penalty_no_progress;
+    float penalty_time;
+
     float dt;
     float gravity;
     float max_velocity;
@@ -110,27 +110,23 @@ typedef struct {
     float place_distance;
 } DronePickPlace;
 
-// Initialize environment
 void init(DronePickPlace* env) {
     env->drones = calloc(env->num_drones, sizeof(Drone));
     env->objects = calloc(env->num_objects, sizeof(Object));
     env->targets = calloc(env->num_targets, sizeof(TargetZone));
     
-    // Set physics defaults
     env->dt = 0.02f;
     env->gravity = -9.81f;
     env->max_velocity = 5.0f;
     env->max_angular_velocity = 3.14f;
-    env->grip_distance = 0.25f;  // Very generous for easy grasping
-    env->place_distance = 0.35f;  // Even more generous for placement
+    env->grip_distance = 0.25f; // todo set sweepable reduction over time for curriculum
+    env->place_distance = 0.35f; // todo set sweepable reduction over time for curriculum
 }
 
-// Random float in range
 float randf(float min, float max) {
     return min + (max - min) * ((float)rand() / (float)RAND_MAX);
 }
 
-// Distance between two 3D points
 float distance3d(float x1, float y1, float z1, float x2, float y2, float z2) {
     float dx = x2 - x1;
     float dy = y2 - y1;
@@ -138,13 +134,11 @@ float distance3d(float x1, float y1, float z1, float x2, float y2, float z2) {
     return sqrtf(dx*dx + dy*dy + dz*dz);
 }
 
-// Update physics for a single drone
 void update_drone_physics(DronePickPlace* env, int drone_idx) {
     Drone* drone = &env->drones[drone_idx];
     int action = env->actions[drone_idx];
     
-    // Apply control inputs with much stronger force
-    float move_force = 10.0f;  // Much stronger for faster movement
+    float move_force = 10.0f;
     float rotate_speed = 2.5f;
     
     switch(action) {
@@ -182,14 +176,12 @@ void update_drone_physics(DronePickPlace* env, int drone_idx) {
             break;
     }
     
-    // Apply drag (air resistance)
-    float drag = 0.98f;  // Much less drag for sustained movement
+    float drag = 0.98f;
     drone->vx *= drag;
     drone->vy *= drag;
     drone->vz *= drag;
-    
-    // Apply gravity with hover compensation
-    drone->vz += env->gravity * env->dt * 0.05f; // Very reduced gravity for drone hover
+
+    drone->vz += env->gravity * env->dt * 0.05f;
     
     // Clamp velocities
     float speed = sqrtf(drone->vx*drone->vx + drone->vy*drone->vy + drone->vz*drone->vz);
@@ -199,34 +191,29 @@ void update_drone_physics(DronePickPlace* env, int drone_idx) {
         drone->vy *= scale;
         drone->vz *= scale;
     }
-    
-    // Update position
+
     drone->x += drone->vx * env->dt;
     drone->y += drone->vy * env->dt;
     drone->z += drone->vz * env->dt;
-    
-    // Boundary constraints
+
     drone->x = fmaxf(0, fminf(env->world_size, drone->x));
     drone->y = fmaxf(0, fminf(env->world_size, drone->y));
     drone->z = fmaxf(0.05f, fminf(env->max_height, drone->z));  // Allow drone to go lower
-    
-    // Wrap yaw angle
-    while (drone->yaw > 3.14159f) drone->yaw -= 2 * 3.14159f;
-    while (drone->yaw < -3.14159f) drone->yaw += 2 * 3.14159f;
+
+    while (drone->yaw > 3.14159f) drone->yaw -= 2 * 3.14159f; // todo potential bug
+    while (drone->yaw < -3.14159f) drone->yaw += 2 * 3.14159f; // todo potential bug
     
     // Update quaternion from Euler angles (simplified - only yaw for now)
     drone->qw = cosf(drone->yaw / 2.0f);
     drone->qx = 0.0f;
     drone->qy = 0.0f;
     drone->qz = sinf(drone->yaw / 2.0f);
-    
-    // Update angular velocities with damping
+
     drone->wx *= 0.9f;
     drone->wy *= 0.9f;
     drone->wz *= 0.9f;
 }
 
-// Check and handle grasping
 void update_grasping(DronePickPlace* env) {
     for (int d = 0; d < env->num_drones; d++) {
         Drone* drone = &env->drones[d];
@@ -235,8 +222,7 @@ void update_grasping(DronePickPlace* env) {
         if (drone->gripper_open > 0.5f) {
             continue;
         }
-        
-        // Check each object
+
         for (int o = 0; o < env->num_objects; o++) {
             Object* obj = &env->objects[o];
             
@@ -244,21 +230,18 @@ void update_grasping(DronePickPlace* env) {
             if (obj->is_grasped || obj->is_placed) {
                 continue;
             }
-            
-            // Check distance
+
             float dist = distance3d(drone->x, drone->y, drone->z,
                                    obj->x, obj->y, obj->z);
-            
-            // If close enough to attempt grasp
+
             if (dist < env->grip_distance * 1.5f) {
                 if (dist < env->grip_distance && !obj->is_grasped) {
-                    // This is the actual grasp attempt and success
                     env->stats.grasp_attempts++;
                     obj->is_grasped = 1;
                     drone->state = STATE_TRANSPORTING;
-                    env->rewards[d] = 1.0f; // Max reward for successful grasp (clipped to 1)
+                    env->rewards[d] = 1.0f;
                     env->stats.grasp_successes++;
-                    
+
                     // Only log in debug mode (standalone) to avoid spam from parallel envs
                     if (env->debug_mode) {
                         printf("Drone %d grabbed object %d! (dist=%.2f)\n", d, o, dist);
@@ -268,22 +251,19 @@ void update_grasping(DronePickPlace* env) {
             }
         }
     }
-    
-    // Update object positions for grasped objects
+
     for (int o = 0; o < env->num_objects; o++) {
         Object* obj = &env->objects[o];
         if (obj->is_grasped && !obj->is_placed) {
-            // Find which drone has it
             for (int d = 0; d < env->num_drones; d++) {
                 Drone* drone = &env->drones[d];
                 if (drone->gripper_open < 0.5f) {
                     float dist = distance3d(drone->x, drone->y, drone->z,
                                           obj->x, obj->y, obj->z);
                     if (dist < env->grip_distance * 2) {
-                        // Move object with drone
                         obj->x = drone->x;
                         obj->y = drone->y;
-                        obj->z = drone->z - 0.1f; // Below drone
+                        obj->z = drone->z - 0.1f;
                     }
                 }
             }
@@ -291,7 +271,6 @@ void update_grasping(DronePickPlace* env) {
     }
 }
 
-// Check and handle placement
 void update_placement(DronePickPlace* env) {
     for (int o = 0; o < env->num_objects; o++) {
         Object* obj = &env->objects[o];
