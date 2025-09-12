@@ -239,7 +239,7 @@ void update_grasping(DronePickPlace* env) {
                     env->stats.grasp_attempts++;
                     obj->is_grasped = 1;
                     drone->state = STATE_TRANSPORTING;
-                    env->rewards[d] = env->reward_grasp;
+                    env->rewards[d] += env->reward_grasp;
                     env->stats.grasp_successes++;
 
                     // Only log in debug mode (standalone) to avoid spam from parallel envs
@@ -301,7 +301,7 @@ void update_placement(DronePickPlace* env) {
                                     obj->vx = obj->vy = obj->vz = 0;
                                     target->has_object = 1;
                                     drone->state = STATE_SEARCHING;
-                                    env->rewards[d] = env->reward_place;
+                                    env->rewards[d] += env->reward_place;
                                     env->stats.placement_successes++;
                                 env->log.perf += 1.0f;
                                 env->log.score += 50.0f;
@@ -476,7 +476,7 @@ void c_step(DronePickPlace* env) {
 
         env->drones[d].ticks_without_progress++;
         if (env->drones[d].ticks_without_progress > 500) {
-            env->rewards[d] = env->penalty_no_progress;
+            env->rewards[d] += env->penalty_no_progress;
         }
     }
 
@@ -539,7 +539,6 @@ void c_step(DronePickPlace* env) {
                 float dist_to_obj = distance3d(drone->x, drone->y, drone->z,
                                               obj->x, obj->y, obj->z);
 
-                // Small negative reward for time pressure
                 float reward = env->penalty_time;
                 
                 // Small reward only when VERY close and moving toward object
@@ -564,14 +563,13 @@ void c_step(DronePickPlace* env) {
                     }
                 }
                 
-                env->rewards[d] = reward;
+                env->rewards[d] += reward;
                 
             } else {
                 // PHASE 2: Object is grasped - need to transport
                 float dist_to_target = distance3d(drone->x, drone->y, drone->z,
                                                  target->x, target->y, target->z);
-                
-                // Small negative reward for time pressure
+
                 float reward = env->penalty_time;
 
                 // Check if drone is moving toward target
@@ -589,15 +587,14 @@ void c_step(DronePickPlace* env) {
                     // Dot product with velocity
                     float vel_toward = drone->vx * dx + drone->vy * dy + drone->vz * dz;
                     if (vel_toward > 0.01f) {
-                        reward = 2.0f * env->reward_approach;  // Slightly higher reward for carrying toward target todo
+                        reward = 2.0f * env->reward_approach; // todo
                     }
                 }
 
-                env->rewards[d] = reward;
+                env->rewards[d] += reward;
             }
         } else {
-            // Task completed - no additional reward (already got placement reward)
-            env->rewards[d] = 0.0f;
+            env->rewards[d] += 0.0f;
         }
     }
 
@@ -614,7 +611,7 @@ void c_step(DronePickPlace* env) {
         for (int d = 0; d < env->num_drones; d++) {
             env->terminals[d] = 1;
             if (all_placed) {
-                env->rewards[d] = env->reward_complete; // Max reward for completing task
+                env->rewards[d] += env->reward_complete;
             }
         }
         add_log(env);
