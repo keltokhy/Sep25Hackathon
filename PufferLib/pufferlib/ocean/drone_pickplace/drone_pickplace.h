@@ -278,8 +278,7 @@ void update_placement(DronePickPlace* env) {
         if (!obj->is_grasped || obj->is_placed) {
             continue;
         }
-        
-        // Check if near any target zone (we already know object is grasped from check above)
+
         for (int t = 0; t < env->num_targets; t++) {
                 TargetZone* target = &env->targets[t];
                 float dist = distance3d(obj->x, obj->y, obj->z,
@@ -296,14 +295,13 @@ void update_placement(DronePickPlace* env) {
                             if (drone_dist < env->grip_distance * 2) {
                                 
                                 if (dist < env->place_distance) {
-                                    // This is the actual placement attempt and success
                                     env->stats.placement_attempts++;
                                     obj->is_placed = 1;
                                     obj->is_grasped = 0;
-                                    obj->vx = obj->vy = obj->vz = 0; // Stop object movement
-                                    target->has_object = 1; // Mark target as occupied
+                                    obj->vx = obj->vy = obj->vz = 0;
+                                    target->has_object = 1;
                                     drone->state = STATE_SEARCHING;
-                                    env->rewards[d] = 1.0f; // Max reward for successful placement
+                                    env->rewards[d] = 1.0f;
                                     env->stats.placement_successes++;
                                 env->log.perf += 1.0f;
                                 env->log.score += 50.0f;
@@ -322,7 +320,6 @@ void update_placement(DronePickPlace* env) {
     }
 }
 
-// Compute observations for all agents (45 observations per drone)
 void compute_observations(DronePickPlace* env) {
     // 45 observations total:
     // Drone state: 14 (pos:3, vel:3, quat:4, ang_vel:3, gripper:1)
@@ -334,32 +331,32 @@ void compute_observations(DronePickPlace* env) {
     for (int d = 0; d < env->num_drones; d++) {
         Drone* drone = &env->drones[d];
         int obs_idx = d * obs_per_drone;
-        
+
         // Drone state (14 values)
         // Position (3)
         env->observations[obs_idx++] = drone->x / env->world_size;
         env->observations[obs_idx++] = drone->y / env->world_size;
         env->observations[obs_idx++] = drone->z / env->max_height;
-        
+
         // Velocity (3)
         env->observations[obs_idx++] = drone->vx / env->max_velocity;
         env->observations[obs_idx++] = drone->vy / env->max_velocity;
         env->observations[obs_idx++] = drone->vz / env->max_velocity;
-        
+
         // Orientation quaternion (4)
         env->observations[obs_idx++] = drone->qw;
         env->observations[obs_idx++] = drone->qx;
         env->observations[obs_idx++] = drone->qy;
         env->observations[obs_idx++] = drone->qz;
-        
+
         // Angular velocity (3)
         env->observations[obs_idx++] = drone->wx / env->max_angular_velocity;
         env->observations[obs_idx++] = drone->wy / env->max_angular_velocity;
         env->observations[obs_idx++] = drone->wz / env->max_angular_velocity;
-        
+
         // Gripper state (1)
         env->observations[obs_idx++] = drone->gripper_open;
-        
+
         // Object states (7 per object * 3 objects = 21)
         for (int o = 0; o < env->num_objects; o++) {
             Object* obj = &env->objects[o];
@@ -374,7 +371,7 @@ void compute_observations(DronePickPlace* env) {
             // Status (1)
             env->observations[obs_idx++] = (float)(obj->is_grasped * 2 + obj->is_placed);
         }
-        
+
         // Target zone states (4 per target * 2 targets = 8)
         for (int t = 0; t < env->num_targets; t++) {
             TargetZone* target = &env->targets[t];
@@ -385,10 +382,10 @@ void compute_observations(DronePickPlace* env) {
             // Has object (1)
             env->observations[obs_idx++] = (float)target->has_object;
         }
-        
+
         // Task info (2)
         env->observations[obs_idx++] = 1.0f - (float)env->current_step / env->max_steps; // Time remaining
-        
+
         // Task progress (ratio of placed objects)
         int placed_count = 0;
         for (int o = 0; o < env->num_objects; o++) {
@@ -404,33 +401,21 @@ void add_log(DronePickPlace* env) {
     for (int d = 0; d < env->num_drones; d++) {
         env->log.episode_return += env->rewards[d];
     }
-    
-    // For simplicity, just track binary success for this episode
-    // Since we have 1 object, either it was grasped or not, placed or not
-    // Check if object was successfully grasped this episode
     env->log.grasp_success += (env->stats.grasp_successes > 0) ? 1.0f : 0.0f;
-    
-    // Check if object was successfully placed this episode
     env->log.placement_success += (env->stats.placement_successes > 0) ? 1.0f : 0.0f;
-    
     env->log.n++;
 }
 
-// Required reset function
 void c_reset(DronePickPlace* env) {
     env->current_step = 0;
     
-    // Reset stats for new episode
     env->stats.grasp_attempts = 0;
     env->stats.grasp_successes = 0;
     env->stats.placement_attempts = 0;
     env->stats.placement_successes = 0;
-    
-    // Reset object to fixed position (single object)
+
     for (int o = 0; o < env->num_objects; o++) {
         Object* obj = &env->objects[o];
-        // Single object at fixed position, away from target
-        // Target is at (1.15, 1.0), so put object on opposite side
         obj->x = 0.5f;  // Left side, away from target at 1.15
         obj->y = 1.0f;  // Center Y
         obj->z = 0.1f; // On ground
@@ -439,8 +424,7 @@ void c_reset(DronePickPlace* env) {
         obj->is_grasped = 0;
         obj->is_placed = 0;
     }
-    
-    // Reset drones - START AWAY FROM TARGET ZONE
+
     for (int d = 0; d < env->num_drones; d++) {
         Drone* drone = &env->drones[d];
         
@@ -450,7 +434,7 @@ void c_reset(DronePickPlace* env) {
         drone->x = 0.7f;  // Left of object (object at 1.0, target at 1.15)
         drone->y = 1.0f;  // Same Y as object  
         drone->z = 0.25f;  // Above ground level
-        
+
         drone->vx = drone->vy = drone->vz = 0;
         drone->wx = drone->wy = drone->wz = 0;
         drone->yaw = 0;  // Fixed orientation facing forward
@@ -465,8 +449,7 @@ void c_reset(DronePickPlace* env) {
         drone->state = STATE_SEARCHING;
         drone->ticks_without_progress = 0;
     }
-    
-    // Reset target zone - VERY close to starting position
+
     for (int t = 0; t < env->num_targets; t++) {
         TargetZone* target = &env->targets[t];
         // Target EXTREMELY close - almost overlapping
@@ -476,51 +459,40 @@ void c_reset(DronePickPlace* env) {
         target->radius = 0.3f;  // Very large radius for easy placement
         target->has_object = 0;
     }
-    
-    // Clear rewards and terminals
+
     memset(env->rewards, 0, env->num_drones * sizeof(float));
     memset(env->terminals, 0, env->num_drones * sizeof(unsigned char));
-    
-    // Compute initial observations
+
     compute_observations(env);
 }
 
-// Required step function
 void c_step(DronePickPlace* env) {
     env->current_step++;
-    
-    // Clear rewards (do this every step)
+
     memset(env->rewards, 0, env->num_drones * sizeof(float));
-    
-    // Update drone physics
+
     for (int d = 0; d < env->num_drones; d++) {
         update_drone_physics(env, d);
-        
-        // Penalty for no progress
+
         env->drones[d].ticks_without_progress++;
         if (env->drones[d].ticks_without_progress > 500) {
-            env->rewards[d] = -0.1f;  // Small negative for no progress
+            env->rewards[d] = -0.1f;
         }
     }
-    
-    // Update grasping and placement
+
     update_grasping(env);
     update_placement(env);
-    
-    // Update physics for objects
+
     for (int o = 0; o < env->num_objects; o++) {
         Object* obj = &env->objects[o];
         
         if (obj->is_grasped) {
-            // Object follows the drone that grasped it
-            // Find which drone has it
             for (int d = 0; d < env->num_drones; d++) {
                 Drone* drone = &env->drones[d];
                 if (drone->state == STATE_TRANSPORTING) {
-                    // Move object with drone (slightly below it)
                     obj->x = drone->x;
                     obj->y = drone->y;
-                    obj->z = drone->z - 0.15f;  // Carry below drone
+                    obj->z = drone->z - 0.15f;
                     obj->vx = drone->vx;
                     obj->vy = drone->vy;
                     obj->vz = drone->vz;
@@ -528,19 +500,17 @@ void c_step(DronePickPlace* env) {
                 }
             }
         } else if (!obj->is_placed) {
-            // Apply gravity to free objects
             obj->vz += env->gravity * env->dt;
-            
+
             // Apply drag
             obj->vx *= 0.98f;
             obj->vy *= 0.98f;
             obj->vz *= 0.98f;
-            
-            // Update position
+
             obj->x += obj->vx * env->dt;
             obj->y += obj->vy * env->dt;
             obj->z += obj->vz * env->dt;
-            
+
             // Ground collision
             if (obj->z < 0.1f) {
                 obj->z = 0.1f;
@@ -548,27 +518,27 @@ void c_step(DronePickPlace* env) {
                 obj->vx *= 0.8f;  // Friction
                 obj->vy *= 0.8f;
             }
-            
+
             // Boundary constraints
             obj->x = fmaxf(obj->radius, fminf(env->world_size - obj->radius, obj->x));
             obj->y = fmaxf(obj->radius, fminf(env->world_size - obj->radius, obj->y));
         }
     }
-    
+
     // Compute rewards based on distance to objectives
     for (int d = 0; d < env->num_drones; d++) {
         Drone* drone = &env->drones[d];
-        
+
         // SPARSE REWARDS - only significant milestones get rewarded
         Object* obj = &env->objects[0];
         TargetZone* target = &env->targets[0];
-        
+
         if (!obj->is_placed) {
             if (!obj->is_grasped) {
                 // PHASE 1: Need to pick up object
                 float dist_to_obj = distance3d(drone->x, drone->y, drone->z,
                                               obj->x, obj->y, obj->z);
-                
+
                 // Small negative reward for time pressure
                 float reward = -0.001f;
                 
@@ -603,7 +573,7 @@ void c_step(DronePickPlace* env) {
                 
                 // Small negative reward for time pressure
                 float reward = -0.001f;
-                
+
                 // Check if drone is moving toward target
                 float dx = target->x - drone->x;
                 float dy = target->y - drone->y;
@@ -615,14 +585,14 @@ void c_step(DronePickPlace* env) {
                     dx *= inv_dist;
                     dy *= inv_dist;
                     dz *= inv_dist;
-                    
+
                     // Dot product with velocity
                     float vel_toward = drone->vx * dx + drone->vy * dy + drone->vz * dz;
                     if (vel_toward > 0.01f) {
                         reward = 0.02f;  // Slightly higher reward for carrying toward target
                     }
                 }
-                
+
                 env->rewards[d] = reward;
             }
         } else {
@@ -630,7 +600,7 @@ void c_step(DronePickPlace* env) {
             env->rewards[d] = 0.0f;
         }
     }
-    
+
     // Check termination conditions
     int all_placed = 1;
     for (int o = 0; o < env->num_objects; o++) {
@@ -639,7 +609,7 @@ void c_step(DronePickPlace* env) {
             break;
         }
     }
-    
+
     if (all_placed || env->current_step >= env->max_steps) {
         for (int d = 0; d < env->num_drones; d++) {
             env->terminals[d] = 1;
@@ -650,21 +620,17 @@ void c_step(DronePickPlace* env) {
         add_log(env);
         c_reset(env);
     }
-    
-    // Update observations
+
     compute_observations(env);
 }
 
-// Required render function
 void c_render(DronePickPlace* env) {
     if (!IsWindowReady()) {
         InitWindow(800, 600, "Drone Pick & Place Environment");
         SetTargetFPS(30);
-        
-        // Initialize client if needed
+
         if (env->client == NULL) {
             env->client = calloc(1, sizeof(Client));
-            // Better camera angle - isometric view
             env->client->camera.position = (Vector3){env->world_size * 1.5f, -env->world_size * 0.8f, env->world_size * 1.2f};
             env->client->camera.target = (Vector3){env->world_size/2, env->world_size/2, 0.3f};
             env->client->camera.up = (Vector3){0, 0, 1};
@@ -672,16 +638,16 @@ void c_render(DronePickPlace* env) {
             env->client->camera.projection = CAMERA_PERSPECTIVE;
         }
     }
-    
+
     if (IsKeyDown(KEY_ESCAPE)) {
         exit(0);
     }
-    
+
     BeginDrawing();
     ClearBackground((Color){50, 50, 60, 255});
-    
+
     BeginMode3D(env->client->camera);
-    
+
     // Draw ground plane
     DrawCube((Vector3){env->world_size/2, env->world_size/2, -0.01f}, 
              env->world_size, env->world_size, 0.02f, (Color){80, 80, 90, 255});
@@ -692,8 +658,7 @@ void c_render(DronePickPlace* env) {
         DrawLine3D((Vector3){pos, 0, 0}, (Vector3){pos, env->world_size, 0}, (Color){100, 100, 110, 150});
         DrawLine3D((Vector3){0, pos, 0}, (Vector3){env->world_size, pos, 0}, (Color){100, 100, 110, 150});
     }
-    
-    // Draw drones
+
     for (int d = 0; d < env->num_drones; d++) {
         Drone* drone = &env->drones[d];
         // Drone body color indicates gripper state
@@ -710,8 +675,7 @@ void c_render(DronePickPlace* env) {
                         drone->z};
         DrawLine3D((Vector3){drone->x, drone->y, drone->z}, front, RED);
     }
-    
-    // Draw objects as cubes for better visibility
+
     for (int o = 0; o < env->num_objects; o++) {
         Object* obj = &env->objects[o];
         Color obj_color = obj->is_placed ? GREEN : (obj->is_grasped ? YELLOW : RED);
@@ -721,8 +685,7 @@ void c_render(DronePickPlace* env) {
         // Draw cube wires for better visibility
         DrawCubeWires((Vector3){obj->x, obj->y, obj->z}, cube_size, cube_size, cube_size, BLACK);
     }
-    
-    // Draw target zones
+
     for (int t = 0; t < env->num_targets; t++) {
         TargetZone* target = &env->targets[t];
         // Draw target zones more visibly
@@ -735,9 +698,9 @@ void c_render(DronePickPlace* env) {
                             (Vector3){target->x, target->y, 0.03f},
                             target->radius, target->radius, 12, (Color){255, 255, 255, 200});
     }
-    
+
     EndMode3D();
-    
+
     // Draw HUD
     DrawText(TextFormat("Step: %d/%d", env->current_step, env->max_steps), 10, 10, 20, WHITE);
     int placed = 0;
@@ -745,11 +708,11 @@ void c_render(DronePickPlace* env) {
         if (env->objects[o].is_placed) placed++;
     }
     DrawText(TextFormat("Placed: %d/%d", placed, env->num_objects), 10, 35, 20, WHITE);
-    
+
     // Display reward for first drone
     if (env->num_drones > 0) {
         DrawText(TextFormat("Reward: %.3f", env->rewards[0]), 10, 60, 20, YELLOW);
-        
+
         // Show drone state
         Drone* drone = &env->drones[0];
         const char* state_str = "UNKNOWN";
@@ -761,18 +724,17 @@ void c_render(DronePickPlace* env) {
             case STATE_PLACING: state_str = "PLACING"; break;
         }
         DrawText(TextFormat("State: %s", state_str), 10, 85, 20, SKYBLUE);
-        
+
         // Show object status
         if (env->num_objects > 0) {
             Object* obj = &env->objects[0];
             DrawText(TextFormat("Object: %s", obj->is_grasped ? "GRASPED" : "FREE"), 10, 110, 20, GREEN);
         }
     }
-    
+
     EndDrawing();
 }
 
-// Required close function
 void c_close(DronePickPlace* env) {
     if (env->drones) {
         free(env->drones);
