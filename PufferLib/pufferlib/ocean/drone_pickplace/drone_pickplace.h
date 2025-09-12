@@ -239,7 +239,7 @@ void update_grasping(DronePickPlace* env) {
                     env->stats.grasp_attempts++;
                     obj->is_grasped = 1;
                     drone->state = STATE_TRANSPORTING;
-                    env->rewards[d] = 1.0f;
+                    env->rewards[d] = env->reward_grasp;
                     env->stats.grasp_successes++;
 
                     // Only log in debug mode (standalone) to avoid spam from parallel envs
@@ -301,7 +301,7 @@ void update_placement(DronePickPlace* env) {
                                     obj->vx = obj->vy = obj->vz = 0;
                                     target->has_object = 1;
                                     drone->state = STATE_SEARCHING;
-                                    env->rewards[d] = 1.0f;
+                                    env->rewards[d] = env->reward_place;
                                     env->stats.placement_successes++;
                                 env->log.perf += 1.0f;
                                 env->log.score += 50.0f;
@@ -476,7 +476,7 @@ void c_step(DronePickPlace* env) {
 
         env->drones[d].ticks_without_progress++;
         if (env->drones[d].ticks_without_progress > 500) {
-            env->rewards[d] = -0.1f;
+            env->rewards[d] = env->penalty_no_progress;
         }
     }
 
@@ -540,7 +540,7 @@ void c_step(DronePickPlace* env) {
                                               obj->x, obj->y, obj->z);
 
                 // Small negative reward for time pressure
-                float reward = -0.001f;
+                float reward = env->penalty_time;
                 
                 // Small reward only when VERY close and moving toward object
                 if (dist_to_obj < 0.3f) {
@@ -559,7 +559,7 @@ void c_step(DronePickPlace* env) {
                         // Dot product with velocity
                         float vel_toward = drone->vx * dx + drone->vy * dy + drone->vz * dz;
                         if (vel_toward > 0.01f) {
-                            reward = 0.01f;  // Small reward for approaching when close
+                            reward = env->reward_approach;  // Small reward for approaching when close
                         }
                     }
                 }
@@ -572,7 +572,7 @@ void c_step(DronePickPlace* env) {
                                                  target->x, target->y, target->z);
                 
                 // Small negative reward for time pressure
-                float reward = -0.001f;
+                float reward = env->penalty_time;
 
                 // Check if drone is moving toward target
                 float dx = target->x - drone->x;
@@ -589,7 +589,7 @@ void c_step(DronePickPlace* env) {
                     // Dot product with velocity
                     float vel_toward = drone->vx * dx + drone->vy * dy + drone->vz * dz;
                     if (vel_toward > 0.01f) {
-                        reward = 0.02f;  // Slightly higher reward for carrying toward target
+                        reward = 2.0f * env->reward_approach;  // Slightly higher reward for carrying toward target todo
                     }
                 }
 
@@ -614,7 +614,7 @@ void c_step(DronePickPlace* env) {
         for (int d = 0; d < env->num_drones; d++) {
             env->terminals[d] = 1;
             if (all_placed) {
-                env->rewards[d] = 1.0f; // Max reward for completing task
+                env->rewards[d] = env->reward_complete; // Max reward for completing task
             }
         }
         add_log(env);

@@ -30,8 +30,8 @@ int main(int argc, char* argv[]) {
     env.reward_complete = 1.0;
     env.reward_grasp = 1.0;
     env.reward_place = 1.0;
-    env.penalty_no_progress = 0.1;
-    env.penalty_time = 0.001;
+    env.penalty_no_progress = -0.1;
+    env.penalty_time = -0.001;
     
     int obs_per_drone = 45;
     env.observations = calloc(env.num_drones * obs_per_drone, sizeof(float));
