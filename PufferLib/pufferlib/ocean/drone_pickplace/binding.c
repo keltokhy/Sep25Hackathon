@@ -10,7 +10,15 @@ static int my_init(Env* env, PyObject* args, PyObject* kwargs) {
     env->world_size = unpack(kwargs, "world_size");
     env->max_height = unpack(kwargs, "max_height");
     env->max_steps = unpack(kwargs, "max_steps");
-    init(env); // Call our init function from drone_pickplace.h
+
+    env->reward_approach = unpack(kwargs, "reward_approach");
+    env->reward_complete = unpack(kwargs, "reward_complete");
+    env->reward_grasp = unpack(kwargs, "reward_grasp");
+    env->reward_place = unpack(kwargs, "reward_place");
+    env->pelanty_no_progress = unpack(kwargs, "pelanty_no_progress");
+    env->penalty_time = unpack(kwargs, "penalty_time");
+
+    init(env);
     return 0;
 }
 
