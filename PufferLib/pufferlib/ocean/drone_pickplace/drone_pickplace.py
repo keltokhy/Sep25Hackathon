@@ -27,9 +27,11 @@ from pufferlib.ocean.drone_pickplace import binding
 
 class DronePickPlace(pufferlib.PufferEnv):
     def __init__(self, num_envs=1, render_mode=None, log_interval=128, 
-                 num_drones=1, num_objects=1, num_targets=1,
-                 world_size=2.0, max_height=1.5, max_steps=500,
-                 buf=None, seed=0, **kwargs):
+                num_drones=1, num_objects=1, num_targets=1,
+                world_size=2.0, max_height=1.5, max_steps=500,
+                reward_approach=0.01, reward_complete=1.0, reward_grasp=1.0,
+                reward_place=1.0, penalty_no_progress=0.1, penalty_time=0.001,
+                buf=None, seed=0, **kwargs):
 
         obs_per_drone = 45
         total_obs_size = num_drones * obs_per_drone
@@ -58,6 +60,13 @@ class DronePickPlace(pufferlib.PufferEnv):
         self.world_size = world_size
         self.max_height = max_height
         self.max_steps = max_steps
+
+        self.reward_approach = reward_approach
+        self.reward_complete = reward_complete
+        self.reward_grasp = reward_grasp
+        self.reward_place = reward_place
+        self.penalty_no_progress = penalty_no_progress
+        self.penalty_time = penalty_time
 
         super().__init__(buf)
 
