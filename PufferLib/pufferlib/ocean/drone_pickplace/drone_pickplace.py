@@ -30,41 +30,37 @@ class DronePickPlace(pufferlib.PufferEnv):
                  num_drones=1, num_objects=1, num_targets=1,
                  world_size=2.0, max_height=1.5, max_steps=500,
                  buf=None, seed=0, **kwargs):
-        
-        # Fixed to 45 observations (must match C code)
-        # The C code always outputs 45 observations regardless of object/target count
+
         obs_per_drone = 45
         total_obs_size = num_drones * obs_per_drone
-        
+
         # Single agent wrapper for now (even with multiple drones)
-        # Can be extended to multi-agent later
+        # Can be extended to multi-agent later todo
         self.single_observation_space = gymnasium.spaces.Box(
             low=-np.inf, high=np.inf,
             shape=(total_obs_size,), 
             dtype=np.float32
         )
-        
+
         # 10 discrete actions for quadcopter control
         # Movement: forward, backward, left, right, up, down (6)
         # Rotation: yaw left, yaw right (2)
         # Gripper: open, close (2)
         self.single_action_space = gymnasium.spaces.Discrete(10)
-        
+
         self.render_mode = render_mode
         self.num_agents = num_envs
         self.log_interval = log_interval
-        
-        # Store environment parameters
+
         self.num_drones = num_drones
         self.num_objects = num_objects
         self.num_targets = num_targets
         self.world_size = world_size
         self.max_height = max_height
         self.max_steps = max_steps
-        
+
         super().__init__(buf)
-        
-        # Initialize C environments
+
         self.c_envs = binding.vec_init(
             self.observations, self.actions, self.rewards,
             self.terminals, self.truncations, num_envs, seed,
@@ -73,48 +69,50 @@ class DronePickPlace(pufferlib.PufferEnv):
             num_targets=num_targets,
             world_size=world_size,
             max_height=max_height,
-            max_steps=max_steps
+            max_steps=max_steps,
+            reward_approach=reward_approach,
+            reward_complete=reward_complete,
+            reward_grasp=reward_grasp,
+            reward_place=reward_place,
+            penalty_no_progress=penalty_no_progress,
+            penalty_time=penalty_time
         )
-    
+
     def reset(self, seed=0):
         binding.vec_reset(self.c_envs, seed)
         self.tick = 0
         return self.observations, []
-    
+
     def step(self, actions):
         self.tick += 1
-        
-        # Handle multi-drone case if needed
+
         if self.num_drones > 1:
-            # For multi-drone, actions should be reshaped appropriately
-            # For now, we'll replicate the action for all drones
             expanded_actions = np.repeat(actions, self.num_drones, axis=0)
             self.actions[:] = expanded_actions
         else:
             self.actions[:] = actions
-        
+
         binding.vec_step(self.c_envs)
-        
+
         info = []
         if self.tick % self.log_interval == 0:
             info.append(binding.vec_log(self.c_envs))
-        
+
         return (self.observations, self.rewards,
                 self.terminals, self.truncations, info)
-    
+
     def render(self):
         binding.vec_render(self.c_envs, 0)
-    
+
     def close(self):
         binding.vec_close(self.c_envs)
 
-# Multi-agent version for future extension
 class DronePickPlaceMultiAgent(DronePickPlace):
     def __init__(self, num_envs=1, render_mode=None, log_interval=128,
                  num_drones=2, num_objects=3, num_targets=2,
                  world_size=2.0, max_height=1.5, max_steps=1000,
                  buf=None, seed=0):
-        
+
         super().__init__(
             num_envs=num_envs * num_drones,  # Each drone is an agent
             render_mode=render_mode,
@@ -128,73 +126,73 @@ class DronePickPlaceMultiAgent(DronePickPlace):
             buf=buf,
             seed=seed
         )
-        
+
         self.num_agents = num_envs * num_drones
 
 
 def test_environment():
     """Test the environment with random actions"""
     import time
-    
+
     print("Testing Drone Pick & Place Environment")
     print("=" * 50)
-    
+
     # Single environment test
     env = DronePickPlace(num_envs=1, render_mode="human")
     obs, _ = env.reset()
-    
+
     print(f"Observation shape: {obs.shape}")
     print(f"Action space: {env.single_action_space}")
     print(f"Observation space: {env.single_observation_space}")
-    
+
     steps = 0
     episode_reward = 0
-    
+
     for _ in range(1000):
         # Random action
         action = np.random.randint(0, 10, size=(1,))
-        
+
         obs, reward, done, truncated, info = env.step(action)
         episode_reward += reward[0]
         steps += 1
-        
+
         if render_mode == "human":
             env.render()
             time.sleep(0.01)
-        
+
         if done[0] or truncated[0]:
             print(f"Episode ended. Steps: {steps}, Reward: {episode_reward:.2f}")
             obs, _ = env.reset()
             steps = 0
             episode_reward = 0
-    
+
     env.close()
-    
+
     # Performance test with multiple environments
     print("\nPerformance Test")
     print("-" * 50)
-    
+
     N = 256  # Number of parallel environments
     env = DronePickPlace(num_envs=N)
     env.reset()
-    
+
     CACHE = 1024
     actions = np.random.randint(0, 10, (CACHE, N))
-    
+
     i = 0
     start = time.time()
     total_steps = 0
-    
+
     while time.time() - start < 10:
         env.step(actions[i % CACHE])
         total_steps += N
         i += 1
-    
+
     elapsed = time.time() - start
     sps = int(total_steps / elapsed)
     print(f'DronePickPlace SPS: {sps:,} ({N} environments)')
     print(f'Steps per environment: {total_steps // N}')
-    
+
     env.close()
 
 
