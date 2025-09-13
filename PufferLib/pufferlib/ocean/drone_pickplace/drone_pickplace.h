@@ -6,25 +6,26 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdint.h>
 #include <math.h>
 #include "raylib.h"
 
-const unsigned char MOVE_FORWARD = 0;
-const unsigned char MOVE_BACKWARD = 1;
-const unsigned char MOVE_LEFT = 2;
-const unsigned char MOVE_RIGHT = 3;
-const unsigned char MOVE_UP = 4;
-const unsigned char MOVE_DOWN = 5;
-const unsigned char ROTATE_LEFT = 6;
-const unsigned char ROTATE_RIGHT = 7;
-const unsigned char GRIPPER_OPEN = 8;
-const unsigned char GRIPPER_CLOSE = 9;
+const uint8_t MOVE_FORWARD = 0;
+const uint8_t MOVE_BACKWARD = 1;
+const uint8_t MOVE_LEFT = 2;
+const uint8_t MOVE_RIGHT = 3;
+const uint8_t MOVE_UP = 4;
+const uint8_t MOVE_DOWN = 5;
+const uint8_t ROTATE_LEFT = 6;
+const uint8_t ROTATE_RIGHT = 7;
+const uint8_t GRIPPER_OPEN = 8;
+const uint8_t GRIPPER_CLOSE = 9;
 
-const unsigned char STATE_SEARCHING = 0;
-const unsigned char STATE_APPROACHING = 1;
-const unsigned char STATE_GRASPING = 2;
-const unsigned char STATE_TRANSPORTING = 3;
-const unsigned char STATE_PLACING = 4;
+const uint8_t STATE_SEARCHING = 0;
+const uint8_t STATE_APPROACHING = 1;
+const uint8_t STATE_GRASPING = 2;
+const uint8_t STATE_TRANSPORTING = 3;
+const uint8_t STATE_PLACING = 4;
 
 typedef struct {
     float perf; // 0-1 normalized performance metric
@@ -51,7 +52,7 @@ typedef struct {
     float wx, wy, wz;
     float yaw, pitch, roll; // Euler angles for convenience
     float gripper_open; // 0 = closed, 1 = open
-    unsigned char state;
+    uint8_t state;
     int ticks_without_progress;
 } Drone;
 
@@ -59,14 +60,14 @@ typedef struct {
     float x, y, z;
     float vx, vy, vz;
     float radius;
-    unsigned char is_grasped;
-    unsigned char is_placed;
+    uint8_t is_grasped;
+    uint8_t is_placed;
 } Object;
 
 typedef struct {
     float x, y, z;
     float radius;
-    unsigned char has_object;
+    uint8_t has_object;
 } TargetZone;
 
 typedef struct {
@@ -84,7 +85,7 @@ typedef struct {
     float* observations; // Required - continuous observations
     int* actions; // Required - discrete actions
     float* rewards; // Required
-    unsigned char* terminals; // Required
+    uint8_t* terminals; // Required
 
     int num_drones;
     int num_objects;
@@ -546,7 +547,7 @@ void c_reset(DronePickPlace* env) {
     }
 
     memset(env->rewards, 0, env->num_drones * sizeof(float));
-    memset(env->terminals, 0, env->num_drones * sizeof(unsigned char));
+    memset(env->terminals, 0, env->num_drones * sizeof(uint8_t));
 
     compute_observations(env);
 }
