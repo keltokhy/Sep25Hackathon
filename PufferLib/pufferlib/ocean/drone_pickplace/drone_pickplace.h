@@ -333,42 +333,37 @@ void compute_observations(DronePickPlace* env) {
         int obs_idx = d * obs_per_drone;
 
         // Drone state (14 values)
-        // Position (3)
         env->observations[obs_idx++] = drone->x / env->world_size;
         env->observations[obs_idx++] = drone->y / env->world_size;
         env->observations[obs_idx++] = drone->z / env->max_height;
 
-        // Velocity (3)
         env->observations[obs_idx++] = drone->vx / env->max_velocity;
         env->observations[obs_idx++] = drone->vy / env->max_velocity;
         env->observations[obs_idx++] = drone->vz / env->max_velocity;
 
-        // Orientation quaternion (4)
         env->observations[obs_idx++] = drone->qw;
         env->observations[obs_idx++] = drone->qx;
         env->observations[obs_idx++] = drone->qy;
         env->observations[obs_idx++] = drone->qz;
 
-        // Angular velocity (3)
         env->observations[obs_idx++] = drone->wx / env->max_angular_velocity;
         env->observations[obs_idx++] = drone->wy / env->max_angular_velocity;
         env->observations[obs_idx++] = drone->wz / env->max_angular_velocity;
 
-        // Gripper state (1)
         env->observations[obs_idx++] = drone->gripper_open;
 
         // Object states (7 per object * 3 objects = 21)
         for (int o = 0; o < env->num_objects; o++) {
             Object* obj = &env->objects[o];
-            // Position (3)
+
             env->observations[obs_idx++] = obj->x / env->world_size;
             env->observations[obs_idx++] = obj->y / env->world_size;
             env->observations[obs_idx++] = obj->z / env->max_height;
-            // Velocity (3)
+
             env->observations[obs_idx++] = obj->vx / env->max_velocity;
             env->observations[obs_idx++] = obj->vy / env->max_velocity;
             env->observations[obs_idx++] = obj->vz / env->max_velocity;
-            // Status (1)
+
             env->observations[obs_idx++] = (float)(obj->is_grasped * 2 + obj->is_placed);
         }
 
@@ -395,7 +390,6 @@ void compute_observations(DronePickPlace* env) {
     }
 }
 
-// Add to log
 void add_log(DronePickPlace* env) {
     env->log.episode_length += env->current_step;
     for (int d = 0; d < env->num_drones; d++) {
@@ -406,58 +400,149 @@ void add_log(DronePickPlace* env) {
     env->log.n++;
 }
 
+bool no_overlap_2d(float x1, float y1, float r1, float x2, float y2, float r2, float extra) {
+    float dx = x2 - x1;
+    float dy = y2 - y1;
+    float dist2 = dx*dx + dy*dy;
+    float min_sep = r1 + r2 + extra;
+    return dist2 > (min_sep * min_sep);
+};
+
 void c_reset(DronePickPlace* env) {
+
     env->current_step = 0;
-    
+
     env->stats.grasp_attempts = 0;
     env->stats.grasp_successes = 0;
     env->stats.placement_attempts = 0;
     env->stats.placement_successes = 0;
 
+    float world = (env->world_size > 0.0f) ? env->world_size : 2.0f;
+    float zmax  = (env->max_height > 0.2f) ? env->max_height : 1.0f;
+
+    const float margin = 0.15f;
+    const float drone_clearance = 0.20f;
+    const float min_obj_radius = 0.08f;
+    const float min_tgt_radius = 0.20f;
+    const int   max_attempts = 1000;
+
     for (int o = 0; o < env->num_objects; o++) {
         Object* obj = &env->objects[o];
-        obj->x = 0.5f;  // Left side, away from target at 1.15
-        obj->y = 1.0f;  // Center Y
-        obj->z = 0.1f; // On ground
-        obj->vx = obj->vy = obj->vz = 0;
-        obj->radius = 0.1f;  // Larger for easier grasping
+
+        if (obj->radius <= 0.0f) obj->radius = min_obj_radius;
+
+        int attempts = 0;
+        while (1) {
+            attempts++;
+            obj->x = randf(margin + obj->radius, world - margin - obj->radius);
+            obj->y = randf(margin + obj->radius, world - margin - obj->radius);
+            obj->z = 0.1f;
+
+            int ok = 1;
+            for (int k = 0; k < o; k++) {
+                Object* other = &env->objects[k];
+                if (!no_overlap_2d(obj->x, obj->y, obj->radius, other->x, other->y, other->radius, margin)) {
+                    ok = 0; break;
+                }
+            }
+            if (ok || attempts > max_attempts) break;
+        }
+
+        obj->vx = obj->vy = obj->vz = 0.0f;
         obj->is_grasped = 0;
         obj->is_placed = 0;
     }
 
+    for (int t = 0; t < env->num_targets; t++) {
+        TargetZone* tgt = &env->targets[t];
+        if (tgt->radius <= 0.0f) tgt->radius = min_tgt_radius;
+
+        int attempts = 0;
+        while (1) {
+            attempts++;
+            tgt->x = randf(margin + tgt->radius, world - margin - tgt->radius);
+            tgt->y = randf(margin + tgt->radius, world - margin - tgt->radius);
+            tgt->z = 0.1f;
+
+            int ok = 1;
+
+            for (int o = 0; o < env->num_objects; o++) {
+                Object* obj = &env->objects[o];
+                if (!no_overlap_2d(tgt->x, tgt->y, tgt->radius, obj->x, obj->y, obj->radius, margin)) {
+                    ok = 0; break;
+                }
+            }
+            if (ok) {
+                for (int k = 0; k < t; k++) {
+                    TargetZone* other = &env->targets[k];
+                    if (!no_overlap_2d(tgt->x, tgt->y, tgt->radius, other->x, other->y, other->radius, margin)) {
+                        ok = 0; break;
+                    }
+                }
+            }
+
+            if (ok || attempts > max_attempts) break;
+        }
+
+        tgt->has_object = 0;
+    }
+
     for (int d = 0; d < env->num_drones; d++) {
         Drone* drone = &env->drones[d];
-        
-        // Start to the LEFT of object, away from target zone
-        // Object is at (1.0, 1.0), target is at (1.15, 1.0)
-        // So we start at (0.7, 1.0) - must move RIGHT to get to object
-        drone->x = 0.7f;  // Left of object (object at 1.0, target at 1.15)
-        drone->y = 1.0f;  // Same Y as object  
-        drone->z = 0.25f;  // Above ground level
 
-        drone->vx = drone->vy = drone->vz = 0;
-        drone->wx = drone->wy = drone->wz = 0;
-        drone->yaw = 0;  // Fixed orientation facing forward
-        drone->pitch = 0;
-        drone->roll = 0;
+        int attempts = 0;
+        while (1) {
+            attempts++;
+            drone->x = randf(margin + drone_clearance, world - margin - drone_clearance);
+            drone->y = randf(margin + drone_clearance, world - margin - drone_clearance);
+
+            float z_lo = fminf(0.25f, zmax * 0.2f);
+            float z_hi = fmaxf(0.6f, zmax * 0.8f);
+            z_hi = fminf(z_hi, zmax - 0.05f);
+            z_lo = fmaxf(z_lo, 0.15f);
+            if (z_lo > z_hi) { z_lo = 0.2f; z_hi = fmaxf(0.4f, zmax * 0.6f); }
+            drone->z = randf(z_lo, z_hi);
+
+            int ok = 1;
+
+            for (int o = 0; o < env->num_objects && ok; o++) {
+                Object* obj = &env->objects[o];
+                if (!no_overlap_2d(drone->x, drone->y, drone_clearance, obj->x, obj->y, obj->radius, margin * 0.5f)) {
+                    ok = 0;
+                }
+            }
+            for (int t = 0; t < env->num_targets && ok; t++) {
+                TargetZone* tgt = &env->targets[t];
+                if (!no_overlap_2d(drone->x, drone->y, drone_clearance, tgt->x, tgt->y, tgt->radius, margin * 0.5f)) {
+                    ok = 0;
+                }
+            }
+            for (int k = 0; k < d && ok; k++) {
+                Drone* other = &env->drones[k];
+                if (!no_overlap_2d(drone->x, drone->y, drone_clearance, other->x, other->y, drone_clearance, margin * 0.5f)) {
+                    ok = 0;
+                }
+            }
+
+            if (ok || attempts > max_attempts) break;
+        }
+
+        drone->vx = drone->vy = drone->vz = 0.0f;
+        drone->wx = drone->wy = drone->wz = 0.0f;
+
+        drone->yaw = randf(-PI, PI);
+        drone->pitch = 0.0f;
+        drone->roll = 0.0f;
+
         // Initialize quaternion from yaw
-        drone->qw = 1.0f;  // No rotation
+        drone->qw = cosf(drone->yaw * 0.5f);
         drone->qx = 0.0f;
         drone->qy = 0.0f;
-        drone->qz = 0.0f;
+        drone->qz = sinf(drone->yaw * 0.5f);
+
         drone->gripper_open = 1.0f;
         drone->state = STATE_SEARCHING;
         drone->ticks_without_progress = 0;
-    }
-
-    for (int t = 0; t < env->num_targets; t++) {
-        TargetZone* target = &env->targets[t];
-        // Target EXTREMELY close - almost overlapping
-        target->x = 1.15f;  // Only 0.15 units to the right of object
-        target->y = 1.0f;  // Same Y as object
-        target->z = 0.1f;  // Same height as object for easy placement
-        target->radius = 0.3f;  // Very large radius for easy placement
-        target->has_object = 0;
     }
 
     memset(env->rewards, 0, env->num_drones * sizeof(float));
@@ -648,7 +733,7 @@ void c_render(DronePickPlace* env) {
     // Draw ground plane
     DrawCube((Vector3){env->world_size/2, env->world_size/2, -0.01f}, 
              env->world_size, env->world_size, 0.02f, (Color){80, 80, 90, 255});
-    
+
     // Draw grid lines for reference (make them subtle)
     for (int i = 0; i <= 10; i++) {
         float pos = i * env->world_size / 10.0f;
@@ -661,11 +746,11 @@ void c_render(DronePickPlace* env) {
         // Drone body color indicates gripper state
         Color drone_color = drone->gripper_open > 0.5f ? (Color){100, 150, 255, 255} : (Color){100, 255, 150, 255};
         DrawCube((Vector3){drone->x, drone->y, drone->z}, 0.15f, 0.15f, 0.08f, drone_color);
-        
+
         // Draw propellers (simplified)
         DrawCube((Vector3){drone->x, drone->y, drone->z + 0.05f}, 0.25f, 0.02f, 0.01f, (Color){50, 50, 50, 200});
         DrawCube((Vector3){drone->x, drone->y, drone->z + 0.05f}, 0.02f, 0.25f, 0.01f, (Color){50, 50, 50, 200});
-        
+
         // Draw heading indicator
         Vector3 front = {drone->x + cosf(drone->yaw) * 0.15f,
                         drone->y + sinf(drone->yaw) * 0.15f,
