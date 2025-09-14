@@ -429,8 +429,10 @@ void reset_agent(DronePP* env, Drone *agent, int idx) {
         agent->grip_height = 0.0f;
         agent->approaching_pickup = false;
         agent->hovering_pickup = false;
+        agent->descent_pickup = false;
         agent->approaching_drop = false;
         agent->hovering_drop = false;
+        agent->descent_drop = false;
         agent->hover_timer = 0.0f;
     }
 
@@ -530,6 +532,7 @@ void c_step(DronePP *env) {
 
             if (!agent->gripping) {
                 // === PICKUP PHASE ===
+                agent->approaching_pickup = true;
 
                 // Calculate distances for pickup
                 float xy_dist_to_box = sqrtf(powf(agent->state.pos.x - agent->box_pos.x, 2) +
@@ -582,28 +585,35 @@ void c_step(DronePP *env) {
                                     z_dist_above_box < hover_z_max &&
                                     speed < hover_speed_threshold);
 
+                bool descent_hover_conditions = (xy_dist_to_box < hover_xy_threshold &&
+                                z_dist_above_box > 0.0f &&
+                                speed < hover_speed_threshold);
+
                 if (hover_conditions && !agent->hovering_pickup) {
                     agent->hovering_pickup = true;
-                    reward += 0.4f; // Significant bonus for achieving hover
-                    agent->color = (Color){255, 255, 255, 255}; // White when hovering
+                    reward += 0.2f; // Hover
+                    agent->color = (Color){255, 255, 255, 255}; // White
                 }
 
-                // Maintain hover state - must stay in position
+                // Maintain hover state
                 if (agent->hovering_pickup) {
-                    if (hover_conditions) {
-                        // Small continuous reward for maintaining hover
+                    bool maintain_hover = agent->descent_pickup ? descent_hover_conditions : hover_conditions;
+
+                    if (maintain_hover) {
                         reward += 0.02f;
                         agent->color = (Color){255, 255, 255, 255}; // White
 
                         // Reward slow descent
                         if (agent->state.vel.z < -0.02f && agent->state.vel.z > -0.25f) {
-                            reward += 0.08f;
-                            agent->color = (Color){0, 150, 255, 255}; // Light Blue for good descent
+                            reward += 0.3f;
+                            agent->color = (Color){0, 150, 255, 255}; // Light Blue
+                            agent->descent_pickup = true;
                         }
                     } else {
-                        // Lost hover - reset but don't penalize too harshly
+                        // Lost hover
                         agent->hovering_pickup = false;
-                        reward -= 0.1f; // Small penalty
+                        agent->descent_pickup = false;
+                        reward -= 0.1f;
                         agent->color = (Color){255, 100, 100, 255}; // Light Red
                     }
                 }
@@ -615,16 +625,16 @@ void c_step(DronePP *env) {
                     speed < grip_speed_threshold) {
 
                     agent->gripping = true;
-                    reward += 1.5f; // Large reward for successful pickup
+                    reward += 1.0f; // Grip
                     agent->hovering_pickup = false;
                     agent->hovering_drop = false;
-                    agent->color = (Color){0, 255, 0, 255}; // Green for success gripping
+                    agent->color = (Color){0, 255, 0, 255}; // Green
                 }
 
             } else {
                 // === DROP PHASE ===
 
-                agent->color = (Color){0, 255, 0, 255}; // Green for success gripping
+                agent->color = (Color){0, 255, 0, 255}; // Green
 
                 // Calculate distances for drop
                 float xy_dist_to_drop = sqrtf(powf(agent->state.pos.x - agent->drop_pos.x, 2) +
@@ -692,6 +702,17 @@ void c_step(DronePP *env) {
             if (speed > 1.0f) {
                 reward -= 0.01f * (speed - 1.0f);
             }
+
+        // Logging for TASK_PP
+        for (int i = 0; i < env->num_agents; i++) {
+            Drone *a = &env->agents[i];
+            if (a->approaching_pickup) env->log.to_pickup += 1.0f;
+            if (a->hovering_pickup) env->log.ho_pickup += 1.0f;
+            if (a->descent_pickup) env->log.de_pickup += 1.0f;
+            if (a->gripping) env->log.gripping += 1.0f;
+            if (a->approaching_drop) env->log.to_drop += 1.0f;
+            if (a->hovering_drop) env->log.ho_drop += 1.0f;
+        }
 
         } else { // ===========================================================================================================================
             // Delta reward
@@ -986,10 +1007,9 @@ void c_render(DronePP *env) {
     if (env->task == TASK_PP) {
         for (int i = 0; i < env->num_agents; i++) {
             Drone *agent = &env->agents[i];
-            Color box_color = agent->gripping ? YELLOW : BROWN;
             Vec3 render_pos = agent->gripping ? agent->state.pos : agent->box_pos;
-            DrawCube((Vector3){render_pos.x, render_pos.y, render_pos.z}, 0.4f, 0.4f, 0.4f, box_color);
-            DrawCube((Vector3){agent->drop_pos.x, agent->drop_pos.y, agent->drop_pos.z}, 0.5f, 0.5f, 0.1f, GREEN);
+            DrawCube((Vector3){render_pos.x, render_pos.y, render_pos.z}, 0.4f, 0.4f, 0.4f, BROWN);
+            DrawCube((Vector3){agent->drop_pos.x, agent->drop_pos.y, agent->drop_pos.z}, 0.5f, 0.5f, 0.1f, YELLOW);
         }
     }
 

@@ -59,6 +59,13 @@ struct Log {
     float timeout;
     float score;
     float perf;
+    float gripping;
+    float to_pickup;
+    float ho_pickup;
+    float de_pickup;
+    float to_drop;
+    float ho_drop;
+    float de_drop;
     float n;
 };
 
@@ -242,8 +249,10 @@ typedef struct {
     float grip_height;
     bool approaching_pickup;
     bool hovering_pickup;
+    bool descent_pickup;
     bool approaching_drop;
     bool hovering_drop;
+    bool descent_drop;
     float hover_timer;
     Color color;
 

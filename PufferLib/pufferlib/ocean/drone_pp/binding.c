@@ -18,6 +18,14 @@ static int my_log(PyObject *dict, Log *log) {
     assign_to_dict(dict, "oob", log->oob);
     assign_to_dict(dict, "episode_return", log->episode_return);
     assign_to_dict(dict, "episode_length", log->episode_length);
+
+    assign_to_dict(dict, "gripping", log->gripping);
+    assign_to_dict(dict, "to_pickup", log->to_pickup);
+    assign_to_dict(dict, "ho_pickup", log->ho_pickup);
+    assign_to_dict(dict, "de_pickup", log->de_pickup);
+    assign_to_dict(dict, "to_drop", log->to_drop);
+    assign_to_dict(dict, "ho_drop", log->ho_drop);
+
     assign_to_dict(dict, "n", log->n);
     return 0;
 }
