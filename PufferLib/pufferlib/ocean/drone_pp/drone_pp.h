@@ -21,11 +21,12 @@
 #define TASK_CONGO 5
 #define TASK_FLAG 6
 #define TASK_RACE 7
-#define TASK_N 8
+#define TASK_PP 8
+#define TASK_N 9
 
 char* TASK_NAMES[TASK_N] = {
     "Idle", "Hover", "Orbit", "Follow",
-    "Cube", "Congo", "FLAG", "Race"
+    "Cube", "Congo", "FLAG", "Race", "PP"
 };
 
 #define R (Color){255, 0, 0, 255}
@@ -205,7 +206,16 @@ void compute_observations(DronePP *env) {
             env->observations[idx++] = ring_norm.x;
             env->observations[idx++] = ring_norm.y;
             env->observations[idx++] = ring_norm.z;
-        } else {
+        } else if (env->task == TASK_PP) {
+            Vec3 to_box = quat_rotate(q_inv, sub3(agent->box_pos, agent->state.pos));
+            Vec3 to_drop = quat_rotate(q_inv, sub3(agent->drop_pos, agent->state.pos));
+            env->observations[idx++] = to_box.x / GRID_X;
+            env->observations[idx++] = to_box.y / GRID_Y;
+            env->observations[idx++] = to_box.z / GRID_Z;
+            env->observations[idx++] = to_drop.x / GRID_X;
+            env->observations[idx++] = to_drop.y / GRID_Y;
+            env->observations[idx++] = to_drop.z / GRID_Z;
+         } else {
             env->observations[idx++] = 0.0f;
             env->observations[idx++] = 0.0f;
             env->observations[idx++] = 0.0f;
@@ -312,6 +322,16 @@ void set_target_race(DronePP* env, int idx) {
     agent->target_vel = (Vec3){0.0f, 0.0f, 0.0f};
 }
 
+void set_target_pp(DronePP* env, int idx) {
+    Drone* agent = &env->agents[idx];
+    if (!agent->gripping) {
+        agent->target_pos = (Vec3){agent->box_pos.x, agent->box_pos.y, agent->box_pos.z + 1.5f};
+    } else {
+        agent->target_pos = (Vec3){agent->drop_pos.x, agent->drop_pos.y, agent->drop_pos.z + 1.5f};
+    }
+    agent->target_vel = (Vec3){0.0f, 0.0f, 0.0f};
+}
+
 void set_target(DronePP* env, int idx) {
     if (env->task == TASK_IDLE) {
         set_target_idle(env, idx);
@@ -329,6 +349,8 @@ void set_target(DronePP* env, int idx) {
         set_target_flag(env, idx);
     } else if (env->task == TASK_RACE) {
         set_target_race(env, idx);
+    } else if (env->task == TASK_PP) {
+        set_target_pp(env, idx);
     }
 }
 
@@ -395,6 +417,13 @@ void reset_agent(DronePP* env, Drone *agent, int idx) {
     agent->prev_pos = agent->state.pos;
     agent->spawn_pos = agent->state.pos;
 
+    if (env->task == TASK_PP) {
+        agent->box_pos = (Vec3){rndf(-MARGIN_X, MARGIN_X), rndf(-MARGIN_Y, MARGIN_Y), -GRID_Z + 0.5f};
+        agent->drop_pos = (Vec3){rndf(-MARGIN_X, MARGIN_X), rndf(-MARGIN_Y, MARGIN_Y), -GRID_Z + 0.5f};
+        agent->gripping = false;
+        agent->grip_height = 0.0f;
+    }
+
     compute_reward(env, agent, env->task != TASK_RACE);
 }
 
@@ -403,7 +432,7 @@ void c_reset(DronePP *env) {
     //env->task = rand() % (TASK_N - 1);
     
     if (rand() % 4) {
-        env->task = TASK_RACE;
+        env->task = TASK_FLAG; //CHOOSE TASK
     } else {
         env->task = rand() % (TASK_N - 1);
     }
@@ -471,6 +500,31 @@ void c_step(DronePP *env) {
                 compute_reward(env, agent, true);
             }
             reward += passed_ring;
+        } else if (env->task == TASK_PP) {
+            float box_dist = norm3(sub3(agent->state.pos, agent->box_pos));
+            float drop_dist = norm3(sub3(agent->drop_pos, agent->state.pos));
+
+            // Auto-grip when close to box and low enough
+            if (!agent->gripping && box_dist < 0.8f && agent->state.pos.z < agent->box_pos.z + 0.3f) {
+                agent->gripping = true;
+                agent->grip_height = agent->state.pos.z;
+                set_target(env, i);  // Switch to drop target
+            }
+
+            // Check if box hits ground while gripping (crash condition)
+            if (agent->gripping && agent->state.pos.z < agent->box_pos.z - 0.5f) {
+                env->rewards[i] -= 1;
+                env->terminals[i] = 1;
+                add_log(env, i, true);
+                reset_agent(env, agent, i);
+                continue;
+            }
+
+            // Auto-release when close to drop and low enough
+            if (agent->gripping && drop_dist < 0.8f && agent->state.pos.z < agent->drop_pos.z + 0.3f) {
+                agent->gripping = false;
+                reward += 5.0f; // Bonus for successful drop
+            }
         } else {
             // Delta reward
             reward = compute_reward(env, agent, true);
@@ -687,7 +741,7 @@ void c_render(DronePP *env) {
         Drone *agent = &env->agents[i];
 
         // draws drone body
-        Color body_color = FLAG_COLORS[i];
+        Color body_color = (env->task == TASK_PP && agent->gripping) ? GREEN : FLAG_COLORS[i];
         DrawSphere((Vector3){agent->state.pos.x, agent->state.pos.y, agent->state.pos.z}, 0.3f, body_color);
 
         // draws rotors according to thrust
@@ -758,6 +812,16 @@ void c_render(DronePP *env) {
         for (int i = 0; i < env->max_rings; i++) {
             Ring ring = env->ring_buffer[i];
             DrawRing3D(ring, ring_thickness, GREEN, BLUE);
+        }
+    }
+
+    if (env->task == TASK_PP) {
+        for (int i = 0; i < env->num_agents; i++) {
+            Drone *agent = &env->agents[i];
+            Color box_color = agent->gripping ? YELLOW : BROWN;
+            Vec3 render_pos = agent->gripping ? agent->state.pos : agent->box_pos;
+            DrawCube((Vector3){render_pos.x, render_pos.y, render_pos.z}, 0.4f, 0.4f, 0.4f, box_color);
+            DrawCube((Vector3){agent->drop_pos.x, agent->drop_pos.y, agent->drop_pos.z}, 0.5f, 0.5f, 0.1f, GREEN);
         }
     }
 

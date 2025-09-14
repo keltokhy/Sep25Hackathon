@@ -235,6 +235,12 @@ typedef struct {
     Vec3 target_pos;
     Vec3 target_vel;
 
+    // PP Pick and Place
+    Vec3 box_pos;
+    Vec3 drop_pos;
+    bool gripping;
+    float grip_height;
+
     // logging utils
     float last_abs_reward;
     float last_target_reward;
