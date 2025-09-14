@@ -79,16 +79,16 @@ typedef struct {
     Ring* ring_buffer;
 
     Client *client;
-} DroneSwarm;
+} DronePP;
 
-void init(DroneSwarm *env) {
+void init(DronePP *env) {
     env->agents = calloc(env->num_agents, sizeof(Drone));
     env->ring_buffer = calloc(env->max_rings, sizeof(Ring));
     env->log = (Log){0};
     env->tick = 0;
 }
 
-void add_log(DroneSwarm *env, int idx, bool oob) {
+void add_log(DronePP *env, int idx, bool oob) {
     Drone *agent = &env->agents[idx];
     env->log.score += agent->score;
     env->log.episode_return += agent->episode_return;
@@ -104,7 +104,7 @@ void add_log(DroneSwarm *env, int idx, bool oob) {
     agent->episode_return = 0.0f;
 }
 
-Drone* nearest_drone(DroneSwarm* env, Drone *agent) {
+Drone* nearest_drone(DronePP* env, Drone *agent) {
     float min_dist = 999999.0f;
     Drone *nearest = NULL;
     for (int i = 0; i < env->num_agents; i++) {
@@ -128,7 +128,7 @@ Drone* nearest_drone(DroneSwarm* env, Drone *agent) {
     return nearest;
 }
 
-void compute_observations(DroneSwarm *env) {
+void compute_observations(DronePP *env) {
     int idx = 0;
     for (int i = 0; i < env->num_agents; i++) {
         Drone *agent = &env->agents[i];
@@ -216,7 +216,7 @@ void compute_observations(DroneSwarm *env) {
     }
 }
 
-void move_target(DroneSwarm* env, Drone *agent) {
+void move_target(DronePP* env, Drone *agent) {
     agent->target_pos.x += agent->target_vel.x;
     agent->target_pos.y += agent->target_vel.y;
     agent->target_pos.z += agent->target_vel.z;
@@ -231,19 +231,19 @@ void move_target(DroneSwarm* env, Drone *agent) {
     }
 }
 
-void set_target_idle(DroneSwarm* env, int idx) {
+void set_target_idle(DronePP* env, int idx) {
     Drone *agent = &env->agents[idx];
     agent->target_pos = (Vec3){rndf(-MARGIN_X, MARGIN_X), rndf(-MARGIN_Y, MARGIN_Y), rndf(-MARGIN_Z, MARGIN_Z)};
     agent->target_vel = (Vec3){rndf(-V_TARGET, V_TARGET), rndf(-V_TARGET, V_TARGET), rndf(-V_TARGET, V_TARGET)};
 }
 
-void set_target_hover(DroneSwarm* env, int idx) {
+void set_target_hover(DronePP* env, int idx) {
     Drone *agent = &env->agents[idx];
     agent->target_pos = agent->state.pos;
     agent->target_vel = (Vec3){0.0f, 0.0f, 0.0f};
 }
 
-void set_target_orbit(DroneSwarm* env, int idx) {
+void set_target_orbit(DronePP* env, int idx) {
     // Fibbonacci sphere algorithm
     float R = 8.0f;
     float phi = PI * (sqrt(5.0f) - 1.0f);
@@ -260,7 +260,7 @@ void set_target_orbit(DroneSwarm* env, int idx) {
     agent->target_vel = (Vec3){0.0f, 0.0f, 0.0f};
 }
 
-void set_target_follow(DroneSwarm* env, int idx) {
+void set_target_follow(DronePP* env, int idx) {
     Drone* agent = &env->agents[idx];
     if (idx == 0) {
         set_target_idle(env, idx);
@@ -270,7 +270,7 @@ void set_target_follow(DroneSwarm* env, int idx) {
     }
 }
 
-void set_target_cube(DroneSwarm* env, int idx) {
+void set_target_cube(DronePP* env, int idx) {
     Drone* agent = &env->agents[idx];
     float z = idx / 16;
     idx = idx % 16;
@@ -280,7 +280,7 @@ void set_target_cube(DroneSwarm* env, int idx) {
     agent->target_vel = (Vec3){0.0f, 0.0f, 0.0f};
 }
 
-void set_target_congo(DroneSwarm* env, int idx) {
+void set_target_congo(DronePP* env, int idx) {
     if (idx == 0) {
         set_target_idle(env, idx);
         return;
@@ -296,7 +296,7 @@ void set_target_congo(DroneSwarm* env, int idx) {
     }
 }
 
-void set_target_flag(DroneSwarm* env, int idx) {
+void set_target_flag(DronePP* env, int idx) {
     Drone* agent = &env->agents[idx];
     float x = (float)(idx % 8);
     float y = (float)(idx / 8);
@@ -306,13 +306,13 @@ void set_target_flag(DroneSwarm* env, int idx) {
     agent->target_vel = (Vec3){0.0f, 0.0f, 0.0f};
 }
 
-void set_target_race(DroneSwarm* env, int idx) {
+void set_target_race(DronePP* env, int idx) {
     Drone* agent = &env->agents[idx];
     agent->target_pos = env->ring_buffer[agent->ring_idx].pos;
     agent->target_vel = (Vec3){0.0f, 0.0f, 0.0f};
 }
 
-void set_target(DroneSwarm* env, int idx) {
+void set_target(DronePP* env, int idx) {
     if (env->task == TASK_IDLE) {
         set_target_idle(env, idx);
     } else if (env->task == TASK_HOVER) {
@@ -332,7 +332,7 @@ void set_target(DroneSwarm* env, int idx) {
     }
 }
 
-float compute_reward(DroneSwarm* env, Drone *agent, bool collision) {
+float compute_reward(DronePP* env, Drone *agent, bool collision) {
     // Distance reward
     float dx = (agent->state.pos.x - agent->target_pos.x);
     float dy = (agent->state.pos.y - agent->target_pos.y);
@@ -375,7 +375,7 @@ float compute_reward(DroneSwarm* env, Drone *agent, bool collision) {
     return delta_reward;
 }
 
-void reset_agent(DroneSwarm* env, Drone *agent, int idx) {
+void reset_agent(DronePP* env, Drone *agent, int idx) {
     agent->episode_return = 0.0f;
     agent->episode_length = 0;
     agent->collisions = 0.0f;
@@ -398,7 +398,7 @@ void reset_agent(DroneSwarm* env, Drone *agent, int idx) {
     compute_reward(env, agent, env->task != TASK_RACE);
 }
 
-void c_reset(DroneSwarm *env) {
+void c_reset(DronePP *env) {
     env->tick = 0;
     //env->task = rand() % (TASK_N - 1);
     
@@ -442,7 +442,7 @@ void c_reset(DroneSwarm *env) {
     compute_observations(env);
 }
 
-void c_step(DroneSwarm *env) {
+void c_step(DronePP *env) {
     env->tick = (env->tick + 1) % HORIZON;
     for (int i = 0; i < env->num_agents; i++) {
         Drone *agent = &env->agents[i];
@@ -501,7 +501,7 @@ void c_close_client(Client *client) {
     free(client);
 }
 
-void c_close(DroneSwarm *env) {
+void c_close(DronePP *env) {
     if (env->client != NULL) {
         c_close_client(env->client);
     }
@@ -557,14 +557,14 @@ void handle_camera_controls(Client *client) {
     }
 }
 
-Client *make_client(DroneSwarm *env) {
+Client *make_client(DronePP *env) {
     Client *client = (Client *)calloc(1, sizeof(Client));
 
     client->width = WIDTH;
     client->height = HEIGHT;
 
     SetConfigFlags(FLAG_MSAA_4X_HINT); // antialiasing
-    InitWindow(WIDTH, HEIGHT, "PufferLib DroneSwarm");
+    InitWindow(WIDTH, HEIGHT, "PufferLib DronePP");
 
 #ifndef __EMSCRIPTEN__
     SetTargetFPS(60);
@@ -626,7 +626,7 @@ void DrawRing3D(Ring ring, float thickness, Color entryColor, Color exitColor) {
 }
 
 
-void c_render(DroneSwarm *env) {
+void c_render(DronePP *env) {
     if (env->client == NULL) {
         env->client = make_client(env);
         if (env->client == NULL) {

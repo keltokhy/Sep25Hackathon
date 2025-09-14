@@ -1,6 +1,6 @@
-#include "drone_swarm.h"
+#include "drone_pp.h"
 
-#define Env DroneSwarm
+#define Env DronePP
 #include "../env_binding.h"
 
 static int my_init(Env *env, PyObject *args, PyObject *kwargs) {

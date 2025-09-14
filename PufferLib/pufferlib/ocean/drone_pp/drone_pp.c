@@ -1,8 +1,4 @@
-// Standalone C demo for DroneSwarm environment
-// Compile using: ./scripts/build_ocean.sh drone [local|fast]
-// Run with: ./drone
-
-#include "drone_swarm.h"
+#include "drone_pp.h"
 #include "puffernet.h"
 #include <time.h>
 
@@ -88,7 +84,7 @@ void forward_linearcontlstm(LinearContLSTM *net, float *observations, float *act
     }
 }
 
-void generate_dummy_actions(DroneSwarm *env) {
+void generate_dummy_actions(DronePP *env) {
     // Generate random floats in [-1, 1] range
     env->actions[0] = ((float)rand() / (float)RAND_MAX) * 2.0f - 1.0f;
     env->actions[1] = ((float)rand() / (float)RAND_MAX) * 2.0f - 1.0f;
@@ -98,14 +94,14 @@ void generate_dummy_actions(DroneSwarm *env) {
 
 #ifdef __EMSCRIPTEN__
 typedef struct {
-    DroneSwarm *env;
+    DronePP *env;
     LinearContLSTM *net;
     Weights *weights;
 } WebRenderArgs;
 
 void emscriptenStep(void *e) {
     WebRenderArgs *args = (WebRenderArgs *)e;
-    DroneSwarm *env = args->env;
+    DronePP *env = args->env;
     LinearContLSTM *net = args->net;
 
     forward_linearcontlstm(net, env->observations, env->actions);
@@ -120,7 +116,7 @@ WebRenderArgs *web_args = NULL;
 int main() {
     srand(time(NULL)); // Seed random number generator
 
-    DroneSwarm *env = calloc(1, sizeof(DroneSwarm));
+    DronePP *env = calloc(1, sizeof(DronePP));
     env->num_agents = 64;
     env->max_rings = 10;
     env->task = TASK_ORBIT;
