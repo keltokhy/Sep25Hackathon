@@ -240,6 +240,12 @@ typedef struct {
     Vec3 drop_pos;
     bool gripping;
     float grip_height;
+    bool approaching_pickup;
+    bool hovering_pickup;
+    bool approaching_drop;
+    bool hovering_drop;
+    float hover_timer;
+    Color color;
 
     // logging utils
     float last_abs_reward;

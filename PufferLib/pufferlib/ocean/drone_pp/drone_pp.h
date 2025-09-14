@@ -408,6 +408,8 @@ void reset_agent(DronePP* env, Drone *agent, int idx) {
     //init_drone(agent, size, 0.0f);
     float size = rndf(0.1f, 0.4);
     init_drone(agent, size, 0.1f);
+    agent->color = FLAG_COLORS[idx];
+    agent->color = (Color){255, 0, 0, 255};
 
     agent->state.pos = (Vec3){
         rndf(-MARGIN_X, MARGIN_X),
@@ -422,6 +424,11 @@ void reset_agent(DronePP* env, Drone *agent, int idx) {
         agent->drop_pos = (Vec3){rndf(-MARGIN_X, MARGIN_X), rndf(-MARGIN_Y, MARGIN_Y), -GRID_Z + 0.5f};
         agent->gripping = false;
         agent->grip_height = 0.0f;
+        agent->approaching_pickup = false;
+        agent->hovering_pickup = false;
+        agent->approaching_drop = false;
+        agent->hovering_drop = false;
+        agent->hover_timer = 0.0f;
     }
 
     compute_reward(env, agent, env->task != TASK_RACE);
@@ -501,32 +508,74 @@ void c_step(DronePP *env) {
             }
             reward += passed_ring;
         } else if (env->task == TASK_PP) {
-            reward = compute_reward(env, agent, true);
-
             float box_dist = norm3(sub3(agent->state.pos, agent->box_pos));
-            float drop_dist = norm3(sub3(agent->drop_pos, agent->state.pos));
+            float drop_dist = norm3(sub3(agent->state.pos, agent->drop_pos));
+            Vec3 box_to_agent = sub3(agent->state.pos, agent->box_pos);
+            Vec3 drop_to_agent = sub3(agent->state.pos, agent->drop_pos);
 
-            // Auto-grip when close to box and low enough
-            if (!agent->gripping && box_dist < 0.8f && agent->state.pos.z < agent->box_pos.z + 0.3f) {
-                agent->gripping = true;
-                agent->grip_height = agent->state.pos.z;
-                reward += 1.0f;
-                set_target(env, i);  // Switch to drop target
-            }
+            float episode_progress = (float)agent->episode_length / 1000.0f;
+            float hover_threshold = 0.8f - 0.5f * episode_progress;
+            float speed_threshold = 0.3f - 0.2f * episode_progress;
 
-            // Check if box hits ground while gripping (crash condition)
-            if (agent->gripping && agent->state.pos.z < agent->box_pos.z - 0.5f) {
-                env->rewards[i] -= 1;
-                env->terminals[i] = 1;
-                add_log(env, i, true);
-                reset_agent(env, agent, i);
-                continue;
-            }
+            if (!agent->gripping) {
+                // Phase 1: Get above box (1m up) and hover
+                Vec3 hover_target = agent->box_pos;
+                hover_target.z += 1.0f;
+                float hover_dist = norm3(sub3(agent->state.pos, hover_target));
+                float xy_dist = sqrtf(powf(agent->state.pos.x - hover_target.x, 2) + powf(agent->state.pos.y - hover_target.y, 2));
+                float speed = norm3(agent->state.vel);
 
-            // Auto-release when close to drop and low enough
-            if (agent->gripping && drop_dist < 0.8f && agent->state.pos.z < agent->drop_pos.z + 0.3f) {
-                agent->gripping = false;
-                reward += 1.0f; // Bonus for successful drop
+                if (!agent->hovering_pickup) {
+                    reward += 0.2f * (1.0f - clampf(hover_dist / 10.0f, 0.0f, 1.0f)); // Position Bonus
+                }
+
+                if (hover_dist < hover_threshold && speed < speed_threshold && !agent->hovering_pickup) {
+                    agent->hovering_pickup = true;
+                    reward += 0.3f; // Hovering bonus
+                    agent->color = (Color){255, 255, 255, 255};
+                }
+
+                // Phase 2: Lower slowly when hovering above box
+                if (agent->hovering_pickup && fabsf(box_to_agent.x) < 0.2f && fabsf(box_to_agent.y) < 0.2f) {
+                    agent->color = (Color){255, 255, 255, 255};
+                    if (agent->state.vel.z > -0.2f && agent->state.vel.z < -0.05f) {
+                        reward += 0.1f; // Good descent rate
+                        agent->color = (Color){0, 0, 255, 255};
+                    }
+
+                    // Grip when close and moving slowly
+                    if (box_to_agent.z < 0.3f && norm3(agent->state.vel) < 0.15f) {
+                        agent->gripping = true;
+                        reward += 1.0f;
+                        agent->hovering_pickup = false;
+                        agent->hovering_drop = false;
+                        agent->color = (Color){0, 255, 0, 255};
+                    }
+                }
+            } else {
+                // Phase 3: Fly to drop zone, get above it and hover
+                Vec3 drop_hover = agent->drop_pos;
+                drop_hover.z += 1.0f;
+                float drop_hover_dist = norm3(sub3(agent->state.pos, drop_hover));
+
+                reward += 0.1f * (1.0f - clampf(drop_hover_dist / 10.0f, 0.0f, 1.0f));
+
+                if (drop_hover_dist < 0.3f && fabsf(agent->state.vel.x) < 0.1f && fabsf(agent->state.vel.y) < 0.1f && agent->state.pos.z > agent->drop_pos.z + 0.8f) {
+                    agent->hovering_drop = true;
+                    reward += 0.1f; // Hovering at drop
+                }
+
+                // Phase 4: Lower slowly and release
+                if (agent->hovering_drop && fabsf(drop_to_agent.x) < 0.2f && fabsf(drop_to_agent.y) < 0.2f) {
+                    if (agent->state.vel.z > -0.2f && agent->state.vel.z < -0.05f) {
+                        reward += 0.1f; // Good descent at drop
+                    }
+
+                    if (drop_to_agent.z < 0.2f && norm3(agent->state.vel) < 0.15f) {
+                        agent->gripping = false;
+                        reward += 0.5f;
+                    }
+                }
             }
         } else {
             // Delta reward
@@ -744,8 +793,8 @@ void c_render(DronePP *env) {
         Drone *agent = &env->agents[i];
 
         // draws drone body
-        Color body_color = (env->task == TASK_PP && agent->gripping) ? GREEN : FLAG_COLORS[i];
-        DrawSphere((Vector3){agent->state.pos.x, agent->state.pos.y, agent->state.pos.z}, 0.3f, body_color);
+        //Color body_color = (env->task == TASK_PP && agent->gripping) ? GREEN : FLAG_COLORS[i];
+        DrawSphere((Vector3){agent->state.pos.x, agent->state.pos.y, agent->state.pos.z}, 0.3f, agent->color);
 
         // draws rotors according to thrust
         float T[4];
@@ -763,7 +812,7 @@ void c_render(DronePP *env) {
                                       {0.0f, -visual_arm_len, 0.0f}};
 
         //Color base_colors[4] = {ORANGE, PURPLE, LIME, SKYBLUE};
-        Color base_colors[4] = {body_color, body_color, body_color, body_color};
+        Color base_colors[4] = {agent->color, agent->color, agent->color, agent->color};
 
         for (int j = 0; j < 4; j++) {
             Vec3 world_off = quat_rotate(agent->state.quat, rotor_offsets_body[j]);
