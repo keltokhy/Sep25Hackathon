@@ -206,6 +206,7 @@ void compute_observations(DronePP *env) {
             env->observations[idx++] = ring_norm.x;
             env->observations[idx++] = ring_norm.y;
             env->observations[idx++] = ring_norm.z;
+            env->observations[idx++] = 0.0f; // TASK_PP
         } else if (env->task == TASK_PP) {
             Vec3 to_box = quat_rotate(q_inv, sub3(agent->box_pos, agent->state.pos));
             Vec3 to_drop = quat_rotate(q_inv, sub3(agent->drop_pos, agent->state.pos));
@@ -215,6 +216,7 @@ void compute_observations(DronePP *env) {
             env->observations[idx++] = to_drop.x / GRID_X;
             env->observations[idx++] = to_drop.y / GRID_Y;
             env->observations[idx++] = to_drop.z / GRID_Z;
+            env->observations[idx++] = 1.0f; // TASK_PP
          } else {
             env->observations[idx++] = 0.0f;
             env->observations[idx++] = 0.0f;
@@ -222,6 +224,7 @@ void compute_observations(DronePP *env) {
             env->observations[idx++] = 0.0f;
             env->observations[idx++] = 0.0f;
             env->observations[idx++] = 0.0f;
+            env->observations[idx++] = 0.0f; // TASK_PP
         }
     }
 }
@@ -507,6 +510,7 @@ void c_step(DronePP *env) {
                 compute_reward(env, agent, true);
             }
             reward += passed_ring;
+        // =========================================================================================================================================
         } else if (env->task == TASK_PP) {
             float box_dist = norm3(sub3(agent->state.pos, agent->box_pos));
             float drop_dist = norm3(sub3(agent->state.pos, agent->drop_pos));
@@ -514,70 +518,182 @@ void c_step(DronePP *env) {
             Vec3 drop_to_agent = sub3(agent->state.pos, agent->drop_pos);
 
             float episode_progress = (float)agent->episode_length / 1000.0f;
-            float hover_threshold = 0.8f - 0.5f * episode_progress;
-            float speed_threshold = 0.3f - 0.2f * episode_progress;
+            float speed = norm3(agent->state.vel);
+
+            float hover_xy_threshold = 0.25f;
+            float hover_z_min = 0.7f;
+            float hover_z_max = 1.2f;
+            float hover_speed_threshold = 0.2f;
+            float grip_xy_threshold = 0.15f;
+            float grip_z_threshold = 0.25f;
+            float grip_speed_threshold = 0.1f;
 
             if (!agent->gripping) {
-                // Phase 1: Get above box (1m up) and hover
+                // === PICKUP PHASE ===
+
+                // Calculate distances for pickup
+                float xy_dist_to_box = sqrtf(powf(agent->state.pos.x - agent->box_pos.x, 2) +
+                                            powf(agent->state.pos.y - agent->box_pos.y, 2));
+                float z_dist_above_box = agent->state.pos.z - agent->box_pos.z;
+
+                // Positional damping - penalize velocity that moves away from target
+                Vec3 target_pos = agent->gripping ? agent->drop_pos : agent->box_pos;
+                Vec3 pos_error = sub3(agent->state.pos, target_pos);
+
+                // Only apply XY damping when reasonably close to target (within ~2m)
+                float xy_error_mag = sqrtf(pos_error.x * pos_error.x + pos_error.y * pos_error.y);
+                if (xy_error_mag < 2.0f && xy_error_mag > 0.01f) {
+                    // Normalized error direction
+                    Vec3 error_dir = {pos_error.x / xy_error_mag, pos_error.y / xy_error_mag, 0.0f};
+
+                    // Velocity component in direction of error (moving away from target)
+                    float vel_away = agent->state.vel.x * error_dir.x + agent->state.vel.y * error_dir.y;
+
+                    // Penalize velocity that increases the error
+                    if (vel_away > 0.0f) {
+                        float damping_penalty = 0.1f * vel_away * (1.0f - xy_error_mag / 2.0f); // Stronger when closer
+                        reward -= damping_penalty;
+                    }
+                }
+
+                // Always provide guidance toward hover position above box
                 Vec3 hover_target = agent->box_pos;
                 hover_target.z += 1.0f;
                 float hover_dist = norm3(sub3(agent->state.pos, hover_target));
-                float xy_dist = sqrtf(powf(agent->state.pos.x - hover_target.x, 2) + powf(agent->state.pos.y - hover_target.y, 2));
-                float speed = norm3(agent->state.vel);
 
+                // Base positioning reward (always active, scaled by distance)
                 if (!agent->hovering_pickup) {
-                    reward += 0.2f * (1.0f - clampf(hover_dist / 10.0f, 0.0f, 1.0f)); // Position Bonus
+                    reward += 0.15f * (1.0f - clampf(hover_dist / 8.0f, 0.0f, 1.0f));
+
+                    // Extra reward for getting XY position right
+                    if (xy_dist_to_box < 0.5f) {
+                        reward += 0.05f * (1.0f - clampf(xy_dist_to_box / 0.5f, 0.0f, 1.0f));
+                    }
+
+                    // Extra reward for good altitude
+                    if (z_dist_above_box > 0.5f && z_dist_above_box < 1.5f) {
+                        reward += 0.03f;
+                    }
                 }
 
-                if (hover_dist < hover_threshold && speed < speed_threshold && !agent->hovering_pickup) {
+                // Check for hover state achievement
+                bool hover_conditions = (xy_dist_to_box < hover_xy_threshold &&
+                                    z_dist_above_box > hover_z_min &&
+                                    z_dist_above_box < hover_z_max &&
+                                    speed < hover_speed_threshold);
+
+                if (hover_conditions && !agent->hovering_pickup) {
                     agent->hovering_pickup = true;
-                    reward += 0.3f; // Hovering bonus
-                    agent->color = (Color){255, 255, 255, 255};
+                    reward += 0.4f; // Significant bonus for achieving hover
+                    agent->color = (Color){255, 255, 255, 255}; // White when hovering
                 }
 
-                // Phase 2: Lower slowly when hovering above box
-                if (agent->hovering_pickup && fabsf(box_to_agent.x) < 0.2f && fabsf(box_to_agent.y) < 0.2f) {
-                    agent->color = (Color){255, 255, 255, 255};
-                    if (agent->state.vel.z > -0.2f && agent->state.vel.z < -0.05f) {
-                        reward += 0.1f; // Good descent rate
-                        agent->color = (Color){0, 0, 255, 255};
-                    }
+                // Maintain hover state - must stay in position
+                if (agent->hovering_pickup) {
+                    if (hover_conditions) {
+                        // Small continuous reward for maintaining hover
+                        reward += 0.02f;
+                        agent->color = (Color){255, 255, 255, 255}; // White
 
-                    // Grip when close and moving slowly
-                    if (box_to_agent.z < 0.3f && norm3(agent->state.vel) < 0.15f) {
-                        agent->gripping = true;
-                        reward += 1.0f;
+                        // Reward slow descent
+                        if (agent->state.vel.z < -0.02f && agent->state.vel.z > -0.25f) {
+                            reward += 0.08f;
+                            agent->color = (Color){0, 150, 255, 255}; // Light Blue for good descent
+                        }
+                    } else {
+                        // Lost hover - reset but don't penalize too harshly
                         agent->hovering_pickup = false;
-                        agent->hovering_drop = false;
-                        agent->color = (Color){0, 255, 0, 255};
+                        reward -= 0.1f; // Small penalty
+                        agent->color = (Color){255, 100, 100, 255}; // Light Red
                     }
                 }
+
+                // Gripping attempt - only when properly positioned and hovering
+                if (agent->hovering_pickup &&
+                    xy_dist_to_box < grip_xy_threshold &&
+                    z_dist_above_box < grip_z_threshold &&
+                    speed < grip_speed_threshold) {
+
+                    agent->gripping = true;
+                    reward += 1.5f; // Large reward for successful pickup
+                    agent->hovering_pickup = false;
+                    agent->hovering_drop = false;
+                    agent->color = (Color){0, 255, 0, 255}; // Green for success gripping
+                }
+
             } else {
-                // Phase 3: Fly to drop zone, get above it and hover
-                Vec3 drop_hover = agent->drop_pos;
-                drop_hover.z += 1.0f;
-                float drop_hover_dist = norm3(sub3(agent->state.pos, drop_hover));
+                // === DROP PHASE ===
 
-                reward += 0.1f * (1.0f - clampf(drop_hover_dist / 10.0f, 0.0f, 1.0f));
+                agent->color = (Color){0, 255, 0, 255}; // Green for success gripping
 
-                if (drop_hover_dist < 0.3f && fabsf(agent->state.vel.x) < 0.1f && fabsf(agent->state.vel.y) < 0.1f && agent->state.pos.z > agent->drop_pos.z + 0.8f) {
-                    agent->hovering_drop = true;
-                    reward += 0.1f; // Hovering at drop
+                // Calculate distances for drop
+                float xy_dist_to_drop = sqrtf(powf(agent->state.pos.x - agent->drop_pos.x, 2) +
+                                            powf(agent->state.pos.y - agent->drop_pos.y, 2));
+                float z_dist_above_drop = agent->state.pos.z - agent->drop_pos.z;
+
+                Vec3 drop_hover_target = agent->drop_pos;
+                drop_hover_target.z += 1.0f;
+                float drop_hover_dist = norm3(sub3(agent->state.pos, drop_hover_target));
+
+                // Guidance toward drop hover position
+                if (!agent->hovering_drop) {
+                    reward += 0.1f * (1.0f - clampf(drop_hover_dist / 8.0f, 0.0f, 1.0f));
+
+                    // Bonus for good XY positioning
+                    if (xy_dist_to_drop < 0.4f) {
+                        reward += 0.03f * (1.0f - clampf(xy_dist_to_drop / 0.4f, 0.0f, 1.0f));
+                    }
                 }
 
-                // Phase 4: Lower slowly and release
-                if (agent->hovering_drop && fabsf(drop_to_agent.x) < 0.2f && fabsf(drop_to_agent.y) < 0.2f) {
-                    if (agent->state.vel.z > -0.2f && agent->state.vel.z < -0.05f) {
-                        reward += 0.1f; // Good descent at drop
-                    }
+                // Check for drop hover conditions
+                bool drop_hover_conditions = (xy_dist_to_drop < hover_xy_threshold &&
+                                            z_dist_above_drop > hover_z_min &&
+                                            z_dist_above_drop < hover_z_max &&
+                                            speed < hover_speed_threshold);
 
-                    if (drop_to_agent.z < 0.2f && norm3(agent->state.vel) < 0.15f) {
-                        agent->gripping = false;
-                        reward += 0.5f;
+                if (drop_hover_conditions && !agent->hovering_drop) {
+                    agent->hovering_drop = true;
+                    reward += 0.3f; // Bonus for reaching drop hover
+                    agent->color = (Color){255, 255, 0, 255}; // Yellow at drop hover
+                }
+
+                // Maintain drop hover
+                if (agent->hovering_drop) {
+                    if (drop_hover_conditions) {
+                        reward += 0.015f; // Small maintenance reward
+                        agent->color = (Color){255, 255, 0, 255};
+
+                        // Reward controlled descent
+                        if (agent->state.vel.z < -0.02f && agent->state.vel.z > -0.2f) {
+                            reward += 0.06f;
+                            agent->color = (Color){255, 150, 0, 255}; // Orange for descent
+                        }
+                    } else {
+                        // Lost drop hover
+                        agent->hovering_drop = false;
+                        reward -= 0.05f;
                     }
+                }
+
+                // Drop attempt - only when properly positioned
+                if (agent->hovering_drop &&
+                    xy_dist_to_drop < grip_xy_threshold &&
+                    z_dist_above_drop < 0.15f &&
+                    speed < grip_speed_threshold) {
+
+                    agent->gripping = false;
+                    reward += 2.0f; // Large reward for successful drop
+                    agent->hovering_drop = false;
+                    agent->color = (Color){0, 255, 255, 255}; // Cyan for completion
                 }
             }
-        } else {
+
+            // Small penalty for excessive speed (always active)
+            if (speed > 1.0f) {
+                reward -= 0.01f * (speed - 1.0f);
+            }
+
+        } else { // ===========================================================================================================================
             // Delta reward
             reward = compute_reward(env, agent, true);
         }
