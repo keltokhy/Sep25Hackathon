@@ -432,7 +432,7 @@ void c_reset(DronePP *env) {
     //env->task = rand() % (TASK_N - 1);
     
     if (rand() % 4) {
-        env->task = TASK_FLAG; //CHOOSE TASK
+        env->task = TASK_PP; //CHOOSE TASK
     } else {
         env->task = rand() % (TASK_N - 1);
     }
@@ -501,6 +501,8 @@ void c_step(DronePP *env) {
             }
             reward += passed_ring;
         } else if (env->task == TASK_PP) {
+            reward = compute_reward(env, agent, true);
+
             float box_dist = norm3(sub3(agent->state.pos, agent->box_pos));
             float drop_dist = norm3(sub3(agent->drop_pos, agent->state.pos));
 
@@ -508,6 +510,7 @@ void c_step(DronePP *env) {
             if (!agent->gripping && box_dist < 0.8f && agent->state.pos.z < agent->box_pos.z + 0.3f) {
                 agent->gripping = true;
                 agent->grip_height = agent->state.pos.z;
+                reward += 1.0f;
                 set_target(env, i);  // Switch to drop target
             }
 
@@ -523,7 +526,7 @@ void c_step(DronePP *env) {
             // Auto-release when close to drop and low enough
             if (agent->gripping && drop_dist < 0.8f && agent->state.pos.z < agent->drop_pos.z + 0.3f) {
                 agent->gripping = false;
-                reward += 5.0f; // Bonus for successful drop
+                reward += 1.0f; // Bonus for successful drop
             }
         } else {
             // Delta reward
