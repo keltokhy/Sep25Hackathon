@@ -80,8 +80,8 @@ typedef struct {
     Ring* ring_buffer;
 
     float penalty_damping;
-    float reward_hover_dist;
     float reward_xy_dist;
+    float reward_hover_dist;
     float reward_hover_alt;
     float reward_hover;
 
@@ -533,8 +533,8 @@ void c_step(DronePP *env) {
             float hover_z_max = 1.2f;
             float hover_speed_threshold = 0.2f;
             float grip_xy_threshold = 0.15f;
-            float grip_z_threshold = 0.25f;
-            float grip_speed_threshold = 0.1f;
+            float grip_z_threshold = 0.35f;
+            float grip_speed_threshold = 0.2f;
 
             if (!agent->gripping) {
                 // === PICKUP PHASE ===
@@ -550,21 +550,29 @@ void c_step(DronePP *env) {
                 Vec3 pos_error = sub3(agent->state.pos, target_pos);
 
                 // Only apply XY damping when reasonably close to target (within ~2m)
-                float xy_error_mag = sqrtf(pos_error.x * pos_error.x + pos_error.y * pos_error.y);
-                if (xy_error_mag < 2.0f && xy_error_mag > 0.01f) {
+                if (xy_dist_to_box < 2.0f && xy_dist_to_box > 0.01f) {
                     // Normalized error direction
-                    Vec3 error_dir = {pos_error.x / xy_error_mag, pos_error.y / xy_error_mag, 0.0f};
+                    Vec3 error_dir = {pos_error.x / xy_dist_to_box, pos_error.y / xy_dist_to_box, 0.0f};
 
                     // Velocity component in direction of error (moving away from target)
                     float vel_away = agent->state.vel.x * error_dir.x + agent->state.vel.y * error_dir.y;
 
                     // Penalize velocity that increases the error
                     if (vel_away > 0.0f) {
-                        float damping_penalty = env->penalty_damping * vel_away * (1.0f - xy_error_mag / 2.0f); // Stronger when closer
-                        //float distance_factor = clampf(xy_error_mag / 2.0f, 0.1f, 1.0f);
+                        float damping_penalty = env->penalty_damping * vel_away * (1.0f - xy_dist_to_box / 2.0f); // Stronger when closer
+                        //float distance_factor = clampf(xy_dist_to_box / 2.0f, 0.1f, 1.0f);
                         //float damping_penalty = 0.1f * vel_away * distance_factor;
                         reward -= damping_penalty;
                     }
+                }
+
+                // Extra reward for getting XY position right
+                if (xy_dist_to_box < 0.5f) {
+                    float xy_reward = env->reward_xy_dist * (1.0f - clampf(xy_dist_to_box / 0.5f, 0.0f, 1.0f));
+                    if (agent->hovering_pickup || agent->descent_pickup) {
+                        xy_reward *= 2.0f;
+                    }
+                    reward += xy_reward;
                 }
 
                 // Always provide guidance toward hover position above box
@@ -575,11 +583,6 @@ void c_step(DronePP *env) {
                 // Base positioning reward (always active, scaled by distance)
                 if (!agent->hovering_pickup) {
                     reward += env->reward_hover_dist * (1.0f - clampf(hover_dist / 8.0f, 0.0f, 1.0f));
-
-                    // Extra reward for getting XY position right
-                    if (xy_dist_to_box < 0.5f) {
-                        reward += env->reward_xy_dist * (1.0f - clampf(xy_dist_to_box / 0.5f, 0.0f, 1.0f));
-                    }
 
                     // Extra reward for good altitude
                     if (z_dist_above_box > 0.5f && z_dist_above_box < 1.5f) {
@@ -605,15 +608,15 @@ void c_step(DronePP *env) {
 
                 // Maintain hover state
                 if (agent->hovering_pickup) {
-                    bool maintain_hover = agent->descent_pickup ? descent_hover_conditions : hover_conditions;
+                    bool maintain_hover = (agent->descent_pickup || agent->state.vel.z < -0.01f) ? descent_hover_conditions : hover_conditions;
 
                     if (maintain_hover) {
-                        reward += 0.02f;
+                        reward += 0.2f;
                         agent->color = (Color){255, 255, 255, 255}; // White
 
                         // Reward slow descent
-                        if (agent->state.vel.z < -0.02f && agent->state.vel.z > -0.25f) {
-                            reward += 0.3f;
+                        if (agent->state.vel.z < -0.01f && agent->state.vel.z > -0.1f) {
+                            reward += 0.5f;
                             agent->color = (Color){0, 150, 255, 255}; // Light Blue
                             agent->descent_pickup = true;
                         }
@@ -708,8 +711,10 @@ void c_step(DronePP *env) {
                 }
             }
 
-            // Small penalty for excessive speed (always active)
-            if (speed > 1.0f) {
+            float xy_dist_to_box = sqrtf(powf(agent->state.pos.x - agent->box_pos.x, 2) +
+                                        powf(agent->state.pos.y - agent->box_pos.y, 2));
+
+            if (speed > 1.0f && xy_dist_to_box < 2.0f) {
                 reward -= 0.01f * (speed - 1.0f);
             }
 

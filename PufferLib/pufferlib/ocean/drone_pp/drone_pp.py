@@ -12,8 +12,8 @@ class DronePP(pufferlib.PufferEnv):
         max_rings=5,
 
         penalty_damping=0.21,
-        reward_hover_dist=0.067,
         reward_xy_dist=0.12,
+        reward_hover_dist=0.067,
         reward_hover_alt=0.11,
         reward_hover=0.2,
 
@@ -54,8 +54,8 @@ class DronePP(pufferlib.PufferEnv):
                 max_rings=max_rings,
 
                 penalty_damping=penalty_damping,
-                reward_hover_dist=reward_hover_dist,
                 reward_xy_dist=reward_xy_dist,
+                reward_hover_dist=reward_hover_dist,
                 reward_hover_alt=reward_hover_alt,
                 reward_hover=reward_hover
             ))

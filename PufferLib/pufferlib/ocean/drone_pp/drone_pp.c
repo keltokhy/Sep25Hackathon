@@ -121,8 +121,8 @@ int main() {
     env->max_rings = 10;
 
     env->penalty_damping = 0.21;
-    env->reward_hover_dist = 0.067;
     env->reward_xy_dist = 0.12;
+    env->reward_hover_dist = 0.067;
     env->reward_hover_alt = 0.11;
     env->reward_hover = 0.2;
 
