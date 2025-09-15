@@ -83,6 +83,7 @@ typedef struct {
     float reward_hover_dist;
     float reward_xy_dist;
     float reward_hover_alt;
+    float reward_hover;
 
     Client *client;
 } DronePP;
@@ -598,7 +599,7 @@ void c_step(DronePP *env) {
 
                 if (hover_conditions && !agent->hovering_pickup) {
                     agent->hovering_pickup = true;
-                    reward += 0.2f; // Hover
+                    reward += env->reward_hover;
                     agent->color = (Color){255, 255, 255, 255}; // White
                 }
 

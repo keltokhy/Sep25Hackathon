@@ -120,10 +120,11 @@ int main() {
     env->num_agents = 64;
     env->max_rings = 10;
 
-    env->penalty_damping = 0.1;
-    env->reward_hover_dist = 0.15;
-    env->reward_xy_dist = 0.05;
-    env->reward_hover_alt = 0.15;
+    env->penalty_damping = 0.21;
+    env->reward_hover_dist = 0.067;
+    env->reward_xy_dist = 0.12;
+    env->reward_hover_alt = 0.11;
+    env->reward_hover = 0.2;
 
     env->task = TASK_ORBIT;
     init(env);

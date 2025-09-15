@@ -11,6 +11,7 @@ static int my_init(Env *env, PyObject *args, PyObject *kwargs) {
     env->reward_hover_dist = unpack(kwargs, "reward_hover_dist");
     env->reward_xy_dist = unpack(kwargs, "reward_xy_dist");
     env->reward_hover_alt = unpack(kwargs, "reward_hover_alt");
+    env->reward_hover = unpack(kwargs, "reward_hover");
 
     init(env);
     return 0;
