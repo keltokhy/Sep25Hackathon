@@ -24,6 +24,8 @@
 #define TASK_PP 8
 #define TASK_N 9
 
+#define DEBUG 0
+
 char* TASK_NAMES[TASK_N] = {
     "Idle", "Hover", "Orbit", "Follow",
     "Cube", "Congo", "FLAG", "Race", "PP"
@@ -78,6 +80,8 @@ typedef struct {
 
     int max_rings;
     Ring* ring_buffer;
+
+    int debug;
 
     float penalty_damping;
     float reward_xy_dist;
@@ -366,7 +370,7 @@ void set_target(DronePP* env, int idx) {
     }
 }
 
-float compute_reward(DronePP* env, Drone *agent, bool collision) {
+float compute_reward(DronePP* env, Drone *agent, bool collision) { // todo target and hidden target
     // Distance reward
     float dx = (agent->state.pos.x - agent->target_pos.x);
     float dy = (agent->state.pos.y - agent->target_pos.y);
@@ -457,6 +461,7 @@ void c_reset(DronePP *env) {
     } else {
         env->task = rand() % (TASK_N - 1);
     }
+    env->task = TASK_PP;
     
     //env->task = TASK_RACE;
     //env->task = TASK_HOVER;
@@ -523,6 +528,7 @@ void c_step(DronePP *env) {
             reward += passed_ring;
         // =========================================================================================================================================
         } else if (env->task == TASK_PP) {
+            if (DEBUG > 0) printf("\n===%d===\n", env->tick);
             float box_dist = norm3(sub3(agent->state.pos, agent->box_pos));
             float drop_dist = norm3(sub3(agent->state.pos, agent->drop_pos));
             Vec3 box_to_agent = sub3(agent->state.pos, agent->box_pos);
@@ -532,35 +538,27 @@ void c_step(DronePP *env) {
             float speed = norm3(agent->state.vel);
 
             float hover_xy_threshold = 0.25f;
-            float hover_z_min = 0.7f;
+            float hover_z_min = 0.0f;
             float hover_z_max = 1.2f;
-            float hover_speed_threshold = 0.2f;
-            float grip_xy_threshold = 0.15f;
+            float hover_speed_threshold = 0.2f + 0.3f * (1.0f - (float)env->tick / 1024.0f);
+            float grip_xy_threshold = 0.25f;
             float grip_z_threshold = 0.35f;
-            float grip_speed_threshold = 0.2f;
+            float grip_speed_threshold = 0.1f + 0.2f * (1.0f - (float)env->tick / 1024.0f);
 
             if (!agent->gripping) {
                 // === PICKUP PHASE ===
                 agent->approaching_pickup = true;
 
-                // Calculate distances for pickup
                 float xy_dist_to_box = sqrtf(powf(agent->state.pos.x - agent->box_pos.x, 2) +
                                             powf(agent->state.pos.y - agent->box_pos.y, 2));
                 float z_dist_above_box = agent->state.pos.z - agent->box_pos.z;
 
-                // Positional damping - penalize velocity that moves away from target
                 Vec3 target_pos = agent->gripping ? agent->drop_pos : agent->box_pos;
                 Vec3 pos_error = sub3(agent->state.pos, target_pos);
 
-                // Only apply XY damping when reasonably close to target (within ~2m)
                 if (xy_dist_to_box < 2.0f && xy_dist_to_box > 0.01f) {
-                    // Normalized error direction
                     Vec3 error_dir = {pos_error.x / xy_dist_to_box, pos_error.y / xy_dist_to_box, 0.0f};
-
-                    // Velocity component in direction of error (moving away from target)
                     float vel_away = agent->state.vel.x * error_dir.x + agent->state.vel.y * error_dir.y;
-
-                    // Penalize velocity that increases the error
                     if (vel_away > 0.0f) {
                         float damping_penalty = env->penalty_damping * vel_away * (1.0f - xy_dist_to_box / 2.0f); // Stronger when closer
                         //float distance_factor = clampf(xy_dist_to_box / 2.0f, 0.1f, 1.0f);
@@ -569,7 +567,6 @@ void c_step(DronePP *env) {
                     }
                 }
 
-                // Extra reward for getting XY position right
                 if (xy_dist_to_box < 0.5f) {
                     float xy_reward = env->reward_xy_dist * (1.0f - clampf(xy_dist_to_box / 0.5f, 0.0f, 1.0f));
                     if (agent->hovering_pickup || agent->descent_pickup) {
@@ -578,27 +575,30 @@ void c_step(DronePP *env) {
                     reward += xy_reward;
                 }
 
-                // Always provide guidance toward hover position above box
                 Vec3 hover_target = agent->box_pos;
                 hover_target.z += 1.0f;
                 float hover_dist = norm3(sub3(agent->state.pos, hover_target));
 
-                // Base positioning reward (always active, scaled by distance)
                 if (!agent->hovering_pickup) {
                     reward += env->reward_hover_dist * (1.0f - clampf(hover_dist / 8.0f, 0.0f, 1.0f));
-
-                    // Extra reward for good altitude
                     if (z_dist_above_box > 0.5f && z_dist_above_box < 1.5f) {
                         reward += env->reward_hover_alt;
                     }
                 }
 
-                // Check for hover state achievement
+                if (DEBUG > 0) printf("  Hover\n");
+                if (DEBUG > 0) printf("    xy_dist_to_box = %.3f vs %.3f\n", xy_dist_to_box, hover_xy_threshold);
+                if (DEBUG > 0) printf("    z_dist_above_box = %.3f vs %.3f-%.3f\n", z_dist_above_box, hover_z_min, hover_z_max);
+                if (DEBUG > 0) printf("    speed = %.3f vs %.3f\n", speed, hover_speed_threshold);
                 bool hover_conditions = (xy_dist_to_box < hover_xy_threshold &&
                                     z_dist_above_box > hover_z_min &&
                                     z_dist_above_box < hover_z_max &&
                                     speed < hover_speed_threshold);
 
+                if (DEBUG > 0) printf("  Descent\n");
+                if (DEBUG > 0) printf("    xy_dist_to_box = %.3f vs %.3f\n", xy_dist_to_box, hover_xy_threshold);
+                if (DEBUG > 0) printf("    z_dist_above_box = %.3f vs 0.0\n", z_dist_above_box);
+                if (DEBUG > 0) printf("    speed = %.3f vs %.3f\n", speed, hover_speed_threshold);
                 bool descent_hover_conditions = (xy_dist_to_box < hover_xy_threshold &&
                                 z_dist_above_box > 0.0f &&
                                 speed < hover_speed_threshold);
@@ -609,19 +609,19 @@ void c_step(DronePP *env) {
                     agent->color = (Color){255, 255, 255, 255}; // White
                 }
 
-                // Maintain hover state
                 if (agent->hovering_pickup) {
                     bool maintain_hover = (agent->descent_pickup || agent->state.vel.z < -0.01f) ? descent_hover_conditions : hover_conditions;
 
                     if (maintain_hover) {
                         reward += env->reward_maint_hover;
-                        agent->color = (Color){255, 255, 255, 255}; // White
-
                         // Reward slow descent
                         if (agent->state.vel.z < -0.01f && agent->state.vel.z > -0.1f) {
                             reward += env->reward_descent;
                             agent->color = (Color){0, 150, 255, 255}; // Light Blue
                             agent->descent_pickup = true;
+                        } else {
+                            agent->color = (Color){255, 255, 255, 255}; // White
+                            reward -= 0.1;
                         }
                     } else {
                         // Lost hover
@@ -633,6 +633,11 @@ void c_step(DronePP *env) {
                 }
 
                 // Gripping attempt - only when properly positioned and hovering
+                if (DEBUG > 0) printf("  GRIP\n");
+                if (DEBUG > 0) printf("    hovering_pickup = %d\n", agent->hovering_pickup);
+                if (DEBUG > 0) printf("    xy_dist_to_box = %.3f\n", xy_dist_to_box);
+                if (DEBUG > 0) printf("    z_dist_above_box = %.3f\n", z_dist_above_box);
+                if (DEBUG > 0) printf("    speed = %.3f\n", speed);
                 if (agent->hovering_pickup &&
                     xy_dist_to_box < grip_xy_threshold &&
                     z_dist_above_box < grip_z_threshold &&
