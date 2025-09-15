@@ -119,6 +119,12 @@ int main() {
     DronePP *env = calloc(1, sizeof(DronePP));
     env->num_agents = 64;
     env->max_rings = 10;
+
+    env->penalty_damping = 0.1;
+    env->reward_hover_dist = 0.15;
+    env->reward_xy_dist = 0.05;
+    env->reward_hover_alt = 0.15;
+
     env->task = TASK_ORBIT;
     init(env);
 

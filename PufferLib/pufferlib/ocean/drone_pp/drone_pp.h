@@ -79,6 +79,11 @@ typedef struct {
     int max_rings;
     Ring* ring_buffer;
 
+    float penalty_damping;
+    float reward_hover_dist;
+    float reward_xy_dist;
+    float reward_hover_alt;
+
     Client *client;
 } DronePP;
 
@@ -554,7 +559,7 @@ void c_step(DronePP *env) {
 
                     // Penalize velocity that increases the error
                     if (vel_away > 0.0f) {
-                        float damping_penalty = 0.1f * vel_away * (1.0f - xy_error_mag / 2.0f); // Stronger when closer
+                        float damping_penalty = env->penalty_damping * vel_away * (1.0f - xy_error_mag / 2.0f); // Stronger when closer
                         //float distance_factor = clampf(xy_error_mag / 2.0f, 0.1f, 1.0f);
                         //float damping_penalty = 0.1f * vel_away * distance_factor;
                         reward -= damping_penalty;
@@ -568,16 +573,16 @@ void c_step(DronePP *env) {
 
                 // Base positioning reward (always active, scaled by distance)
                 if (!agent->hovering_pickup) {
-                    reward += 0.15f * (1.0f - clampf(hover_dist / 8.0f, 0.0f, 1.0f));
+                    reward += env->reward_hover_dist * (1.0f - clampf(hover_dist / 8.0f, 0.0f, 1.0f));
 
                     // Extra reward for getting XY position right
                     if (xy_dist_to_box < 0.5f) {
-                        reward += 0.05f * (1.0f - clampf(xy_dist_to_box / 0.5f, 0.0f, 1.0f));
+                        reward += env->reward_xy_dist * (1.0f - clampf(xy_dist_to_box / 0.5f, 0.0f, 1.0f));
                     }
 
                     // Extra reward for good altitude
                     if (z_dist_above_box > 0.5f && z_dist_above_box < 1.5f) {
-                        reward += 0.03f;
+                        reward += env->reward_hover_alt;
                     }
                 }
 
@@ -637,7 +642,7 @@ void c_step(DronePP *env) {
             } else {
                 // === DROP PHASE ===
 
-                agent->approaching_drop = true;
+                //agent->approaching_drop = true;
                 agent->color = (Color){0, 255, 0, 255}; // Green
 
                 // Calculate distances for drop
@@ -1013,7 +1018,7 @@ void c_render(DronePP *env) {
             Drone *agent = &env->agents[i];
             Vec3 render_pos = agent->gripping ? agent->state.pos : agent->box_pos;
             DrawCube((Vector3){render_pos.x, render_pos.y, render_pos.z}, 0.4f, 0.4f, 0.4f, BROWN);
-            DrawCube((Vector3){agent->drop_pos.x, agent->drop_pos.y, agent->drop_pos.z}, 0.5f, 0.5f, 0.1f, YELLOW);
+            //DrawCube((Vector3){agent->drop_pos.x, agent->drop_pos.y, agent->drop_pos.z}, 0.5f, 0.5f, 0.1f, YELLOW);
         }
     }
 

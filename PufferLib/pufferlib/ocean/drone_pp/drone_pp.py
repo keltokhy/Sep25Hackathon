@@ -10,6 +10,12 @@ class DronePP(pufferlib.PufferEnv):
         num_envs=16,
         num_drones=64,
         max_rings=5,
+
+        penalty_damping=0.1,
+        reward_hover_dist=0.15,
+        reward_xy_dist=0.05,
+        reward_hover_alt=0.15,
+
         render_mode=None,
         report_interval=1024,
         buf=None,
@@ -45,6 +51,11 @@ class DronePP(pufferlib.PufferEnv):
                 i,
                 num_agents=num_drones,
                 max_rings=max_rings,
+
+                penalty_damping=penalty_damping,
+                reward_hover_dist=reward_hover_dist,
+                reward_xy_dist=reward_xy_dist,
+                reward_hover_alt=reward_hover_alt
             ))
 
         self.c_envs = binding.vectorize(*c_envs)
