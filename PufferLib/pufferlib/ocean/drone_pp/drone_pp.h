@@ -84,6 +84,9 @@ typedef struct {
     float reward_hover_dist;
     float reward_hover_alt;
     float reward_hover;
+    float reward_maint_hover;
+    float reward_descent;
+    float penalty_lost_hover;
 
     Client *client;
 } DronePP;
@@ -611,12 +614,12 @@ void c_step(DronePP *env) {
                     bool maintain_hover = (agent->descent_pickup || agent->state.vel.z < -0.01f) ? descent_hover_conditions : hover_conditions;
 
                     if (maintain_hover) {
-                        reward += 0.2f;
+                        reward += env->reward_maint_hover;
                         agent->color = (Color){255, 255, 255, 255}; // White
 
                         // Reward slow descent
                         if (agent->state.vel.z < -0.01f && agent->state.vel.z > -0.1f) {
-                            reward += 0.5f;
+                            reward += env->reward_descent;
                             agent->color = (Color){0, 150, 255, 255}; // Light Blue
                             agent->descent_pickup = true;
                         }
@@ -624,7 +627,7 @@ void c_step(DronePP *env) {
                         // Lost hover
                         agent->hovering_pickup = false;
                         agent->descent_pickup = false;
-                        reward -= 0.1f;
+                        reward -= env->penalty_lost_hover;
                         agent->color = (Color){255, 100, 100, 255}; // Light Red
                     }
                 }

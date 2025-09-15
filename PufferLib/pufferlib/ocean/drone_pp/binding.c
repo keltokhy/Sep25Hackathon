@@ -12,6 +12,9 @@ static int my_init(Env *env, PyObject *args, PyObject *kwargs) {
     env->reward_hover_dist = unpack(kwargs, "reward_hover_dist");
     env->reward_hover_alt = unpack(kwargs, "reward_hover_alt");
     env->reward_hover = unpack(kwargs, "reward_hover");
+    env->reward_maint_hover = unpack(kwargs, "reward_maint_hover");
+    env->reward_descent = unpack(kwargs, "reward_descent");
+    env->penalty_lost_hover = unpack(kwargs, "penalty_lost_hover");
 
     init(env);
     return 0;

@@ -125,6 +125,9 @@ int main() {
     env->reward_hover_dist = 0.067;
     env->reward_hover_alt = 0.11;
     env->reward_hover = 0.2;
+    env->reward_maint_hover = 0.1;
+    env->reward_descent = 0.75;
+    env->penalty_lost_hover = 0.1;
 
     env->task = TASK_ORBIT;
     init(env);
