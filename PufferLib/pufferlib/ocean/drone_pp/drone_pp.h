@@ -555,6 +555,8 @@ void c_step(DronePP *env) {
                     // Penalize velocity that increases the error
                     if (vel_away > 0.0f) {
                         float damping_penalty = 0.1f * vel_away * (1.0f - xy_error_mag / 2.0f); // Stronger when closer
+                        //float distance_factor = clampf(xy_error_mag / 2.0f, 0.1f, 1.0f);
+                        //float damping_penalty = 0.1f * vel_away * distance_factor;
                         reward -= damping_penalty;
                     }
                 }
@@ -627,6 +629,7 @@ void c_step(DronePP *env) {
                     agent->gripping = true;
                     reward += 1.0f; // Grip
                     agent->hovering_pickup = false;
+                    agent->descent_pickup = false;
                     agent->hovering_drop = false;
                     agent->color = (Color){0, 255, 0, 255}; // Green
                 }
@@ -634,6 +637,7 @@ void c_step(DronePP *env) {
             } else {
                 // === DROP PHASE ===
 
+                agent->approaching_drop = true;
                 agent->color = (Color){0, 255, 0, 255}; // Green
 
                 // Calculate distances for drop
