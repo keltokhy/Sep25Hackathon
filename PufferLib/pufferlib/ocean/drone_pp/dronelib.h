@@ -241,6 +241,8 @@ typedef struct {
     Vec3 prev_pos;
     Vec3 target_pos;
     Vec3 target_vel;
+    Vec3 hidden_pos;
+    Vec3 hidden_vel;
 
     // PP Pick and Place
     Vec3 box_pos;
