@@ -573,9 +573,9 @@ void c_step(DronePP *env) {
             agent->approaching_pickup = true;
             float speed = norm3(agent->state.vel);
             if (DEBUG > 0) printf("  PP2\n");
-                if (DEBUG > 0) printf("    Hidden = %.3f %.3f %.3f\n", agent->hidden_pos.x, agent->hidden_pos.y, agent->hidden_pos.z);
-                if (DEBUG > 0) printf("    HiddenV = %.3f %.3f %.3f\n", agent->hidden_vel.x, agent->hidden_vel.y, agent->hidden_vel.z);
-                if (DEBUG > 0) printf("    speed = %.3f\n", speed);
+            if (DEBUG > 0) printf("    Hidden = %.3f %.3f %.3f\n", agent->hidden_pos.x, agent->hidden_pos.y, agent->hidden_pos.z);
+            if (DEBUG > 0) printf("    HiddenV = %.3f %.3f %.3f\n", agent->hidden_vel.x, agent->hidden_vel.y, agent->hidden_vel.z);
+            if (DEBUG > 0) printf("    speed = %.3f\n", speed);
             if (!agent->gripping) {
                 float dist_to_hidden = sqrtf(powf(agent->state.pos.x - agent->hidden_pos.x, 2) +
                                             powf(agent->state.pos.y - agent->hidden_pos.y, 2) +
@@ -587,7 +587,7 @@ void c_step(DronePP *env) {
                     if (DEBUG > 0) printf("  Phase1\n");
                     agent->hidden_pos = (Vec3){agent->box_pos.x, agent->box_pos.y, agent->box_pos.z + 1.0f};
                     agent->hidden_vel = (Vec3){0.0f, 0.0f, 0.0f};
-                    if (dist_to_hidden < 0.2f && speed < 0.2f) {
+                    if (dist_to_hidden < 0.4f && speed < 0.4f) {
                         agent->hovering_pickup = true;
                         //reward += env->reward_hover;
                         agent->color = (Color){255, 255, 255, 255}; // White
@@ -604,11 +604,11 @@ void c_step(DronePP *env) {
                     if (DEBUG > 0) printf("    dist_to_hidden = %.3f\n", dist_to_hidden);
                     if (DEBUG > 0) printf("    z_dist_above_box = %.3f\n", z_dist_above_box);
                     if (DEBUG > 0) printf("    speed = %.3f\n", speed);
-                    if (dist_to_hidden < 0.2f && z_dist_above_box < 0.2f && speed < 0.2f) {
+                    if (dist_to_hidden < 0.4f && z_dist_above_box < 0.4f && speed < 0.4f) {
                         agent->gripping = true;
                         reward += 1.0f;
                         agent->color = (Color){0, 255, 0, 255}; // Green
-                    } else if (dist_to_hidden > 0.2f || speed > 0.2f) {
+                    } else if (dist_to_hidden > 0.4f || speed > 0.4f) {
                         agent->hovering_pickup = false;
                         agent->descent_pickup = false;
                         agent->color = (Color){255, 100, 100, 255}; // Light Red
