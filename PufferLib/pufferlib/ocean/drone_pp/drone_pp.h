@@ -412,7 +412,6 @@ float compute_reward(DronePP* env, Drone *agent, bool collision) {
     float dist_reward;
     float vel_reward = 0.0f;
     if (env->task == TASK_PP || env->task == TASK_PP2) {
-        // todo forgot to add dist_decay for sweeps
         env->reward_dist = clampf(env->tick * -env->dist_decay + env->reward_max_dist, env->reward_min_dist, 100.0f);
         dist_reward = clampf(1.0 - dist/env->reward_dist, -0.001f, 1.0f);
         if (DEBUG > 0) printf("  COMPUTE_REWARD\n");
@@ -443,7 +442,6 @@ float compute_reward(DronePP* env, Drone *agent, bool collision) {
 
         stability_reward = stability_weight * (1.0f - normalized_omega * normalized_omega);
 
-        // Optional: Extra penalty for extreme jerkiness when very close
         //if (dist < env->reward_dist * 0.3f) {
         //    float jerk_penalty = -clampf((normalized_omega - 0.2f) * 2.0f, 0.0f, 0.5f);
         //    stability_reward += jerk_penalty;
