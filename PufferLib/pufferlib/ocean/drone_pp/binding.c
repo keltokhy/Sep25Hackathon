@@ -15,8 +15,10 @@ static int my_init(Env *env, PyObject *args, PyObject *kwargs) {
     env->reward_maint_hover = unpack(kwargs, "reward_maint_hover");
     env->reward_descent = unpack(kwargs, "reward_descent");
     env->penalty_lost_hover = unpack(kwargs, "penalty_lost_hover");
+
     env->reward_min_dist = unpack(kwargs, "reward_min_dist");
     env->reward_max_dist = unpack(kwargs, "reward_max_dist");
+    env->dist_decay = unpack(kwargs, "dist_decay");
 
     init(env);
     return 0;

@@ -95,6 +95,7 @@ typedef struct {
 
     float reward_min_dist;
     float reward_max_dist;
+    float dist_decay;
     float reward_dist;
 
     Client *client;
