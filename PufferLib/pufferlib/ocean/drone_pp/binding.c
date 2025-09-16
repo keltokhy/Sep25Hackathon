@@ -41,6 +41,7 @@ static int my_log(PyObject *dict, Log *log) {
     assign_to_dict(dict, "to_drop", log->to_drop);
     assign_to_dict(dict, "ho_drop", log->ho_drop);
     assign_to_dict(dict, "dist", log->dist);
+    assign_to_dict(dict, "dist100", log->dist100);
 
     assign_to_dict(dict, "n", log->n);
     return 0;

@@ -403,6 +403,7 @@ float compute_reward(DronePP* env, Drone *agent, bool collision) {
     float dist = sqrtf(dx*dx + dy*dy + dz*dz);
     env->dist = dist;
     env->log.dist += dist;
+    env->log.dist100 += 100 - dist;
     float dist_reward;
     float vel_reward = 0.0f;
     if (env->task == TASK_PP || env->task == TASK_PP2) {
@@ -548,6 +549,7 @@ void c_reset(DronePP *env) {
 void c_step(DronePP *env) {
     env->tick = (env->tick + 1) % HORIZON;
     env->log.dist = 0.0f;
+    env->log.dist100 = 0.0f;
     for (int i = 0; i < env->num_agents; i++) {
         Drone *agent = &env->agents[i];
         env->rewards[i] = 0;
