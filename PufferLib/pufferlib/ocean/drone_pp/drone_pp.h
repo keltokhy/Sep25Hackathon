@@ -549,11 +549,11 @@ void c_step(DronePP *env) {
             reward += passed_ring;
         // =========================================================================================================================================
         } else if (env->task == TASK_PP2) {
-            agent->hidden_pos.x += agent->hidden_vel.x;
-            agent->hidden_pos.y += agent->hidden_vel.y;
-            agent->hidden_pos.z += agent->hidden_vel.z;
+            agent->hidden_pos.x += agent->hidden_vel.x * DT;
+            agent->hidden_pos.y += agent->hidden_vel.y * DT;
+            agent->hidden_pos.z += agent->hidden_vel.z * DT;
             if (agent->hidden_pos.z < -GRID_Z || agent->hidden_pos.z > GRID_Z) {
-                agent->hidden_pos.z = 0.3f;
+                agent->hidden_pos.z = -GRID_Z + 0.3f;
             }
             agent->approaching_pickup = true;
             float speed = norm3(agent->state.vel);
@@ -621,7 +621,7 @@ void c_step(DronePP *env) {
                     }
                 }
             }
-            
+
             reward += compute_reward(env, agent, true);
 
             for (int i = 0; i < env->num_agents; i++) {
