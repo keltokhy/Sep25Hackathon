@@ -66,6 +66,7 @@ struct Log {
     float to_drop;
     float ho_drop;
     float de_drop;
+    float dist;
     float n;
 };
 

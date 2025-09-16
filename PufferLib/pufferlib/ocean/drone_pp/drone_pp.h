@@ -71,6 +71,8 @@ typedef struct {
     float *rewards;
     unsigned char *terminals;
 
+    float dist;
+
     Log log;
     int tick;
     int report_interval;
@@ -92,6 +94,7 @@ typedef struct {
     float reward_maint_hover;
     float reward_descent;
     float penalty_lost_hover;
+    float alignment;
 
     float reward_min_dist;
     float reward_max_dist;
@@ -398,13 +401,23 @@ float compute_reward(DronePP* env, Drone *agent, bool collision) {
     float dy = (agent->state.pos.y - tgt.y);
     float dz = (agent->state.pos.z - tgt.z);
     float dist = sqrtf(dx*dx + dy*dy + dz*dz);
+    env->dist = dist;
+    env->log.dist += dist;
     float dist_reward;
+    float vel_reward = 0.0f;
     if (env->task == TASK_PP || env->task == TASK_PP2) {
         env->reward_dist = clampf(env->tick * -0.04 + env->reward_max_dist, env->reward_min_dist, 100.0f);
         dist_reward = clampf(1.0 - dist/env->reward_dist, -0.001f, 1.0f);
         if (DEBUG > 0) printf("  COMPUTE_REWARD\n");
         if (DEBUG > 0) printf("    reward_dist = %.3f\n", env->reward_dist);
         if (DEBUG > 0) printf("    dist_reward = %.3f\n", dist_reward);
+
+        Vec3 to_target = {tgt.x - agent->state.pos.x, tgt.y - agent->state.pos.y, tgt.z - agent->state.pos.z};
+        Vec3 vel = agent->state.vel;
+        float vel_alignment = (to_target.x * vel.x + to_target.y * vel.y + to_target.z * vel.z) / (dist + 0.001f);
+        vel_reward = clampf(vel_alignment * -env->alignment, -0.2, 0.2);
+        if (DEBUG > 0) printf("    vel_alignment = %.3f, vel_reward = %.3f\n", vel_alignment, vel_reward);
+
     } else {
         dist_reward = clampf(1.0 - dist/MAX_DIST, -0.001f, 1.0f);
     }
@@ -425,7 +438,7 @@ float compute_reward(DronePP* env, Drone *agent, bool collision) {
         }
     }
 
-    float abs_reward = dist_reward + density_reward;
+    float abs_reward = dist_reward + density_reward + vel_reward;
 
     // Prevent negative dist and density from making a positive reward
     if (dist_reward < 0.0f && density_reward < 0.0f) {
@@ -534,6 +547,7 @@ void c_reset(DronePP *env) {
 
 void c_step(DronePP *env) {
     env->tick = (env->tick + 1) % HORIZON;
+    env->log.dist = 0.0f;
     for (int i = 0; i < env->num_agents; i++) {
         Drone *agent = &env->agents[i];
         env->rewards[i] = 0;

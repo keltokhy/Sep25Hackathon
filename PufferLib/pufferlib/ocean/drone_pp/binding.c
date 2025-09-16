@@ -15,6 +15,7 @@ static int my_init(Env *env, PyObject *args, PyObject *kwargs) {
     env->reward_maint_hover = unpack(kwargs, "reward_maint_hover");
     env->reward_descent = unpack(kwargs, "reward_descent");
     env->penalty_lost_hover = unpack(kwargs, "penalty_lost_hover");
+    env->alignment = unpack(kwargs, "alignment");
 
     env->reward_min_dist = unpack(kwargs, "reward_min_dist");
     env->reward_max_dist = unpack(kwargs, "reward_max_dist");
@@ -39,6 +40,7 @@ static int my_log(PyObject *dict, Log *log) {
     assign_to_dict(dict, "de_pickup", log->de_pickup);
     assign_to_dict(dict, "to_drop", log->to_drop);
     assign_to_dict(dict, "ho_drop", log->ho_drop);
+    assign_to_dict(dict, "dist", log->dist);
 
     assign_to_dict(dict, "n", log->n);
     return 0;
