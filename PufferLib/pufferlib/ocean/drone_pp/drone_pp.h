@@ -25,7 +25,7 @@
 #define TASK_PP2 9
 #define TASK_N 10
 
-#define DEBUG 1
+#define DEBUG 0
 
 char* TASK_NAMES[TASK_N] = {
     "Idle", "Hover", "Orbit", "Follow",
@@ -102,6 +102,9 @@ typedef struct {
     float reward_max_dist;
     float dist_decay;
     float reward_dist;
+
+    float omega_prox;
+    float stability_weight;
 
     Client *client;
 } DronePP;
@@ -427,8 +430,27 @@ float compute_reward(DronePP* env, Drone *agent, bool collision) {
     } else {
         dist_reward = clampf(1.0 - dist/MAX_DIST, -0.001f, 1.0f);
     }
-    //dist = clampf(dist, 0.0f, 1.0f);
-    //float dist_reward = 1.0f - dist;
+
+    float stability_reward = 0.0f;
+    if (env->task == TASK_PP || env->task == TASK_PP2) {
+        float omega_mag = sqrtf(agent->state.omega.x * agent->state.omega.x +
+                            agent->state.omega.y * agent->state.omega.y +
+                            agent->state.omega.z * agent->state.omega.z);
+        float normalized_omega = omega_mag / agent->params.max_omega;
+
+        float proximity_factor = 1.0f - clampf(dist / env->reward_dist, 0.0f, 1.0f);
+        float stability_weight = env->stability_weight + (proximity_factor * env->omega_prox);
+
+        stability_reward = stability_weight * (1.0f - normalized_omega * normalized_omega);
+
+        // Optional: Extra penalty for extreme jerkiness when very close
+        //if (dist < env->reward_dist * 0.3f) {
+        //    float jerk_penalty = -clampf((normalized_omega - 0.2f) * 2.0f, 0.0f, 0.5f);
+        //    stability_reward += jerk_penalty;
+        //}
+
+        if (DEBUG > 0) printf("    omega_mag = %.3f, stability_reward = %.3f\n", omega_mag, stability_reward);
+    }
 
     // Density penalty
     float density_reward = 0.0f;
@@ -444,7 +466,7 @@ float compute_reward(DronePP* env, Drone *agent, bool collision) {
         }
     }
 
-    float abs_reward = dist_reward + density_reward + vel_reward;
+    float abs_reward = dist_reward + density_reward + vel_reward + stability_reward;
 
     // Prevent negative dist and density from making a positive reward
     if (dist_reward < 0.0f && density_reward < 0.0f) {
@@ -568,7 +590,7 @@ void c_step(DronePP *env) {
                              agent->state.pos.y < -GRID_Y || agent->state.pos.y > GRID_Y ||
                              agent->state.pos.z < -GRID_Z || agent->state.pos.z > GRID_Z;
 
-        if (!env->task == TASK_PP2) move_target(env, agent);
+        if (!(env->task == TASK_PP2)) move_target(env, agent);
 
         float reward = 0.0f;
         if (env->task == TASK_RACE) {

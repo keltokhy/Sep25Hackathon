@@ -136,6 +136,9 @@ int main() {
     env->reward_max_dist = 65.0;
     env->dist_decay = 0.08;
 
+    env->omega_prox = 0.04;
+    env->stability_weight = 0.07;
+
     env->task = TASK_ORBIT;
     init(env);
 

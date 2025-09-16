@@ -27,6 +27,9 @@ class DronePP(pufferlib.PufferEnv):
         reward_max_dist=65.0,
         dist_decay=0.08,
 
+        omega_prox=0.04,
+        stability_weight=0.07,
+
         render_mode=None,
         report_interval=1024,
         buf=None,
@@ -77,7 +80,10 @@ class DronePP(pufferlib.PufferEnv):
 
                 reward_min_dist=reward_min_dist,
                 reward_max_dist=reward_max_dist,
-                dist_decay=dist_decay
+                dist_decay=dist_decay,
+
+                omega_prox=omega_prox,
+                stability_weight=stability_weight
             ))
 
         self.c_envs = binding.vectorize(*c_envs)

@@ -23,6 +23,9 @@ static int my_init(Env *env, PyObject *args, PyObject *kwargs) {
     env->reward_max_dist = unpack(kwargs, "reward_max_dist");
     env->dist_decay = unpack(kwargs, "dist_decay");
 
+    env->omega_prox = unpack(kwargs, "omega_prox");
+    env->stability_weight = unpack(kwargs, "stability_weight");
+
     init(env);
     return 0;
 }
