@@ -546,7 +546,7 @@ void c_step(DronePP *env) {
                              agent->state.pos.y < -GRID_Y || agent->state.pos.y > GRID_Y ||
                              agent->state.pos.z < -GRID_Z || agent->state.pos.z > GRID_Z;
 
-        move_target(env, agent);
+        if (!env->task == TASK_PP2) move_target(env, agent);
 
         float reward = 0.0f;
         if (env->task == TASK_RACE) {
@@ -562,6 +562,7 @@ void c_step(DronePP *env) {
             reward += passed_ring;
         // =========================================================================================================================================
         } else if (env->task == TASK_PP2) {
+            if (DEBUG > 0) printf("\n\n===%d===\n", env->tick);
             agent->hidden_pos.x += agent->hidden_vel.x * DT;
             agent->hidden_pos.y += agent->hidden_vel.y * DT;
             agent->hidden_pos.z += agent->hidden_vel.z * DT;
@@ -572,6 +573,7 @@ void c_step(DronePP *env) {
             float speed = norm3(agent->state.vel);
             if (DEBUG > 0) printf("  PP2\n");
                 if (DEBUG > 0) printf("    Hidden = %.3f %.3f %.3f\n", agent->hidden_pos.x, agent->hidden_pos.y, agent->hidden_pos.z);
+                if (DEBUG > 0) printf("    HiddenV = %.3f %.3f %.3f\n", agent->hidden_vel.x, agent->hidden_vel.y, agent->hidden_vel.z);
                 if (DEBUG > 0) printf("    speed = %.3f\n", speed);
             if (!agent->gripping) {
                 float dist_to_hidden = sqrtf(powf(agent->state.pos.x - agent->hidden_pos.x, 2) +
@@ -581,11 +583,12 @@ void c_step(DronePP *env) {
 
                 // Phase 1 Box Hover
                 if (!agent->hovering_pickup) {
+                    if (DEBUG > 0) printf("  Phase1\n");
                     agent->hidden_pos = (Vec3){agent->box_pos.x, agent->box_pos.y, agent->box_pos.z + 1.0f};
                     agent->hidden_vel = (Vec3){0.0f, 0.0f, 0.0f};
                     if (dist_to_hidden < 0.2f && speed < 0.2f) {
                         agent->hovering_pickup = true;
-                        reward += env->reward_hover;
+                        //reward += env->reward_hover;
                         agent->color = (Color){255, 255, 255, 255}; // White
                     } else {
                         agent->color = (Color){255, 100, 100, 255}; // Light Red
@@ -604,6 +607,10 @@ void c_step(DronePP *env) {
                         agent->gripping = true;
                         reward += 1.0f;
                         agent->color = (Color){0, 255, 0, 255}; // Green
+                    } else if (dist_to_hidden > 0.2f || speed > 0.2f) {
+                        agent->hovering_pickup = false;
+                        agent->descent_pickup = false;
+                        agent->color = (Color){255, 100, 100, 255}; // Light Red
                     }
                 }
             } else {
