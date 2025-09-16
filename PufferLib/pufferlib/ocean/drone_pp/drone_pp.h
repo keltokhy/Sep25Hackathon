@@ -25,7 +25,7 @@
 #define TASK_PP2 9
 #define TASK_N 10
 
-#define DEBUG 0
+#define DEBUG 1
 
 char* TASK_NAMES[TASK_N] = {
     "Idle", "Hover", "Orbit", "Follow",
@@ -410,7 +410,7 @@ float compute_reward(DronePP* env, Drone *agent, bool collision) {
     float vel_reward = 0.0f;
     if (env->task == TASK_PP || env->task == TASK_PP2) {
         // todo forgot to add dist_decay for sweeps
-        env->reward_dist = clampf(env->tick * -0.04 + env->reward_max_dist, env->reward_min_dist, 100.0f);
+        env->reward_dist = clampf(env->tick * -env->dist_decay + env->reward_max_dist, env->reward_min_dist, 100.0f);
         dist_reward = clampf(1.0 - dist/env->reward_dist, -0.001f, 1.0f);
         if (DEBUG > 0) printf("  COMPUTE_REWARD\n");
         if (DEBUG > 0) printf("    reward_dist = %.3f\n", env->reward_dist);
@@ -419,7 +419,9 @@ float compute_reward(DronePP* env, Drone *agent, bool collision) {
         Vec3 to_target = {tgt.x - agent->state.pos.x, tgt.y - agent->state.pos.y, tgt.z - agent->state.pos.z};
         Vec3 vel = agent->state.vel;
         float vel_alignment = (to_target.x * vel.x + to_target.y * vel.y + to_target.z * vel.z) / (dist + 0.001f);
-        vel_reward = clampf(vel_alignment * -env->alignment, -env->min_alignment, env->max_alignment);
+        vel_reward = clampf(vel_alignment * -env->alignment, -env->min_alignment, env->max_alignment); // +
+                    //clampf(0.1-abs(agent->state.vel.x), -0.1f, 0.0f) +
+                    //clampf(0.1-abs(agent->state.vel.y), -0.1f, 0.0f);
         if (DEBUG > 0) printf("    vel_alignment = %.3f, vel_reward = %.3f\n", vel_alignment, vel_reward);
 
     } else {
@@ -604,6 +606,7 @@ void c_step(DronePP *env) {
                 // Phase 1 Box Hover
                 if (!agent->hovering_pickup) {
                     if (DEBUG > 0) printf("  Phase1\n");
+                    if (DEBUG > 0) printf("    dist_to_hidden = %.3f\n", dist_to_hidden);
                     agent->hidden_pos = (Vec3){agent->box_pos.x, agent->box_pos.y, agent->box_pos.z + 1.0f};
                     agent->hidden_vel = (Vec3){0.0f, 0.0f, 0.0f};
                     if (dist_to_hidden < 0.4f && speed < 0.4f) {
@@ -1180,7 +1183,7 @@ void c_render(DronePP *env) {
             Vec3 render_pos = agent->gripping ? agent->state.pos : agent->box_pos;
             DrawCube((Vector3){render_pos.x, render_pos.y, render_pos.z}, 0.4f, 0.4f, 0.4f, BROWN);
             //DrawCube((Vector3){agent->drop_pos.x, agent->drop_pos.y, agent->drop_pos.z}, 0.5f, 0.5f, 0.1f, YELLOW);
-            DrawSphere((Vector3){agent->hidden_pos.x, agent->hidden_pos.y, agent->hidden_pos.z}, 0.25f, YELLOW);
+            DrawSphere((Vector3){agent->hidden_pos.x, agent->hidden_pos.y, agent->hidden_pos.z}, 0.05f, YELLOW);
         }
     }
 

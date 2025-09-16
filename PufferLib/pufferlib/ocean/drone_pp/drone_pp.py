@@ -25,7 +25,7 @@ class DronePP(pufferlib.PufferEnv):
 
         reward_min_dist=5.5,
         reward_max_dist=65.0,
-        dist_decay=0.15,
+        dist_decay=0.08,
 
         render_mode=None,
         report_interval=1024,
