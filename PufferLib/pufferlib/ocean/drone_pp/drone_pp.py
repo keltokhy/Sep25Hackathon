@@ -19,6 +19,8 @@ class DronePP(pufferlib.PufferEnv):
         reward_maint_hover=0.1,
         reward_descent=0.75,
         penalty_lost_hover=0.1,
+        reward_min_dist=5.0,
+        reward_max_dist=20.0,
 
         render_mode=None,
         report_interval=1024,
@@ -63,7 +65,9 @@ class DronePP(pufferlib.PufferEnv):
                 reward_hover=reward_hover,
                 reward_maint_hover=reward_maint_hover,
                 reward_descent=reward_descent,
-                penalty_lost_hover=penalty_lost_hover
+                penalty_lost_hover=penalty_lost_hover,
+                reward_min_dist=reward_min_dist,
+                reward_max_dist=reward_max_dist
             ))
 
         self.c_envs = binding.vectorize(*c_envs)

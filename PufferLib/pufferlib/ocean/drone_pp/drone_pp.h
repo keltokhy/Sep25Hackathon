@@ -93,6 +93,10 @@ typedef struct {
     float reward_descent;
     float penalty_lost_hover;
 
+    float reward_min_dist;
+    float reward_max_dist;
+    float reward_dist;
+
     Client *client;
 } DronePP;
 
@@ -393,7 +397,16 @@ float compute_reward(DronePP* env, Drone *agent, bool collision) {
     float dy = (agent->state.pos.y - tgt.y);
     float dz = (agent->state.pos.z - tgt.z);
     float dist = sqrtf(dx*dx + dy*dy + dz*dz);
-    float dist_reward = clampf(1.0 - dist/MAX_DIST, -0.001f, 1.0f);
+    float dist_reward;
+    if (env->task == TASK_PP || env->task == TASK_PP2) {
+        env->reward_dist = clampf(env->tick * -0.04 + env->reward_max_dist, env->reward_min_dist, 100.0f);
+        dist_reward = clampf(1.0 - dist/env->reward_dist, -0.001f, 1.0f);
+        if (DEBUG > 0) printf("  COMPUTE_REWARD\n");
+        if (DEBUG > 0) printf("    reward_dist = %.3f\n", env->reward_dist);
+        if (DEBUG > 0) printf("    dist_reward = %.3f\n", dist_reward);
+    } else {
+        dist_reward = clampf(1.0 - dist/MAX_DIST, -0.001f, 1.0f);
+    }
     //dist = clampf(dist, 0.0f, 1.0f);
     //float dist_reward = 1.0f - dist;
 
