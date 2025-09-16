@@ -95,6 +95,8 @@ typedef struct {
     float reward_descent;
     float penalty_lost_hover;
     float alignment;
+    float min_alignment;
+    float max_alignment;
 
     float reward_min_dist;
     float reward_max_dist;
@@ -407,6 +409,7 @@ float compute_reward(DronePP* env, Drone *agent, bool collision) {
     float dist_reward;
     float vel_reward = 0.0f;
     if (env->task == TASK_PP || env->task == TASK_PP2) {
+        // todo forgot to add dist_decay for sweeps
         env->reward_dist = clampf(env->tick * -0.04 + env->reward_max_dist, env->reward_min_dist, 100.0f);
         dist_reward = clampf(1.0 - dist/env->reward_dist, -0.001f, 1.0f);
         if (DEBUG > 0) printf("  COMPUTE_REWARD\n");
@@ -416,7 +419,7 @@ float compute_reward(DronePP* env, Drone *agent, bool collision) {
         Vec3 to_target = {tgt.x - agent->state.pos.x, tgt.y - agent->state.pos.y, tgt.z - agent->state.pos.z};
         Vec3 vel = agent->state.vel;
         float vel_alignment = (to_target.x * vel.x + to_target.y * vel.y + to_target.z * vel.z) / (dist + 0.001f);
-        vel_reward = clampf(vel_alignment * -env->alignment, -0.2, 0.2);
+        vel_reward = clampf(vel_alignment * -env->alignment, -env->min_alignment, env->max_alignment);
         if (DEBUG > 0) printf("    vel_alignment = %.3f, vel_reward = %.3f\n", vel_alignment, vel_reward);
 
     } else {
