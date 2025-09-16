@@ -19,10 +19,10 @@ class DronePP(pufferlib.PufferEnv):
         reward_maint_hover=0.1,
         reward_descent=0.75,
         penalty_lost_hover=0.1,
-        alignment=0.1,
+        alignment=0.001,
 
-        reward_min_dist=5.0,
-        reward_max_dist=75.0,
+        reward_min_dist=5.5,
+        reward_max_dist=65.0,
         dist_decay=0.15,
 
         render_mode=None,
