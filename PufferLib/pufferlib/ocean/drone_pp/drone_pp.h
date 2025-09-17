@@ -112,6 +112,7 @@ typedef struct {
     float pos_const;
     float pos_penalty;
 
+    float grip_k;
     float grip_k_min;
     float grip_k_max;
     float grip_k_decay;
@@ -657,7 +658,7 @@ void c_step(DronePP *env) {
                         xy_dist_to_drop < k * 0.2f &&
                         z_dist_above_box < k * 0.1f && z_dist_above_box > 0.0f &&
                         speed < k * 0.2f &&
-                        agent->state.vel.z > k * -0.1f && agent->state.vel < 0.0f
+                        agent->state.vel.z > k * -0.1f && agent->state.vel.z < 0.0f
                     ) {
                         agent->gripping = true;
                         reward += 1.0f;
