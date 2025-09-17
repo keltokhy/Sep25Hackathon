@@ -625,8 +625,8 @@ void c_step(DronePP *env) {
                 float dist_to_hidden = sqrtf(powf(agent->state.pos.x - agent->hidden_pos.x, 2) +
                                             powf(agent->state.pos.y - agent->hidden_pos.y, 2) +
                                             powf(agent->state.pos.z - agent->hidden_pos.z, 2));
-                float xy_dist_to_drop = sqrtf(powf(agent->state.pos.x - agent->drop_pos.x, 2) +
-                                            powf(agent->state.pos.y - agent->drop_pos.y, 2));
+                float xy_dist_to_box = sqrtf(powf(agent->state.pos.x - agent->box_pos.x, 2) +
+                                            powf(agent->state.pos.y - agent->box_pos.y, 2));
                 float z_dist_above_box = agent->state.pos.z - agent->box_pos.z;
 
                 // Phase 1 Box Hover
@@ -654,7 +654,7 @@ void c_step(DronePP *env) {
                     env->grip_k = clampf(env->tick * -env->grip_k_decay + env->grip_k_max, env->grip_k_min, 100.0f);
                     float k = env->grip_k;
                     if (
-                        xy_dist_to_drop < k * 0.2f &&
+                        xy_dist_to_box < k * 0.2f &&
                         z_dist_above_box < k * 0.1f && z_dist_above_box > 0.0f &&
                         speed < k * 0.2f &&
                         agent->state.vel.z > k * -0.1f && agent->state.vel.z < 0.0f
