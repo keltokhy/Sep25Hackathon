@@ -144,6 +144,12 @@ int main() {
     env->c = 1.0;
     env->d = 1.0;
 
+    env->w_position = 1.0;
+    env->w_velocity = 1.0;
+    env->w_stability = 1.0;
+    env->w_approach = 1.0;
+    env->w_hover = 1.0;
+
     env->task = TASK_ORBIT;
     init(env);
 

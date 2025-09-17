@@ -35,6 +35,12 @@ class DronePP(pufferlib.PufferEnv):
         c=1.0,
         d=1.0,
 
+        w_position=1.0,
+        w_velocity=1.0,
+        w_stability=1.0,
+        w_approach=1.0,
+        w_hover=1.0,
+
         render_mode=None,
         report_interval=1024,
         buf=None,
@@ -93,7 +99,13 @@ class DronePP(pufferlib.PufferEnv):
                 a=a,
                 b=b,
                 c=c,
-                d=d
+                d=d,
+
+                w_position=w_position,
+                w_velocity=w_velocity,
+                w_stability=w_stability,
+                w_approach=w_approach,
+                w_hover=w_hover
             ))
 
         self.c_envs = binding.vectorize(*c_envs)

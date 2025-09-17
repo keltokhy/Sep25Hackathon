@@ -111,6 +111,12 @@ typedef struct {
     float c;
     float d;
 
+    float w_position;
+    float w_velocity;
+    float w_stability;
+    float w_approach;
+    float w_hover;
+
     Client *client;
 } DronePP;
 
@@ -404,86 +410,77 @@ void set_target(DronePP* env, int idx) {
 }
 
 float compute_reward(DronePP* env, Drone *agent, bool collision) {
-    // Distance reward
     Vec3 tgt = agent->target_pos;
     if (env->task == TASK_PP2) tgt = agent->hidden_pos;
-    float dx = (agent->state.pos.x - tgt.x);
-    float dy = (agent->state.pos.y - tgt.y);
-    float dz = (agent->state.pos.z - tgt.z);
-    float dist = sqrtf(dx*dx + dy*dy + dz*dz);
-    env->dist = dist;
-    env->log.dist += dist;
-    env->log.dist100 += 100 - dist;
-    float dist_reward;
-    float vel_reward = 0.0f;
-    if (env->task == TASK_PP || env->task == TASK_PP2) {
-        env->reward_dist = clampf(env->tick * -env->dist_decay + env->reward_max_dist, env->reward_min_dist, 100.0f);
-        dist_reward = clampf(1.0 - dist/env->reward_dist, -0.001f, 1.0f);
-        if (DEBUG > 0) printf("  COMPUTE_REWARD\n");
-        if (DEBUG > 0) printf("    reward_dist = %.3f\n", env->reward_dist);
-        if (DEBUG > 0) printf("    dist_reward = %.3f\n", dist_reward);
 
-        Vec3 to_target = {tgt.x - agent->state.pos.x, tgt.y - agent->state.pos.y, tgt.z - agent->state.pos.z};
-        Vec3 vel = agent->state.vel;
-        float vel_alignment = (to_target.x * vel.x + to_target.y * vel.y + to_target.z * vel.z) / (dist + 0.001f);
-        vel_reward = clampf(vel_alignment * -env->alignment, -env->min_alignment, env->max_alignment); // +
-                    //clampf(0.1-abs(agent->state.vel.x), -0.1f, 0.0f) +
-                    //clampf(0.1-abs(agent->state.vel.y), -0.1f, 0.0f);
-        if (DEBUG > 0) printf("    vel_alignment = %.3f, vel_reward = %.3f\n", vel_alignment, vel_reward);
+    Vec3 pos_error = {agent->state.pos.x - tgt.x, agent->state.pos.y - tgt.y, agent->state.pos.z - tgt.z};
+    float dist = sqrtf(pos_error.x * pos_error.x + pos_error.y * pos_error.y + pos_error.z * pos_error.z);
 
-    } else {
-        dist_reward = clampf(1.0 - dist/MAX_DIST, -0.001f, 1.0f);
+    Vec3 vel_error = {agent->state.vel.x, agent->state.vel.y, agent->state.vel.z - agent->hidden_vel.z};
+    float vel_magnitude = sqrtf(vel_error.x * vel_error.x + vel_error.y * vel_error.y + vel_error.z * vel_error.z);
+
+    float angular_vel_magnitude = sqrtf(agent->state.omega.x * agent->state.omega.x +
+                                      agent->state.omega.y * agent->state.omega.y +
+                                      agent->state.omega.z * agent->state.omega.z);
+
+    env->reward_dist = clampf(env->tick * -env->dist_decay + env->reward_max_dist, env->reward_min_dist, 100.0f);
+
+    float position_reward = expf(-dist / (env->reward_dist * 0.3f));
+
+    float velocity_penalty = -vel_magnitude / agent->params.max_vel;
+
+    float stability_reward = -angular_vel_magnitude / agent->params.max_omega;
+
+    Vec3 to_target_unit = {0, 0, 0};
+    if (dist > 0.001f) {
+        to_target_unit.x = -pos_error.x / dist;
+        to_target_unit.y = -pos_error.y / dist;
+        to_target_unit.z = -pos_error.z / dist;
+    }
+    float approach_dot = to_target_unit.x * agent->state.vel.x +
+                        to_target_unit.y * agent->state.vel.y +
+                        to_target_unit.z * agent->state.vel.z;
+
+    float approach_weight = clampf(dist / env->reward_dist, 0.0f, 1.0f);
+    float approach_reward = approach_weight * clampf(approach_dot / agent->params.max_vel, -0.5f, 0.5f);
+
+    float hover_bonus = 0.0f;
+    if (dist < env->reward_dist * 0.2f && vel_magnitude < 0.2f) {
+        hover_bonus = 1.0f;
     }
 
-    float stability_reward = 0.0f;
-    if (env->task == TASK_PP || env->task == TASK_PP2) {
-        float omega_mag = sqrtf(agent->state.omega.x * agent->state.omega.x +
-                            agent->state.omega.y * agent->state.omega.y +
-                            agent->state.omega.z * agent->state.omega.z);
-        float normalized_omega = omega_mag / agent->params.max_omega;
-
-        float proximity_factor = 1.0f - clampf(dist / env->reward_dist, 0.0f, 1.0f);
-        float stability_weight = env->stability_weight + (proximity_factor * env->omega_prox);
-
-        stability_reward = stability_weight * (1.0f - normalized_omega * normalized_omega);
-
-        //if (dist < env->reward_dist * 0.3f) {
-        //    float jerk_penalty = -clampf((normalized_omega - 0.2f) * 2.0f, 0.0f, 0.5f);
-        //    stability_reward += jerk_penalty;
-        //}
-
-        if (DEBUG > 0) printf("    omega_mag = %.3f, stability_reward = %.3f\n", omega_mag, stability_reward);
-    }
-
-    // Density penalty
-    float density_reward = 0.0f;
+    float collision_penalty = 0.0f;
     if (collision && env->num_agents > 1) {
         Drone *nearest = nearest_drone(env, agent);
-        dx = agent->state.pos.x - nearest->state.pos.x;
-        dy = agent->state.pos.y - nearest->state.pos.y;
-        dz = agent->state.pos.z - nearest->state.pos.z;
+        float dx = agent->state.pos.x - nearest->state.pos.x;
+        float dy = agent->state.pos.y - nearest->state.pos.y;
+        float dz = agent->state.pos.z - nearest->state.pos.z;
         float min_dist = sqrtf(dx*dx + dy*dy + dz*dz);
         if (min_dist < 1.0f) {
-            density_reward = -1.0f;
+            collision_penalty = -1.0f;
             agent->collisions += 1.0f;
         }
     }
 
-    float abs_reward = env->a * dist_reward + env->b * density_reward + env->c * vel_reward + env->d * stability_reward;
+    float total_reward = env->w_position * position_reward +
+                        env->w_velocity * velocity_penalty +
+                        env->w_stability * stability_reward +
+                        env->w_approach * approach_reward +
+                        env->w_hover * hover_bonus +
+                        collision_penalty;
 
-    // Prevent negative dist and density from making a positive reward
-    if (dist_reward < 0.0f && density_reward < 0.0f) {
-        abs_reward *= -1.0f;
-    }
+    total_reward = clampf(total_reward, -1.0f, 1.0f);
 
-    float delta_reward = abs_reward - agent->last_abs_reward;
+    float delta_reward = total_reward - agent->last_abs_reward;
 
-    agent->last_collision_reward = density_reward;
-    agent->last_target_reward = dist_reward;
-    agent->last_abs_reward = abs_reward;
-
+    agent->last_collision_reward = collision_penalty;
+    agent->last_target_reward = position_reward;
+    agent->last_abs_reward = total_reward;
     agent->episode_length++;
-    agent->score += abs_reward;
+    agent->score += total_reward;
+    env->dist = dist;
+    env->log.dist += dist;
+    env->log.dist100 += 100 - dist;
 
     return delta_reward;
 }
