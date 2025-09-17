@@ -36,6 +36,10 @@ class DronePP(pufferlib.PufferEnv):
         pos_const=0.3,
         pos_penalty=0.1,
 
+        grip_k_min=1.0,
+        grip_k_max=10.0,
+        grip_k_decay=0.05,
+
         render_mode=None,
         report_interval=1024,
         buf=None,
@@ -96,6 +100,10 @@ class DronePP(pufferlib.PufferEnv):
 
                 pos_const=pos_const,
                 pos_penalty=pos_penalty,
+
+                grip_k_min=grip_k_min,
+                grip_k_max=grip_k_max,
+                grip_k_decay=grip_k_decay
             ))
 
         self.c_envs = binding.vectorize(*c_envs)

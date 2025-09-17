@@ -32,6 +32,10 @@ static int my_init(Env *env, PyObject *args, PyObject *kwargs) {
     env->pos_const = unpack(kwargs, "pos_const");
     env->pos_penalty = unpack(kwargs, "pos_penalty");
 
+    env->grip_k_min = unpack(kwargs, "grip_k_min");
+    env->grip_k_max = unpack(kwargs, "grip_k_max");
+    env->grip_k_decay = unpack(kwargs, "grip_k_decay");
+
     init(env);
     return 0;
 }

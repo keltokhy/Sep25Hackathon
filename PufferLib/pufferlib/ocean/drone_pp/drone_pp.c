@@ -145,6 +145,10 @@ int main() {
     env->pos_const = 0.3;
     env->pos_penalty = 0.1;
 
+    env->grip_k_min = 1.0;
+    env->grip_k_max = 10.0;
+    env->grip_k_decay = 0.05;
+
     env->task = TASK_ORBIT;
     init(env);
 

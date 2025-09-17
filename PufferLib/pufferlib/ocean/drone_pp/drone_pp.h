@@ -112,6 +112,10 @@ typedef struct {
     float pos_const;
     float pos_penalty;
 
+    float grip_k_min;
+    float grip_k_max;
+    float grip_k_decay;
+
     Client *client;
 } DronePP;
 
@@ -444,7 +448,7 @@ float compute_reward(DronePP* env, Drone *agent, bool collision) {
 
     float hover_bonus = 0.0f;
     if (dist < env->reward_dist * 0.2f && vel_magnitude < 0.2f) {
-        hover_bonus = 1.0f;
+        hover_bonus = 0.5f;
     }
 
     float collision_penalty = 0.0f;
@@ -621,6 +625,8 @@ void c_step(DronePP *env) {
                 float dist_to_hidden = sqrtf(powf(agent->state.pos.x - agent->hidden_pos.x, 2) +
                                             powf(agent->state.pos.y - agent->hidden_pos.y, 2) +
                                             powf(agent->state.pos.z - agent->hidden_pos.z, 2));
+                float xy_dist_to_drop = sqrtf(powf(agent->state.pos.x - agent->drop_pos.x, 2) +
+                                            powf(agent->state.pos.y - agent->drop_pos.y, 2));
                 float z_dist_above_box = agent->state.pos.z - agent->box_pos.z;
 
                 // Phase 1 Box Hover
@@ -631,7 +637,6 @@ void c_step(DronePP *env) {
                     agent->hidden_vel = (Vec3){0.0f, 0.0f, 0.0f};
                     if (dist_to_hidden < 0.4f && speed < 0.4f) {
                         agent->hovering_pickup = true;
-                        //reward += env->reward_hover;
                         agent->color = (Color){255, 255, 255, 255}; // White
                     } else {
                         agent->color = (Color){255, 100, 100, 255}; // Light Red
@@ -646,7 +651,14 @@ void c_step(DronePP *env) {
                     if (DEBUG > 0) printf("    dist_to_hidden = %.3f\n", dist_to_hidden);
                     if (DEBUG > 0) printf("    z_dist_above_box = %.3f\n", z_dist_above_box);
                     if (DEBUG > 0) printf("    speed = %.3f\n", speed);
-                    if (dist_to_hidden < 0.2f && z_dist_above_box < 0.2f && speed < 0.2f) {
+                    env->grip_k = clampf(env->tick * -env->grip_k_decay + env->grip_k_max, env->grip_k_min, 100.0f);
+                    float k = env->grip_k;
+                    if (
+                        xy_dist_to_drop < k * 0.2f &&
+                        z_dist_above_box < k * 0.1f && z_dist_above_box > 0.0f &&
+                        speed < k * 0.2f &&
+                        agent->state.vel.z > k * -0.1f && agent->state.vel < 0.0f
+                    ) {
                         agent->gripping = true;
                         reward += 1.0f;
                         agent->color = (Color){0, 255, 0, 255}; // Green
