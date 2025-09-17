@@ -686,7 +686,7 @@ void c_step(DronePP *env) {
                     agent->hidden_pos.x = agent->drop_pos.x;
                     agent->hidden_pos.y = agent->drop_pos.y;
                     agent->hidden_vel = (Vec3){0.0f, 0.0f, -0.1f};
-                    if (xy_dist_to_drop < 0.01f && z_dist_above_drop < 001f) {
+                    if (xy_dist_to_drop < 0.01f && z_dist_above_drop < 0.01f) {
                         agent->gripping = false;
                         agent->hovering_drop = false;
                     }
