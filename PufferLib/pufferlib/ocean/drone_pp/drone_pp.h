@@ -648,7 +648,7 @@ void c_step(DronePP *env) {
                     if (DEBUG > 0) printf("    dist_to_hidden = %.3f\n", dist_to_hidden);
                     if (DEBUG > 0) printf("    z_dist_above_box = %.3f\n", z_dist_above_box);
                     if (DEBUG > 0) printf("    speed = %.3f\n", speed);
-                    if (dist_to_hidden < 0.4f && z_dist_above_box < 0.4f && speed < 0.4f) {
+                    if (dist_to_hidden < 0.2f && z_dist_above_box < 0.2f && speed < 0.2f) {
                         agent->gripping = true;
                         reward += 1.0f;
                         agent->color = (Color){0, 255, 0, 255}; // Green
@@ -680,7 +680,7 @@ void c_step(DronePP *env) {
                     agent->hidden_pos.x = agent->drop_pos.x;
                     agent->hidden_pos.y = agent->drop_pos.y;
                     agent->hidden_vel = (Vec3){0.0f, 0.0f, -0.1f};
-                    if (xy_dist_to_drop < 0.25f && z_dist_above_drop < 0.2f) {
+                    if (xy_dist_to_drop < 0.01f && z_dist_above_drop < 001f) {
                         agent->gripping = false;
                         agent->hovering_drop = false;
                     }
