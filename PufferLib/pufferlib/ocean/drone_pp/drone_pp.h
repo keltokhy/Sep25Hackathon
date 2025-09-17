@@ -181,6 +181,9 @@ void compute_observations(DronePP *env) {
         env->observations[idx++] = linear_vel_body.x / agent->params.max_vel;
         env->observations[idx++] = linear_vel_body.y / agent->params.max_vel;
         env->observations[idx++] = linear_vel_body.z / agent->params.max_vel;
+        env->observations[idx++] = clampf(agent->state.vel.x, -1.0f, 1.0f);
+        env->observations[idx++] = clampf(agent->state.vel.y, -1.0f, 1.0f);
+        env->observations[idx++] = clampf(agent->state.vel.z, -1.0f, 1.0f);
 
         env->observations[idx++] = agent->state.omega.x / agent->params.max_omega;
         env->observations[idx++] = agent->state.omega.y / agent->params.max_omega;
@@ -203,10 +206,6 @@ void compute_observations(DronePP *env) {
         env->observations[idx++] = agent->state.pos.x / GRID_X;
         env->observations[idx++] = agent->state.pos.y / GRID_Y;
         env->observations[idx++] = agent->state.pos.z / GRID_Z;
-
-        env->observations[idx++] = agent->spawn_pos.x / GRID_X;
-        env->observations[idx++] = agent->spawn_pos.y / GRID_Y;
-        env->observations[idx++] = agent->spawn_pos.z / GRID_Z;
 
         float dx = agent->target_pos.x - agent->state.pos.x;
         float dy = agent->target_pos.y - agent->state.pos.y;
