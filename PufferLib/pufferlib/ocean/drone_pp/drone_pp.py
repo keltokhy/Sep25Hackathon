@@ -27,14 +27,6 @@ class DronePP(pufferlib.PufferEnv):
         reward_max_dist=80.0,
         dist_decay=0.15,
 
-        omega_prox=0.04,
-        stability_weight=0.07,
-
-        a=1.0,
-        b=1.0,
-        c=1.0,
-        d=1.0,
-
         w_position=1.0,
         w_velocity=1.0,
         w_stability=1.0,
@@ -95,14 +87,6 @@ class DronePP(pufferlib.PufferEnv):
                 reward_min_dist=reward_min_dist,
                 reward_max_dist=reward_max_dist,
                 dist_decay=dist_decay,
-
-                omega_prox=omega_prox,
-                stability_weight=stability_weight,
-
-                a=a,
-                b=b,
-                c=c,
-                d=d,
 
                 w_position=w_position,
                 w_velocity=w_velocity,

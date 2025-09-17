@@ -103,14 +103,6 @@ typedef struct {
     float dist_decay;
     float reward_dist;
 
-    float omega_prox;
-    float stability_weight;
-
-    float a;
-    float b;
-    float c;
-    float d;
-
     float w_position;
     float w_velocity;
     float w_stability;

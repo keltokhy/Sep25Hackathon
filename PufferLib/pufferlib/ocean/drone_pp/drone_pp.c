@@ -136,14 +136,6 @@ int main() {
     env->reward_max_dist = 80.0;
     env->dist_decay = 0.15;
 
-    env->omega_prox = 0.04;
-    env->stability_weight = 0.07;
-
-    env->a = 1.0;
-    env->b = 1.0;
-    env->c = 1.0;
-    env->d = 1.0;
-
     env->w_position = 1.0;
     env->w_velocity = 1.0;
     env->w_stability = 1.0;

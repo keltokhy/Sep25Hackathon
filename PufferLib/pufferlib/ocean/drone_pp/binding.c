@@ -23,14 +23,6 @@ static int my_init(Env *env, PyObject *args, PyObject *kwargs) {
     env->reward_max_dist = unpack(kwargs, "reward_max_dist");
     env->dist_decay = unpack(kwargs, "dist_decay");
 
-    env->omega_prox = unpack(kwargs, "omega_prox");
-    env->stability_weight = unpack(kwargs, "stability_weight");
-
-    env->a = unpack(kwargs, "a");
-    env->b = unpack(kwargs, "b");
-    env->c = unpack(kwargs, "c");
-    env->d = unpack(kwargs, "d");
-
     env->w_position = unpack(kwargs, "w_position");
     env->w_velocity = unpack(kwargs, "w_velocity");
     env->w_stability = unpack(kwargs, "w_stability");
