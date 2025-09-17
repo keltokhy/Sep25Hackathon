@@ -37,6 +37,9 @@ static int my_init(Env *env, PyObject *args, PyObject *kwargs) {
     env->w_approach = unpack(kwargs, "w_approach");
     env->w_hover = unpack(kwargs, "w_hover");
 
+    env->pos_const = unpack(kwargs, "pos_const");
+    env->pos_penalty = unpack(kwargs, "pos_penalty");
+
     init(env);
     return 0;
 }

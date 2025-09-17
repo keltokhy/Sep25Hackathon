@@ -23,9 +23,9 @@ class DronePP(pufferlib.PufferEnv):
         min_alignment=0.2,
         max_alignment=0.001,
 
-        reward_min_dist=5.5,
-        reward_max_dist=65.0,
-        dist_decay=0.08,
+        reward_min_dist=4.5,
+        reward_max_dist=80.0,
+        dist_decay=0.15,
 
         omega_prox=0.04,
         stability_weight=0.07,
@@ -38,8 +38,11 @@ class DronePP(pufferlib.PufferEnv):
         w_position=1.0,
         w_velocity=1.0,
         w_stability=1.0,
-        w_approach=1.0,
+        w_approach=1.3,
         w_hover=1.0,
+
+        pos_const=0.3,
+        pos_penalty=0.1,
 
         render_mode=None,
         report_interval=1024,
@@ -105,7 +108,10 @@ class DronePP(pufferlib.PufferEnv):
                 w_velocity=w_velocity,
                 w_stability=w_stability,
                 w_approach=w_approach,
-                w_hover=w_hover
+                w_hover=w_hover,
+
+                pos_const=pos_const,
+                pos_penalty=pos_penalty,
             ))
 
         self.c_envs = binding.vectorize(*c_envs)

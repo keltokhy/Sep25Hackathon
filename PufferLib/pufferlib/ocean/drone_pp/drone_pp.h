@@ -117,6 +117,9 @@ typedef struct {
     float w_approach;
     float w_hover;
 
+    float pos_const;
+    float pos_penalty;
+
     Client *client;
 } DronePP;
 
@@ -177,6 +180,7 @@ void compute_observations(DronePP *env) {
         Vec3 drone_up_world = quat_rotate(agent->state.quat, (Vec3){0.0f, 0.0f, 1.0f});
 
         // TODO: Need abs observations now right?
+        // 42
         env->observations[idx++] = linear_vel_body.x / agent->params.max_vel;
         env->observations[idx++] = linear_vel_body.y / agent->params.max_vel;
         env->observations[idx++] = linear_vel_body.z / agent->params.max_vel;
@@ -220,6 +224,7 @@ void compute_observations(DronePP *env) {
         env->observations[idx++] = agent->last_collision_reward;
         env->observations[idx++] = agent->last_target_reward;
         env->observations[idx++] = agent->last_abs_reward;
+        // todo add other rewards like vel stab approach hover etc
 
         // Multiagent obs
         Drone* nearest = nearest_drone(env, agent);
@@ -414,7 +419,7 @@ float compute_reward(DronePP* env, Drone *agent, bool collision) {
     if (env->task == TASK_PP2) tgt = agent->hidden_pos;
 
     Vec3 pos_error = {agent->state.pos.x - tgt.x, agent->state.pos.y - tgt.y, agent->state.pos.z - tgt.z};
-    float dist = sqrtf(pos_error.x * pos_error.x + pos_error.y * pos_error.y + pos_error.z * pos_error.z);
+    float dist = sqrtf(pos_error.x * pos_error.x + pos_error.y * pos_error.y + pos_error.z * pos_error.z) + 0.00000001;
 
     Vec3 vel_error = {agent->state.vel.x, agent->state.vel.y, agent->state.vel.z - agent->hidden_vel.z};
     float vel_magnitude = sqrtf(vel_error.x * vel_error.x + vel_error.y * vel_error.y + vel_error.z * vel_error.z);
@@ -425,7 +430,8 @@ float compute_reward(DronePP* env, Drone *agent, bool collision) {
 
     env->reward_dist = clampf(env->tick * -env->dist_decay + env->reward_max_dist, env->reward_min_dist, 100.0f);
 
-    float position_reward = expf(-dist / (env->reward_dist * 0.3f));
+    float position_reward = clampf(expf(-dist / (env->reward_dist * env->pos_const)), -env->pos_penalty, 1.0f);
+    //position_reward = clampf(1.0 - dist/env->reward_dist, -0.001f, 1.0f);
 
     float velocity_penalty = -vel_magnitude / agent->params.max_vel;
 
@@ -441,7 +447,7 @@ float compute_reward(DronePP* env, Drone *agent, bool collision) {
                         to_target_unit.y * agent->state.vel.y +
                         to_target_unit.z * agent->state.vel.z;
 
-    float approach_weight = clampf(dist / env->reward_dist, 0.0f, 1.0f);
+    float approach_weight = clampf(dist / env->reward_dist, 0.0f, 1.0f); // todo
     float approach_reward = approach_weight * clampf(approach_dot / agent->params.max_vel, -0.5f, 0.5f);
 
     float hover_bonus = 0.0f;

@@ -132,9 +132,9 @@ int main() {
     env->min_alignment = 0.2;
     env->max_alignment = 0.001;
 
-    env->reward_min_dist = 5.5;
-    env->reward_max_dist = 65.0;
-    env->dist_decay = 0.08;
+    env->reward_min_dist = 4.5;
+    env->reward_max_dist = 80.0;
+    env->dist_decay = 0.15;
 
     env->omega_prox = 0.04;
     env->stability_weight = 0.07;
@@ -147,8 +147,11 @@ int main() {
     env->w_position = 1.0;
     env->w_velocity = 1.0;
     env->w_stability = 1.0;
-    env->w_approach = 1.0;
+    env->w_approach = 1.3;
     env->w_hover = 1.0;
+
+    env->pos_const = 0.3;
+    env->pos_penalty = 0.1;
 
     env->task = TASK_ORBIT;
     init(env);
