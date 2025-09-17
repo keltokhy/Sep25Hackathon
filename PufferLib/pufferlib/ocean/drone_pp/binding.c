@@ -26,6 +26,11 @@ static int my_init(Env *env, PyObject *args, PyObject *kwargs) {
     env->omega_prox = unpack(kwargs, "omega_prox");
     env->stability_weight = unpack(kwargs, "stability_weight");
 
+    env->a = unpack(kwargs, "a");
+    env->b = unpack(kwargs, "b");
+    env->c = unpack(kwargs, "c");
+    env->d = unpack(kwargs, "d");
+
     init(env);
     return 0;
 }

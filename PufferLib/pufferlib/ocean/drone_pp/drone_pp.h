@@ -106,6 +106,11 @@ typedef struct {
     float omega_prox;
     float stability_weight;
 
+    float a;
+    float b;
+    float c;
+    float d;
+
     Client *client;
 } DronePP;
 
@@ -464,7 +469,7 @@ float compute_reward(DronePP* env, Drone *agent, bool collision) {
         }
     }
 
-    float abs_reward = dist_reward + density_reward + vel_reward + stability_reward;
+    float abs_reward = env->a * dist_reward + env->b * density_reward + env->c * vel_reward + env->d * stability_reward;
 
     // Prevent negative dist and density from making a positive reward
     if (dist_reward < 0.0f && density_reward < 0.0f) {

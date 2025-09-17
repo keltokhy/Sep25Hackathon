@@ -139,6 +139,11 @@ int main() {
     env->omega_prox = 0.04;
     env->stability_weight = 0.07;
 
+    env->a = 1.0;
+    env->b = 1.0;
+    env->c = 1.0;
+    env->d = 1.0;
+
     env->task = TASK_ORBIT;
     init(env);
 
