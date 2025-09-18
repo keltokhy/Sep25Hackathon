@@ -7,18 +7,6 @@ static int my_init(Env *env, PyObject *args, PyObject *kwargs) {
     env->num_agents = unpack(kwargs, "num_agents");
     env->max_rings = unpack(kwargs, "max_rings");
 
-    env->penalty_damping = unpack(kwargs, "penalty_damping");
-    env->reward_xy_dist = unpack(kwargs, "reward_xy_dist");
-    env->reward_hover_dist = unpack(kwargs, "reward_hover_dist");
-    env->reward_hover_alt = unpack(kwargs, "reward_hover_alt");
-    env->reward_hover = unpack(kwargs, "reward_hover");
-    env->reward_maint_hover = unpack(kwargs, "reward_maint_hover");
-    env->reward_descent = unpack(kwargs, "reward_descent");
-    env->penalty_lost_hover = unpack(kwargs, "penalty_lost_hover");
-    env->alignment = unpack(kwargs, "alignment");
-    env->min_alignment = unpack(kwargs, "min_alignment");
-    env->max_alignment = unpack(kwargs, "max_alignment");
-
     env->reward_min_dist = unpack(kwargs, "reward_min_dist");
     env->reward_max_dist = unpack(kwargs, "reward_max_dist");
     env->dist_decay = unpack(kwargs, "dist_decay");

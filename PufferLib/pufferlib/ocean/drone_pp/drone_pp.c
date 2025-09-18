@@ -120,18 +120,6 @@ int main() {
     env->num_agents = 64;
     env->max_rings = 10;
 
-    env->penalty_damping = 0.21;
-    env->reward_xy_dist = 0.12;
-    env->reward_hover_dist = 0.067;
-    env->reward_hover_alt = 0.11;
-    env->reward_hover = 0.2;
-    env->reward_maint_hover = 0.1;
-    env->reward_descent = 0.75;
-    env->penalty_lost_hover = 0.1;
-    env->alignment = 0.001;
-    env->min_alignment = 0.2;
-    env->max_alignment = 0.001;
-
     env->reward_min_dist = 2.0;
     env->reward_max_dist = 75.0;
     env->dist_decay = 0.03;

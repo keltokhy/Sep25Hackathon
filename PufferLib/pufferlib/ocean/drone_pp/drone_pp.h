@@ -21,9 +21,8 @@
 #define TASK_CONGO 5
 #define TASK_FLAG 6
 #define TASK_RACE 7
-#define TASK_PP 8
-#define TASK_PP2 9
-#define TASK_N 10
+#define TASK_PP2 8
+#define TASK_N 9
 
 #define DEBUG 0
 
@@ -87,18 +86,6 @@ typedef struct {
     Ring* ring_buffer;
 
     int debug;
-
-    float penalty_damping;
-    float reward_xy_dist;
-    float reward_hover_dist;
-    float reward_hover_alt;
-    float reward_hover;
-    float reward_maint_hover;
-    float reward_descent;
-    float penalty_lost_hover;
-    float alignment;
-    float min_alignment;
-    float max_alignment;
 
     float reward_min_dist;
     float reward_max_dist;
@@ -249,7 +236,7 @@ void compute_observations(DronePP *env) {
             env->observations[idx++] = ring_norm.y;
             env->observations[idx++] = ring_norm.z;
             env->observations[idx++] = 0.0f; // TASK_PP2
-        } else if (env->task == TASK_PP || env->task == TASK_PP2) {
+        } else if (env->task == TASK_PP2) {
             Vec3 to_box = quat_rotate(q_inv, sub3(agent->box_pos, agent->state.pos));
             Vec3 to_drop = quat_rotate(q_inv, sub3(agent->drop_pos, agent->state.pos));
             env->observations[idx++] = to_box.x / GRID_X;
@@ -406,8 +393,6 @@ void set_target(DronePP* env, int idx) {
         set_target_flag(env, idx);
     } else if (env->task == TASK_RACE) {
         set_target_race(env, idx);
-    } else if (env->task == TASK_PP) {
-        set_target_pp(env, idx);
     } else if (env->task == TASK_PP2) {
         set_target_pp2(env, idx);
     }
@@ -538,7 +523,7 @@ void reset_agent(DronePP* env, Drone *agent, int idx) {
     agent->prev_pos = agent->state.pos;
     agent->spawn_pos = agent->state.pos;
 
-    if (env->task == TASK_PP || env->task == TASK_PP2) {
+    if (env->task == TASK_PP2) {
         reset_pp2(env, agent, idx);
     }
 
@@ -622,6 +607,8 @@ void c_step(DronePP *env) {
             }
             reward += passed_ring;
         // =========================================================================================================================================
+        // =========================================================================================================================================
+        // =========================================================================================================================================
         } else if (env->task == TASK_PP2) {
             if (DEBUG > 0) printf("\n\n===%d===\n", env->tick);
             agent->hidden_pos.x += agent->hidden_vel.x * DT;
@@ -691,7 +678,7 @@ void c_step(DronePP *env) {
             } else {
 
                 // Phase 3 Drop Hover
-                if (agent->gripping) printf("===========%d===============\n", env->env_i);
+                //if (agent->gripping) printf("===========%d===============\n", env->env_i);
                 agent->box_pos = agent->state.pos;
                 agent->box_pos.z -= 0.5f;
                 agent->target_pos = agent->drop_pos;
@@ -725,7 +712,6 @@ void c_step(DronePP *env) {
                         agent->has_delivered = true;
                         agent->color = (Color){0, 255, 0, 255}; // Green
                         if (k < 1.01f) agent->perfect = true;
-                        printf("%d\n", agent->perfect);
                         reset_pp2(env, agent, i);
                     }
                 }
@@ -745,216 +731,8 @@ void c_step(DronePP *env) {
                 if (a->hovering_drop) env->log.ho_drop += 1.0f;
             }
         // =========================================================================================================================================
-        } else if (env->task == TASK_PP) {
-            if (DEBUG > 0) printf("\n===%d===\n", env->tick);
-            float box_dist = norm3(sub3(agent->state.pos, agent->box_pos));
-            float drop_dist = norm3(sub3(agent->state.pos, agent->drop_pos));
-            Vec3 box_to_agent = sub3(agent->state.pos, agent->box_pos);
-            Vec3 drop_to_agent = sub3(agent->state.pos, agent->drop_pos);
-
-            float episode_progress = (float)agent->episode_length / 1000.0f;
-            float speed = norm3(agent->state.vel);
-
-            float hover_xy_threshold = 0.25f;
-            float hover_z_min = 0.0f;
-            float hover_z_max = 1.2f;
-            float hover_speed_threshold = 0.2f + 0.3f * (1.0f - (float)env->tick / 1024.0f);
-            float grip_xy_threshold = 0.25f;
-            float grip_z_threshold = 0.35f;
-            float grip_speed_threshold = 0.1f + 0.2f * (1.0f - (float)env->tick / 1024.0f);
-
-            if (!agent->gripping) {
-                // === PICKUP PHASE ===
-                agent->approaching_pickup = true;
-
-                float xy_dist_to_box = sqrtf(powf(agent->state.pos.x - agent->box_pos.x, 2) +
-                                            powf(agent->state.pos.y - agent->box_pos.y, 2));
-                float z_dist_above_box = agent->state.pos.z - agent->box_pos.z;
-
-                Vec3 target_pos = agent->gripping ? agent->drop_pos : agent->box_pos;
-                Vec3 pos_error = sub3(agent->state.pos, target_pos);
-
-                if (xy_dist_to_box < 2.0f && xy_dist_to_box > 0.01f) {
-                    Vec3 error_dir = {pos_error.x / xy_dist_to_box, pos_error.y / xy_dist_to_box, 0.0f};
-                    float vel_away = agent->state.vel.x * error_dir.x + agent->state.vel.y * error_dir.y;
-                    if (vel_away > 0.0f) {
-                        float damping_penalty = env->penalty_damping * vel_away * (1.0f - xy_dist_to_box / 2.0f); // Stronger when closer
-                        //float distance_factor = clampf(xy_dist_to_box / 2.0f, 0.1f, 1.0f);
-                        //float damping_penalty = 0.1f * vel_away * distance_factor;
-                        reward -= damping_penalty;
-                    }
-                }
-
-                if (xy_dist_to_box < 0.5f) {
-                    float xy_reward = env->reward_xy_dist * (1.0f - clampf(xy_dist_to_box / 0.5f, 0.0f, 1.0f));
-                    if (agent->hovering_pickup || agent->descent_pickup) {
-                        xy_reward *= 2.0f;
-                    }
-                    reward += xy_reward;
-                }
-
-                Vec3 hover_target = agent->box_pos;
-                hover_target.z += 1.0f;
-                float hover_dist = norm3(sub3(agent->state.pos, hover_target));
-
-                if (!agent->hovering_pickup) {
-                    reward += env->reward_hover_dist * (1.0f - clampf(hover_dist / 8.0f, 0.0f, 1.0f));
-                    if (z_dist_above_box > 0.5f && z_dist_above_box < 1.5f) {
-                        reward += env->reward_hover_alt;
-                    }
-                }
-
-                if (DEBUG > 0) printf("  Hover\n");
-                if (DEBUG > 0) printf("    xy_dist_to_box = %.3f vs %.3f\n", xy_dist_to_box, hover_xy_threshold);
-                if (DEBUG > 0) printf("    z_dist_above_box = %.3f vs %.3f-%.3f\n", z_dist_above_box, hover_z_min, hover_z_max);
-                if (DEBUG > 0) printf("    speed = %.3f vs %.3f\n", speed, hover_speed_threshold);
-                bool hover_conditions = (xy_dist_to_box < hover_xy_threshold &&
-                                    z_dist_above_box > hover_z_min &&
-                                    z_dist_above_box < hover_z_max &&
-                                    speed < hover_speed_threshold);
-
-                if (DEBUG > 0) printf("  Descent\n");
-                if (DEBUG > 0) printf("    xy_dist_to_box = %.3f vs %.3f\n", xy_dist_to_box, hover_xy_threshold);
-                if (DEBUG > 0) printf("    z_dist_above_box = %.3f vs 0.0\n", z_dist_above_box);
-                if (DEBUG > 0) printf("    speed = %.3f vs %.3f\n", speed, hover_speed_threshold);
-                bool descent_hover_conditions = (xy_dist_to_box < hover_xy_threshold &&
-                                z_dist_above_box > 0.0f &&
-                                speed < hover_speed_threshold);
-
-                if (hover_conditions && !agent->hovering_pickup) {
-                    agent->hovering_pickup = true;
-                    reward += env->reward_hover;
-                    agent->color = (Color){255, 255, 255, 255}; // White
-                }
-
-                if (agent->hovering_pickup) {
-                    bool maintain_hover = (agent->descent_pickup || agent->state.vel.z < -0.01f) ? descent_hover_conditions : hover_conditions;
-
-                    if (maintain_hover) {
-                        reward += env->reward_maint_hover;
-                        // Reward slow descent
-                        if (agent->state.vel.z < -0.01f && agent->state.vel.z > -0.1f) {
-                            reward += env->reward_descent;
-                            agent->color = (Color){0, 150, 255, 255}; // Light Blue
-                            agent->descent_pickup = true;
-                        } else {
-                            agent->color = (Color){255, 255, 255, 255}; // White
-                            reward -= 0.1;
-                        }
-                    } else {
-                        // Lost hover
-                        agent->hovering_pickup = false;
-                        agent->descent_pickup = false;
-                        reward -= env->penalty_lost_hover;
-                        agent->color = (Color){255, 100, 100, 255}; // Light Red
-                    }
-                }
-
-                // Gripping attempt - only when properly positioned and hovering
-                if (DEBUG > 0) printf("  GRIP\n");
-                if (DEBUG > 0) printf("    hovering_pickup = %d\n", agent->hovering_pickup);
-                if (DEBUG > 0) printf("    xy_dist_to_box = %.3f\n", xy_dist_to_box);
-                if (DEBUG > 0) printf("    z_dist_above_box = %.3f\n", z_dist_above_box);
-                if (DEBUG > 0) printf("    speed = %.3f\n", speed);
-                if (agent->hovering_pickup &&
-                    xy_dist_to_box < grip_xy_threshold &&
-                    z_dist_above_box < grip_z_threshold &&
-                    speed < grip_speed_threshold) {
-
-                    agent->gripping = true;
-                    reward += 1.0f; // Grip
-                    agent->hovering_pickup = false;
-                    agent->descent_pickup = false;
-                    agent->hovering_drop = false;
-                    agent->color = (Color){0, 255, 0, 255}; // Green
-                }
-
-            } else {
-                // === DROP PHASE ===
-
-                //agent->approaching_drop = true;
-                agent->color = (Color){0, 255, 0, 255}; // Green
-
-                // Calculate distances for drop
-                float xy_dist_to_drop = sqrtf(powf(agent->state.pos.x - agent->drop_pos.x, 2) +
-                                            powf(agent->state.pos.y - agent->drop_pos.y, 2));
-                float z_dist_above_drop = agent->state.pos.z - agent->drop_pos.z;
-
-                Vec3 drop_hover_target = agent->drop_pos;
-                drop_hover_target.z += 1.0f;
-                float drop_hover_dist = norm3(sub3(agent->state.pos, drop_hover_target));
-
-                // Guidance toward drop hover position
-                if (!agent->hovering_drop) {
-                    reward += 0.1f * (1.0f - clampf(drop_hover_dist / 8.0f, 0.0f, 1.0f));
-
-                    // Bonus for good XY positioning
-                    if (xy_dist_to_drop < 0.4f) {
-                        reward += 0.03f * (1.0f - clampf(xy_dist_to_drop / 0.4f, 0.0f, 1.0f));
-                    }
-                }
-
-                // Check for drop hover conditions
-                bool drop_hover_conditions = (xy_dist_to_drop < hover_xy_threshold &&
-                                            z_dist_above_drop > hover_z_min &&
-                                            z_dist_above_drop < hover_z_max &&
-                                            speed < hover_speed_threshold);
-
-                if (drop_hover_conditions && !agent->hovering_drop) {
-                    agent->hovering_drop = true;
-                    reward += 0.3f; // Bonus for reaching drop hover
-                    agent->color = (Color){255, 255, 0, 255}; // Yellow at drop hover
-                }
-
-                // Maintain drop hover
-                if (agent->hovering_drop) {
-                    if (drop_hover_conditions) {
-                        reward += 0.015f; // Small maintenance reward
-                        agent->color = (Color){255, 255, 0, 255};
-
-                        // Reward controlled descent
-                        if (agent->state.vel.z < -0.02f && agent->state.vel.z > -0.2f) {
-                            reward += 0.06f;
-                            agent->color = (Color){255, 150, 0, 255}; // Orange for descent
-                        }
-                    } else {
-                        // Lost drop hover
-                        agent->hovering_drop = false;
-                        reward -= 0.05f;
-                    }
-                }
-
-                // Drop attempt - only when properly positioned
-                if (agent->hovering_drop &&
-                    xy_dist_to_drop < grip_xy_threshold &&
-                    z_dist_above_drop < 0.15f &&
-                    speed < grip_speed_threshold) {
-
-                    agent->gripping = false;
-                    reward += 2.0f; // Large reward for successful drop
-                    agent->hovering_drop = false;
-                    agent->color = (Color){0, 255, 255, 255}; // Cyan for completion
-                }
-            }
-
-            float xy_dist_to_box = sqrtf(powf(agent->state.pos.x - agent->box_pos.x, 2) +
-                                        powf(agent->state.pos.y - agent->box_pos.y, 2));
-
-            if (speed > 1.0f && xy_dist_to_box < 2.0f) {
-                reward -= 0.01f * (speed - 1.0f);
-            }
-
-        // Logging for TASK_PP
-        for (int i = 0; i < env->num_agents; i++) {
-            Drone *a = &env->agents[i];
-            if (a->approaching_pickup) env->log.to_pickup += 1.0f;
-            if (a->hovering_pickup) env->log.ho_pickup += 1.0f;
-            if (a->descent_pickup) env->log.de_pickup += 1.0f;
-            if (a->gripping) env->log.gripping += 1.0f;
-            if (a->approaching_drop) env->log.to_drop += 1.0f;
-            if (a->hovering_drop) env->log.ho_drop += 1.0f;
-        }
-
+        // =========================================================================================================================================
+        // =========================================================================================================================================
         } else {
             // Delta reward
             reward = compute_reward(env, agent, true);
@@ -1172,7 +950,6 @@ void c_render(DronePP *env) {
         Drone *agent = &env->agents[i];
 
         // draws drone body
-        //Color body_color = (env->task == TASK_PP && agent->gripping) ? GREEN : FLAG_COLORS[i];
         DrawSphere((Vector3){agent->state.pos.x, agent->state.pos.y, agent->state.pos.z}, 0.3f, agent->color);
 
         // draws rotors according to thrust
@@ -1246,7 +1023,7 @@ void c_render(DronePP *env) {
         }
     }
 
-    if (env->task == TASK_PP || env->task == TASK_PP2) {
+    if (env->task == TASK_PP2) {
         for (int i = 0; i < env->num_agents; i++) {
             Drone *agent = &env->agents[i];
             Vec3 render_pos = agent->box_pos;
