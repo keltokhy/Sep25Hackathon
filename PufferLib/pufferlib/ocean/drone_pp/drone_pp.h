@@ -69,7 +69,7 @@ typedef struct {
     float *actions;
     float *rewards;
     unsigned char *terminals;
-    int env_i;
+    int env_i; // racedb
 
     float dist;
 
@@ -505,7 +505,8 @@ void reset_agent(DronePP* env, Drone *agent, int idx) {
     agent->collisions = 0.0f;
     agent->score = 0.0f;
     agent->ring_idx = 0;
-    agent->perfect = false;
+    agent->perfect_grip = false;
+    agent->perfect_deliv = false;
     agent->has_delivered = false;
 
     //float size = 0.2f;
@@ -547,6 +548,7 @@ void c_reset(DronePP *env) {
 
     for (int i = 0; i < env->num_agents; i++) {
         Drone *agent = &env->agents[i];
+        agent->i = i; // racedb
         reset_agent(env, agent, i);
         set_target(env, i);
     }
@@ -619,12 +621,13 @@ void c_step(DronePP *env) {
             }
             agent->approaching_pickup = true;
             float speed = norm3(agent->state.vel);
+            env->grip_k = clampf(env->tick * -env->grip_k_decay + env->grip_k_max, env->grip_k_min, 100.0f);
+            float k = env->grip_k;
             if (DEBUG > 0) printf("  PP2\n");
+            if (DEBUG > 0) printf("    K = %.3f\n", k);
             if (DEBUG > 0) printf("    Hidden = %.3f %.3f %.3f\n", agent->hidden_pos.x, agent->hidden_pos.y, agent->hidden_pos.z);
             if (DEBUG > 0) printf("    HiddenV = %.3f %.3f %.3f\n", agent->hidden_vel.x, agent->hidden_vel.y, agent->hidden_vel.z);
             if (DEBUG > 0) printf("    speed = %.3f\n", speed);
-            env->grip_k = clampf(env->tick * -env->grip_k_decay + env->grip_k_max, env->grip_k_min, 100.0f);
-            float k = env->grip_k;
             if (!agent->gripping) {
                 float dist_to_hidden = sqrtf(powf(agent->state.pos.x - agent->hidden_pos.x, 2) +
                                             powf(agent->state.pos.y - agent->hidden_pos.y, 2) +
@@ -666,6 +669,14 @@ void c_step(DronePP *env) {
                         speed < k * 0.2f &&
                         agent->state.vel.z > k * -0.1f && agent->state.vel.z < 0.0f
                     ) {
+                        if (k < 1.01) {
+                            printf("        ENV=%d        AGENT=%d        k=%.3f        tick=%d\n", // racedb
+                                    env->env_i,
+                                    agent->i,
+                                    k,
+                                    env->tick);
+                            agent->perfect_grip = true;
+                        }
                         agent->gripping = true;
                         reward += 1.0f;
                         agent->color = (Color){100, 100, 255, 255}; // Light Blue
@@ -678,7 +689,6 @@ void c_step(DronePP *env) {
             } else {
 
                 // Phase 3 Drop Hover
-                //if (agent->gripping) printf("===========%d===============\n", env->env_i);
                 agent->box_pos = agent->state.pos;
                 agent->box_pos.z -= 0.5f;
                 agent->target_pos = agent->drop_pos;
@@ -711,7 +721,14 @@ void c_step(DronePP *env) {
                         agent->delivered = true;
                         agent->has_delivered = true;
                         agent->color = (Color){0, 255, 0, 255}; // Green
-                        if (k < 1.01f) agent->perfect = true;
+                        if (k < 1.01f && agent->perfect_grip) {
+                            agent->perfect_deliv = true;
+                            printf("========ENV=%d========AGENT=%d========k=%.3f========tick=%d========\n", // racedb
+                                env->env_i,
+                                agent->i,
+                                k,
+                                env->tick);
+                        }
                         reset_pp2(env, agent, i);
                     }
                 }
@@ -726,7 +743,8 @@ void c_step(DronePP *env) {
                 if (a->descent_pickup) env->log.de_pickup += 1.0f;
                 if (a->gripping) env->log.gripping += 1.0f;
                 if (a->delivered) env->log.delivered += 1.0f;
-                if (a->perfect) env->log.perfect += 1.0f;
+                if (a->perfect_grip && env->grip_k < 1.01f) env->log.perfect_grip += 1.0f;
+                if (a->perfect_deliv && env->grip_k < 1.01f && a->perfect_grip) env->log.perfect_deliv += 1.0f;
                 if (a->approaching_drop) env->log.to_drop += 1.0f;
                 if (a->hovering_drop) env->log.ho_drop += 1.0f;
             }
@@ -896,8 +914,9 @@ void c_render(DronePP *env) {
             return;
         }
     }
-    env->render = true;
-    env->grip_k_max = 1.0;
+    env->render = true; // racedb
+    env->grip_k_max = 1.0f; // racedb
+    env->grip_k_min = 1.0f; //racedb
     if (WindowShouldClose()) {
         c_close(env);
         exit(0);

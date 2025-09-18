@@ -60,8 +60,9 @@ struct Log {
     float score;
     float perf;
     float gripping;
+    float perfect_grip;
     float delivered;
-    float perfect;
+    float perfect_deliv;
     float to_pickup;
     float ho_pickup;
     float de_pickup;
@@ -240,6 +241,8 @@ typedef struct {
     State state;
     Params params;
 
+    int i; //racedb
+
     // helpers for ring/swarm logic
     Vec3 spawn_pos;
     Vec3 prev_pos;
@@ -252,8 +255,9 @@ typedef struct {
     Vec3 box_pos;
     Vec3 drop_pos;
     bool gripping;
+    bool perfect_grip;
     bool delivered;
-    bool perfect;
+    bool perfect_deliv;
     bool has_delivered;
     float grip_height;
     bool approaching_pickup;
