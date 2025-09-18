@@ -509,6 +509,7 @@ void reset_agent(DronePP* env, Drone *agent, int idx) {
     agent->perfect_grip = false;
     agent->perfect_deliv = false;
     agent->has_delivered = false;
+    agent->jitter = 100.0f;
 
     //float size = 0.2f;
     //init_drone(agent, size, 0.0f);
