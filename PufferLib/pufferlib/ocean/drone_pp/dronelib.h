@@ -71,6 +71,7 @@ struct Log {
     float de_drop;
     float dist;
     float dist100;
+    float jitter;
     float n;
 };
 
@@ -278,6 +279,7 @@ typedef struct {
     int episode_length;
     float score;
     int ring_idx;
+    float jitter;
 } Drone;
 
 

@@ -37,6 +37,7 @@ static int my_log(PyObject *dict, Log *log) {
     assign_to_dict(dict, "episode_return", log->episode_return);
     assign_to_dict(dict, "episode_length", log->episode_length);
 
+    assign_to_dict(dict, "jitter", log->jitter);
     assign_to_dict(dict, "perfect_grip", log->perfect_grip);
     assign_to_dict(dict, "perfect_deliv", log->perfect_deliv);
     assign_to_dict(dict, "to_pickup", log->to_pickup);

@@ -476,6 +476,7 @@ float compute_reward(DronePP* env, Drone *agent, bool collision) {
     env->dist = dist;
     env->log.dist += dist;
     env->log.dist100 += 100 - dist;
+    agent->jitter = 10.0f - (dist + vel_magnitude + angular_vel_magnitude);
 
     return delta_reward;
 }
@@ -738,6 +739,7 @@ void c_step(DronePP *env) {
 
             for (int i = 0; i < env->num_agents; i++) {
                 Drone *a = &env->agents[i];
+                env->log.jitter += a->jitter;
                 if (a->approaching_pickup) env->log.to_pickup += 1.0f;
                 if (a->hovering_pickup) env->log.ho_pickup += 1.0f;
                 if (a->descent_pickup) env->log.de_pickup += 1.0f;
