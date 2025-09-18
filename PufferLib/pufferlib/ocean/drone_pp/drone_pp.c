@@ -132,22 +132,22 @@ int main() {
     env->min_alignment = 0.2;
     env->max_alignment = 0.001;
 
-    env->reward_min_dist = 1.2;
-    env->reward_max_dist = 95.0;
-    env->dist_decay = 0.01;
+    env->reward_min_dist = 2.0;
+    env->reward_max_dist = 75.0;
+    env->dist_decay = 0.03;
 
-    env->w_position = 0.9;
+    env->w_position = 1.0;
     env->w_velocity = 0.004;
     env->w_stability = 1.6;
-    env->w_approach = 0.6;
+    env->w_approach = 1.8;
     env->w_hover = 1.6;
 
-    env->pos_const = 0.08;
-    env->pos_penalty = 0.15;
+    env->pos_const = 0.2;
+    env->pos_penalty = 0.2;
 
     env->grip_k_min = 1.0;
     env->grip_k_max = 20.0;
-    env->grip_k_decay = 0.02;
+    env->grip_k_decay = 0.07;
 
     env->task = TASK_ORBIT;
     init(env);

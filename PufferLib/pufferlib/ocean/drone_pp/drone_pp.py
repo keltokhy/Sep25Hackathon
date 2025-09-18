@@ -23,22 +23,22 @@ class DronePP(pufferlib.PufferEnv):
         min_alignment=0.2,
         max_alignment=0.001,
 
-        reward_min_dist=1.2,
-        reward_max_dist=95.0,
-        dist_decay=0.01,
+        reward_min_dist=2.0,
+        reward_max_dist=75.0,
+        dist_decay=0.03,
 
-        w_position=0.9,
+        w_position=1.0,
         w_velocity=0.004,
-        w_stability=1.6,
-        w_approach=0.6,
+        w_stability=1.8,
+        w_approach=1.7,
         w_hover=1.6,
 
-        pos_const=0.08,
-        pos_penalty=0.15,
+        pos_const=0.2,
+        pos_penalty=0.2,
 
         grip_k_min=1.0,
         grip_k_max=20.0,
-        grip_k_decay=0.02,
+        grip_k_decay=0.07,
 
         render_mode=None,
         report_interval=1024,
@@ -73,6 +73,7 @@ class DronePP(pufferlib.PufferEnv):
                 self.terminals[i*num_drones:(i+1)*num_drones],
                 self.truncations[i*num_drones:(i+1)*num_drones],
                 i,
+                env_i=i,
                 num_agents=num_drones,
                 max_rings=max_rings,
 

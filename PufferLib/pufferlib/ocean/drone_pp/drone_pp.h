@@ -70,6 +70,7 @@ typedef struct {
     float *actions;
     float *rewards;
     unsigned char *terminals;
+    int env_i;
 
     float dist;
 
@@ -413,6 +414,7 @@ void set_target(DronePP* env, int idx) {
 }
 
 float compute_reward(DronePP* env, Drone *agent, bool collision) {
+    if (DEBUG > 0) printf("  Compute Reward\n");
     Vec3 tgt = agent->target_pos;
     if (env->task == TASK_PP2) tgt = agent->hidden_pos;
 
@@ -426,12 +428,16 @@ float compute_reward(DronePP* env, Drone *agent, bool collision) {
                                       agent->state.omega.y * agent->state.omega.y +
                                       agent->state.omega.z * agent->state.omega.z);
 
+    float proximity_factor = clampf(1.0f - dist / env->reward_dist, 0.0f, 1.0f);
+
     env->reward_dist = clampf(env->tick * -env->dist_decay + env->reward_max_dist, env->reward_min_dist, 100.0f);
 
     float position_reward = clampf(expf(-dist / (env->reward_dist * env->pos_const)), -env->pos_penalty, 1.0f);
     //position_reward = clampf(1.0 - dist/env->reward_dist, -0.001f, 1.0f);
 
-    float velocity_penalty = -vel_magnitude / agent->params.max_vel;
+    // slight reward for 0.05 for example, large penalty for over 0.4
+    float velocity_penalty = clampf(proximity_factor * (2.0f * expf(-(vel_magnitude - 0.05f) * 10.0f) - 1.0f), -1.0f, 1.0f);
+    if (DEBUG > 0) printf("    velocity_penalty = %.3f\n", velocity_penalty);
 
     float stability_reward = -angular_vel_magnitude / agent->params.max_omega;
 
@@ -514,6 +520,8 @@ void reset_agent(DronePP* env, Drone *agent, int idx) {
     agent->collisions = 0.0f;
     agent->score = 0.0f;
     agent->ring_idx = 0;
+    agent->perfect = false;
+    agent->has_delivered = false;
 
     //float size = 0.2f;
     //init_drone(agent, size, 0.0f);
@@ -532,8 +540,6 @@ void reset_agent(DronePP* env, Drone *agent, int idx) {
 
     if (env->task == TASK_PP || env->task == TASK_PP2) {
         reset_pp2(env, agent, idx);
-        agent->has_delivered = false;
-        agent->perfect = false;
     }
 
     compute_reward(env, agent, env->task != TASK_RACE);
@@ -644,6 +650,8 @@ void c_step(DronePP *env) {
                 if (!agent->hovering_pickup) {
                     if (DEBUG > 0) printf("  Phase1\n");
                     if (DEBUG > 0) printf("    dist_to_hidden = %.3f\n", dist_to_hidden);
+                    if (DEBUG > 0) printf("    xy_dist_to_box = %.3f\n", xy_dist_to_box);
+                    if (DEBUG > 0) printf("    z_dist_above_box = %.3f\n", z_dist_above_box);
                     agent->hidden_pos = (Vec3){agent->box_pos.x, agent->box_pos.y, agent->box_pos.z + 1.0f};
                     agent->hidden_vel = (Vec3){0.0f, 0.0f, 0.0f};
                     if (dist_to_hidden < 0.4f && speed < 0.4f) {
@@ -661,9 +669,10 @@ void c_step(DronePP *env) {
                     agent->descent_pickup = true;
                     agent->hidden_vel = (Vec3){0.0f, 0.0f, -0.1f};
                     if (DEBUG > 0) printf("  GRIP\n");
-                    if (DEBUG > 0) printf("    dist_to_hidden = %.3f\n", dist_to_hidden);
+                    if (DEBUG > 0) printf("    xy_dist_to_box = %.3f\n", xy_dist_to_box);
                     if (DEBUG > 0) printf("    z_dist_above_box = %.3f\n", z_dist_above_box);
                     if (DEBUG > 0) printf("    speed = %.3f\n", speed);
+                    if (DEBUG > 0) printf("    agent->state.vel.z = %.3f\n", agent->state.vel.z);
                     if (
                         xy_dist_to_box < k * 0.2f &&
                         z_dist_above_box < k * 0.1f && z_dist_above_box > 0.0f &&
@@ -682,6 +691,7 @@ void c_step(DronePP *env) {
             } else {
 
                 // Phase 3 Drop Hover
+                if (agent->gripping) printf("===========%d===============\n", env->env_i);
                 agent->box_pos = agent->state.pos;
                 agent->box_pos.z -= 0.5f;
                 agent->target_pos = agent->drop_pos;
@@ -715,6 +725,7 @@ void c_step(DronePP *env) {
                         agent->has_delivered = true;
                         agent->color = (Color){0, 255, 0, 255}; // Green
                         if (k < 1.01f) agent->perfect = true;
+                        printf("%d\n", agent->perfect);
                         reset_pp2(env, agent, i);
                     }
                 }
