@@ -60,6 +60,7 @@ struct Log {
     float score;
     float perf;
     float gripping;
+    float delivered;
     float to_pickup;
     float ho_pickup;
     float de_pickup;
@@ -250,6 +251,7 @@ typedef struct {
     Vec3 box_pos;
     Vec3 drop_pos;
     bool gripping;
+    bool delivered;
     float grip_height;
     bool approaching_pickup;
     bool hovering_pickup;
