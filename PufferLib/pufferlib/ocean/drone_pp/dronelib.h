@@ -278,6 +278,15 @@ typedef struct {
     float score;
     int ring_idx;
     float jitter;
+
+    float base_mass;
+    float base_ixx;
+    float base_iyy;
+    float base_izz;
+    float base_k_drag;
+    float base_b_drag;
+    float box_size;
+    float box_mass;
 } Drone;
 
 

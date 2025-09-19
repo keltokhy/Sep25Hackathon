@@ -494,6 +494,16 @@ void reset_pp2(DronePP* env, Drone *agent, int idx) {
     agent->hidden_pos = agent->target_pos;
     agent->hidden_pos.z += 1.0f;
     agent->hidden_vel = (Vec3){0.0f, 0.0f, 0.0f};
+
+    float drone_capacity = agent->params.arm_len * 4.0f;
+    agent->box_size = rndf(0.05f, fmaxf(drone_capacity, 0.1f));
+
+    agent->base_mass = agent->params.mass;
+    agent->base_ixx = agent->params.ixx;
+    agent->base_iyy = agent->params.iyy;
+    agent->base_izz = agent->params.izz;
+    agent->base_k_drag = agent->params.k_drag;
+    agent->base_b_drag = agent->params.b_drag;
 }
 
 void reset_agent(DronePP* env, Drone *agent, int idx) {
