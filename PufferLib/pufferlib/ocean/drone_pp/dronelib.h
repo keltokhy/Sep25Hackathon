@@ -242,8 +242,6 @@ typedef struct {
     State state;
     Params params;
 
-    int i; //racedb
-
     // helpers for ring/swarm logic
     Vec3 spawn_pos;
     Vec3 prev_pos;

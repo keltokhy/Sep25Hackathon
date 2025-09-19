@@ -28,7 +28,7 @@
 
 char* TASK_NAMES[TASK_N] = {
     "Idle", "Hover", "Orbit", "Follow",
-    "Cube", "Congo", "FLAG", "Race", "PP", "PP2"
+    "Cube", "Congo", "FLAG", "Race", "PP2"
 };
 
 #define R (Color){255, 0, 0, 255}
@@ -69,7 +69,6 @@ typedef struct {
     float *actions;
     float *rewards;
     unsigned char *terminals;
-    int env_i; // racedb
 
     float dist;
 
@@ -418,7 +417,6 @@ float compute_reward(DronePP* env, Drone *agent, bool collision) {
     env->reward_dist = clampf(env->tick * -env->dist_decay + env->reward_max_dist, env->reward_min_dist, 100.0f);
 
     float position_reward = clampf(expf(-dist / (env->reward_dist * env->pos_const)), -env->pos_penalty, 1.0f);
-    //position_reward = clampf(1.0 - dist/env->reward_dist, -0.001f, 1.0f);
 
     // slight reward for 0.05 for example, large penalty for over 0.4
     float velocity_penalty = clampf(proximity_factor * (2.0f * expf(-(vel_magnitude - 0.05f) * 10.0f) - 1.0f), -1.0f, 1.0f);
@@ -439,7 +437,7 @@ float compute_reward(DronePP* env, Drone *agent, bool collision) {
     float approach_weight = clampf(dist / env->reward_dist, 0.0f, 1.0f); // todo
     float approach_reward = approach_weight * clampf(approach_dot / agent->params.max_vel, -0.5f, 0.5f);
 
-    float hover_bonus = 0.0f;
+    float hover_bonus = 0.0f; // todo add a K
     if (dist < env->reward_dist * 0.2f && vel_magnitude < 0.2f) {
         hover_bonus = 0.5f;
     }
@@ -541,14 +539,9 @@ void c_reset(DronePP *env) {
         env->task = rand() % (TASK_N - 1);
     }
     env->task = TASK_PP2;
-    
-    //env->task = TASK_RACE;
-    //env->task = TASK_HOVER;
-    //env->task = TASK_FLAG;
 
     for (int i = 0; i < env->num_agents; i++) {
         Drone *agent = &env->agents[i];
-        agent->i = i; // racedb
         reset_agent(env, agent, i);
         set_target(env, i);
     }
@@ -589,7 +582,6 @@ void c_step(DronePP *env) {
         float* atn = &env->actions[4*i];
         move_drone(agent, atn);
 
-        // check out of bounds
         bool out_of_bounds = agent->state.pos.x < -GRID_X || agent->state.pos.x > GRID_X ||
                              agent->state.pos.y < -GRID_Y || agent->state.pos.y > GRID_Y ||
                              agent->state.pos.z < -GRID_Z || agent->state.pos.z > GRID_Z;
@@ -669,19 +661,12 @@ void c_step(DronePP *env) {
                         agent->state.vel.z > k * -0.05f && agent->state.vel.z < 0.0f
                     ) {
                         if (k < 1.01) {
-                            //printf("        ENV=%d        AGENT=%d        k=%.3f        tick=%d\n", // racedb
-                            //        env->env_i,
-                            //        agent->i,
-                            //        k,
-                            //        env->tick);
                             agent->perfect_grip = true;
                             agent->color = (Color){100, 100, 255, 255}; // Light Blue
                         }
                         agent->gripping = true;
                         reward += 1.0f;
                     } else if (dist_to_hidden > 0.4f || speed > 0.4f) {
-                        //agent->hovering_pickup = false;
-                        //agent->descent_pickup = false;
                         agent->color = (Color){255, 100, 100, 255}; // Light Red
                     }
                 }
@@ -699,7 +684,6 @@ void c_step(DronePP *env) {
                     agent->hidden_pos = (Vec3){agent->drop_pos.x, agent->drop_pos.y, agent->drop_pos.z + 1.0f};
                     agent->hidden_vel = (Vec3){0.0f, 0.0f, 0.0f};
                     if (xy_dist_to_drop < k * 0.4f && z_dist_above_drop > 0.7f && z_dist_above_drop < 1.3f) {
-                    //if (xy_dist_to_drop < 0.4f && speed < 0.4f) {
                         agent->hovering_drop = true;
                         reward += 0.25;
                         agent->color = (Color){0, 0, 255, 255}; // Blue
@@ -722,11 +706,6 @@ void c_step(DronePP *env) {
                         if (k < 1.01f && agent->perfect_grip) {
                             agent->perfect_deliv = true;
                             agent->color = (Color){0, 255, 0, 255}; // Green
-                            //printf("========ENV=%d========AGENT=%d========k=%.3f========tick=%d========\n", // racedb
-                            //    env->env_i,
-                            //    agent->i,
-                            //    k,
-                            //    env->tick);
                         }
                         reset_pp2(env, agent, i);
                     }
@@ -921,9 +900,9 @@ void c_render(DronePP *env) {
             return;
         }
     }
-    env->render = true; // racedb
-    env->grip_k_max = 1.0f; // racedb
-    env->grip_k_min = 1.0f; //racedb
+    env->render = true;
+    env->grip_k_max = 1.0f
+    env->grip_k_min = 1.0f;
     if (WindowShouldClose()) {
         c_close(env);
         exit(0);

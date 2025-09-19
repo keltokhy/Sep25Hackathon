@@ -61,7 +61,6 @@ class DronePP(pufferlib.PufferEnv):
                 self.terminals[i*num_drones:(i+1)*num_drones],
                 self.truncations[i*num_drones:(i+1)*num_drones],
                 i,
-                env_i=i, #racedb
                 num_agents=num_drones,
                 max_rings=max_rings,
 
