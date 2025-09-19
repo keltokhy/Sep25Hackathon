@@ -166,7 +166,7 @@ void compute_observations(DronePP *env) {
         Vec3 linear_vel_body = quat_rotate(q_inv, agent->state.vel);
         Vec3 drone_up_world = quat_rotate(agent->state.quat, (Vec3){0.0f, 0.0f, 1.0f});
 
-        // TODO: Need abs observations now right?
+        // TODO: Need abs observations now right? idk
         // 42
         env->observations[idx++] = linear_vel_body.x / agent->params.max_vel;
         env->observations[idx++] = linear_vel_body.y / agent->params.max_vel;
