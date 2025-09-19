@@ -663,22 +663,22 @@ void c_step(DronePP *env) {
                     if (DEBUG > 0) printf("    speed = %.3f\n", speed);
                     if (DEBUG > 0) printf("    agent->state.vel.z = %.3f\n", agent->state.vel.z);
                     if (
-                        xy_dist_to_box < k * 0.2f &&
+                        xy_dist_to_box < k * 0.1f &&
                         z_dist_above_box < k * 0.1f && z_dist_above_box > 0.0f &&
-                        speed < k * 0.2f &&
-                        agent->state.vel.z > k * -0.1f && agent->state.vel.z < 0.0f
+                        speed < k * 0.1f &&
+                        agent->state.vel.z > k * -0.05f && agent->state.vel.z < 0.0f
                     ) {
                         if (k < 1.01) {
-                            printf("        ENV=%d        AGENT=%d        k=%.3f        tick=%d\n", // racedb
-                                    env->env_i,
-                                    agent->i,
-                                    k,
-                                    env->tick);
+                            //printf("        ENV=%d        AGENT=%d        k=%.3f        tick=%d\n", // racedb
+                            //        env->env_i,
+                            //        agent->i,
+                            //        k,
+                            //        env->tick);
                             agent->perfect_grip = true;
+                            agent->color = (Color){100, 100, 255, 255}; // Light Blue
                         }
                         agent->gripping = true;
                         reward += 1.0f;
-                        agent->color = (Color){100, 100, 255, 255}; // Light Blue
                     } else if (dist_to_hidden > 0.4f || speed > 0.4f) {
                         //agent->hovering_pickup = false;
                         //agent->descent_pickup = false;
@@ -719,14 +719,14 @@ void c_step(DronePP *env) {
                         reward += 1.0f;
                         agent->delivered = true;
                         agent->has_delivered = true;
-                        agent->color = (Color){0, 255, 0, 255}; // Green
                         if (k < 1.01f && agent->perfect_grip) {
                             agent->perfect_deliv = true;
-                            printf("========ENV=%d========AGENT=%d========k=%.3f========tick=%d========\n", // racedb
-                                env->env_i,
-                                agent->i,
-                                k,
-                                env->tick);
+                            agent->color = (Color){0, 255, 0, 255}; // Green
+                            //printf("========ENV=%d========AGENT=%d========k=%.3f========tick=%d========\n", // racedb
+                            //    env->env_i,
+                            //    agent->i,
+                            //    k,
+                            //    env->tick);
                         }
                         reset_pp2(env, agent, i);
                     }
@@ -1054,8 +1054,8 @@ void c_render(DronePP *env) {
             Drone *agent = &env->agents[i];
             Vec3 render_pos = agent->box_pos;
             DrawCube((Vector3){render_pos.x, render_pos.y, render_pos.z}, 0.4f, 0.4f, 0.4f, BROWN);
-            //DrawCube((Vector3){agent->drop_pos.x, agent->drop_pos.y, agent->drop_pos.z}, 0.5f, 0.5f, 0.1f, YELLOW);
-            DrawSphere((Vector3){agent->hidden_pos.x, agent->hidden_pos.y, agent->hidden_pos.z}, 0.05f, YELLOW);
+            DrawCube((Vector3){agent->drop_pos.x, agent->drop_pos.y, agent->drop_pos.z}, 0.5f, 0.5f, 0.1f, YELLOW);
+            //DrawSphere((Vector3){agent->hidden_pos.x, agent->hidden_pos.y, agent->hidden_pos.z}, 0.05f, YELLOW);
         }
     }
 
