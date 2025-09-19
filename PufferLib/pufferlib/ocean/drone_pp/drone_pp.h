@@ -119,7 +119,6 @@ void init(DronePP *env) {
     env->box_k = 0.001f;
     env->box_k_min = 0.001f;
     env->box_k_max = 1.0f;
-    env->box_k_growth = 0.02f;
     env->agents = calloc(env->num_agents, sizeof(Drone));
     env->ring_buffer = calloc(env->max_rings, sizeof(Ring));
     env->log = (Log){0};
@@ -499,7 +498,7 @@ void reset_pp2(DronePP* env, Drone *agent, int idx) {
     agent->box_size = rndf(0.05f, fmaxf(drone_capacity, 0.1f));
 
     float box_volume = agent->box_size * agent->box_size * agent->box_size;
-    agent->box_base_mass = env->box_k * env->box_base_density * box_volume * rndf(0.5f, 2.0f);
+    agent->box_base_mass = env->box_base_density * box_volume * rndf(0.5f, 2.0f);
     agent->box_mass = env->box_k * agent->box_base_mass;
 
     agent->base_mass = agent->params.mass;

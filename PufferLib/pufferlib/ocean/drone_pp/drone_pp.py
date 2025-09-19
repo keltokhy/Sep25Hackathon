@@ -29,6 +29,7 @@ class DronePP(pufferlib.PufferEnv):
         grip_k_decay=0.095,
 
         box_base_density=50.0,
+        box_k_growth=0.02,
 
         render_mode=None,
         report_interval=1024,
@@ -83,7 +84,8 @@ class DronePP(pufferlib.PufferEnv):
                 grip_k_max=grip_k_max,
                 grip_k_decay=grip_k_decay,
 
-                box_base_density=box_base_density
+                box_base_density=box_base_density,
+                box_k_growth=box_k_growth
             ))
 
         self.c_envs = binding.vectorize(*c_envs)
