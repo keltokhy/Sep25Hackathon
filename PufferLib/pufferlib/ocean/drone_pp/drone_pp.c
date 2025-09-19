@@ -121,22 +121,22 @@ int main() {
     env->num_agents = 64;
     env->max_rings = 10;
 
-    env->reward_min_dist = 2.0;
-    env->reward_max_dist = 75.0;
-    env->dist_decay = 0.15;
+    env->reward_min_dist = 1.6;
+    env->reward_max_dist = 77.0;
+    env->dist_decay = 0.5;
 
-    env->w_position = 1.0;
-    env->w_velocity = 0.004;
-    env->w_stability = 1.6;
-    env->w_approach = 1.8;
-    env->w_hover = 1.8;
+    env->w_position = 1.13;
+    env->w_velocity = 0.15;
+    env->w_stability = 2.0;
+    env->w_approach = 2.2;
+    env->w_hover = 1.5;
 
-    env->pos_const = 0.3;
-    env->pos_penalty = 0.2;
+    env->pos_const = 0.63;
+    env->pos_penalty = 0.03;
 
     env->grip_k_min = 1.0;
-    env->grip_k_max = 18.0;
-    env->grip_k_decay = 0.12;
+    env->grip_k_max = 15.0;
+    env->grip_k_decay = 0.095;
 
     env->task = TASK_ORBIT;
     init(env);

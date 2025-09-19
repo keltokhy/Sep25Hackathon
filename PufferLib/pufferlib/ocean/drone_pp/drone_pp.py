@@ -11,22 +11,22 @@ class DronePP(pufferlib.PufferEnv):
         num_drones=64,
         max_rings=5,
 
-        reward_min_dist=2.0,
-        reward_max_dist=75.0,
+        reward_min_dist=1.6,
+        reward_max_dist=77.0,
         dist_decay=0.15,
 
-        w_position=1.0,
-        w_velocity=0.004,
-        w_stability=1.8,
-        w_approach=1.7,
-        w_hover=1.8,
+        w_position=1.13,
+        w_velocity=0.15,
+        w_stability=2.0,
+        w_approach=2.2,
+        w_hover=1.5,
 
-        pos_const=0.23,
-        pos_penalty=0.2,
+        pos_const=0.63,
+        pos_penalty=0.03,
 
         grip_k_min=1.0,
-        grip_k_max=18.0,
-        grip_k_decay=0.12,
+        grip_k_max=15.0,
+        grip_k_decay=0.095,
 
         render_mode=None,
         report_interval=1024,
