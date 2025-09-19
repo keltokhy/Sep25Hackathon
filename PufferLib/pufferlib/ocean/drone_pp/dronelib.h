@@ -286,6 +286,7 @@ typedef struct {
     float base_k_drag;
     float base_b_drag;
     float box_size;
+    float box_base_mass;
     float box_mass;
 } Drone;
 

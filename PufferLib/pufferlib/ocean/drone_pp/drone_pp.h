@@ -106,12 +106,20 @@ typedef struct {
     float grip_k_decay;
 
     float box_base_density;
+    float box_k;
+    float box_k_min;
+    float box_k_max;
+    float box_k_growth;
 
     Client *client;
 } DronePP;
 
 void init(DronePP *env) {
     env->render = false;
+    env->box_k = 0.001f;
+    env->box_k_min = 0.001f;
+    env->box_k_max = 1.0f;
+    env->box_k_growth = 0.02f;
     env->agents = calloc(env->num_agents, sizeof(Drone));
     env->ring_buffer = calloc(env->max_rings, sizeof(Ring));
     env->log = (Log){0};
@@ -491,7 +499,8 @@ void reset_pp2(DronePP* env, Drone *agent, int idx) {
     agent->box_size = rndf(0.05f, fmaxf(drone_capacity, 0.1f));
 
     float box_volume = agent->box_size * agent->box_size * agent->box_size;
-    agent->box_mass = env->box_base_density * box_volume * rndf(0.5f, 2.0f);
+    agent->box_base_mass = env->box_k * env->box_base_density * box_volume * rndf(0.5f, 2.0f);
+    agent->box_mass = env->box_k * agent->box_base_mass;
 
     agent->base_mass = agent->params.mass;
     agent->base_ixx = agent->params.ixx;
@@ -643,6 +652,8 @@ void c_step(DronePP *env) {
             agent->approaching_pickup = true;
             float speed = norm3(agent->state.vel);
             env->grip_k = clampf(env->tick * -env->grip_k_decay + env->grip_k_max, env->grip_k_min, 100.0f);
+            env->box_k = clampf(env->tick * env->box_k_growth + env->box_k_min, env->box_k_min, env->box_k_max);
+            agent->box_mass = env->box_k * agent->box_base_mass;
             float k = env->grip_k;
             if (DEBUG > 0) printf("  PP2\n");
             if (DEBUG > 0) printf("    K = %.3f\n", k);
@@ -688,7 +699,7 @@ void c_step(DronePP *env) {
                         speed < k * 0.1f &&
                         agent->state.vel.z > k * -0.05f && agent->state.vel.z < 0.0f
                     ) {
-                        if (k < 1.01) {
+                        if (k < 1.01 && env->box_k > 0.99f) {
                             agent->perfect_grip = true;
                             agent->color = (Color){100, 100, 255, 255}; // Light Blue
                         }
@@ -733,7 +744,7 @@ void c_step(DronePP *env) {
                         reward += 1.0f;
                         agent->delivered = true;
                         agent->has_delivered = true;
-                        if (k < 1.01f && agent->perfect_grip) {
+                        if (k < 1.01f && agent->perfect_grip  && env->box_k > 0.99f) {
                             agent->perfect_deliv = true;
                             agent->color = (Color){0, 255, 0, 255}; // Green
                         }
@@ -933,6 +944,9 @@ void c_render(DronePP *env) {
     env->render = true;
     env->grip_k_max = 1.0f;
     env->grip_k_min = 1.0f;
+    env->box_k_max = 1.0f;
+    env->box_k_min = 1.0f;
+    env->box_k = 1.0f;
     if (WindowShouldClose()) {
         c_close(env);
         exit(0);
