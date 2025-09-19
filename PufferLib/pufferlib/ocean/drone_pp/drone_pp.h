@@ -473,9 +473,7 @@ float compute_reward(DronePP* env, Drone *agent, bool collision) {
     agent->last_abs_reward = total_reward;
     agent->episode_length++;
     agent->score += total_reward;
-    env->dist = dist;
-    env->log.dist += dist;
-    env->log.dist100 += 100 - dist;
+    env->dist = dist * dist;
     agent->jitter = 10.0f - (dist + vel_magnitude + angular_vel_magnitude);
 
     return delta_reward;
@@ -538,7 +536,7 @@ void c_reset(DronePP *env) {
     //env->task = rand() % (TASK_N - 1);
     
     if (rand() % 4) {
-        env->task = TASK_FLAG; //CHOOSE TASK
+        env->task = TASK_PP2; //CHOOSE TASK
     } else {
         env->task = rand() % (TASK_N - 1);
     }
@@ -581,8 +579,8 @@ void c_reset(DronePP *env) {
 
 void c_step(DronePP *env) {
     env->tick = (env->tick + 1) % HORIZON;
-    env->log.dist = 0.0f;
-    env->log.dist100 = 0.0f;
+    //env->log.dist = 0.0f;
+    //env->log.dist100 = 0.0f;
     for (int i = 0; i < env->num_agents; i++) {
         Drone *agent = &env->agents[i];
         env->rewards[i] = 0;
@@ -618,8 +616,9 @@ void c_step(DronePP *env) {
             agent->hidden_pos.x += agent->hidden_vel.x * DT;
             agent->hidden_pos.y += agent->hidden_vel.y * DT;
             agent->hidden_pos.z += agent->hidden_vel.z * DT;
-            if (agent->hidden_pos.z < -GRID_Z || agent->hidden_pos.z > GRID_Z) {
-                agent->hidden_pos.z = -GRID_Z + 0.3f;
+            if (agent->hidden_pos.z < agent->target_pos.z) {
+                agent->hidden_pos.z = agent->target_pos.z;
+                agent->hidden_vel.z = 0.0f;
             }
             agent->approaching_pickup = true;
             float speed = norm3(agent->state.vel);
@@ -644,8 +643,6 @@ void c_step(DronePP *env) {
                     if (DEBUG > 0) printf("    dist_to_hidden = %.3f\n", dist_to_hidden);
                     if (DEBUG > 0) printf("    xy_dist_to_box = %.3f\n", xy_dist_to_box);
                     if (DEBUG > 0) printf("    z_dist_above_box = %.3f\n", z_dist_above_box);
-                    agent->hidden_pos = (Vec3){agent->box_pos.x, agent->box_pos.y, agent->box_pos.z + 1.0f};
-                    agent->hidden_vel = (Vec3){0.0f, 0.0f, 0.0f};
                     if (dist_to_hidden < 0.4f && speed < 0.4f) {
                         agent->hovering_pickup = true;
                         agent->color = (Color){255, 255, 255, 255}; // White
@@ -683,8 +680,8 @@ void c_step(DronePP *env) {
                         reward += 1.0f;
                         agent->color = (Color){100, 100, 255, 255}; // Light Blue
                     } else if (dist_to_hidden > 0.4f || speed > 0.4f) {
-                        agent->hovering_pickup = false;
-                        agent->descent_pickup = false;
+                        //agent->hovering_pickup = false;
+                        //agent->descent_pickup = false;
                         agent->color = (Color){255, 100, 100, 255}; // Light Red
                     }
                 }
@@ -698,7 +695,7 @@ void c_step(DronePP *env) {
                                             powf(agent->state.pos.y - agent->drop_pos.y, 2));
                 float z_dist_above_drop = agent->state.pos.z - agent->drop_pos.z;
                 if (!agent->hovering_drop) {
-                    agent->target_pos = (Vec3){agent->drop_pos.x, agent->drop_pos.y, agent->drop_pos.z + 1.5f};
+                    agent->target_pos = (Vec3){agent->drop_pos.x, agent->drop_pos.y, agent->drop_pos.z + 0.4f};
                     agent->hidden_pos = (Vec3){agent->drop_pos.x, agent->drop_pos.y, agent->drop_pos.z + 1.0f};
                     agent->hidden_vel = (Vec3){0.0f, 0.0f, 0.0f};
                     if (xy_dist_to_drop < k * 0.4f && z_dist_above_drop > 0.7f && z_dist_above_drop < 1.3f) {
@@ -740,6 +737,8 @@ void c_step(DronePP *env) {
 
             for (int i = 0; i < env->num_agents; i++) {
                 Drone *a = &env->agents[i];
+                env->log.dist += env->dist;
+                env->log.dist100 += 100 - env->dist;
                 env->log.jitter += a->jitter;
                 if (a->approaching_pickup) env->log.to_pickup += 1.0f;
                 if (a->hovering_pickup) env->log.ho_pickup += 1.0f;
@@ -762,7 +761,12 @@ void c_step(DronePP *env) {
         env->rewards[i] += reward;
         agent->episode_return += reward;
 
-        if (out_of_bounds) {
+        float min_z = -GRID_Z + 0.2f;
+        if (agent->gripping) {
+            min_z += 0.1;
+        }
+
+        if (out_of_bounds || agent->state.pos.z < min_z) {
             env->rewards[i] -= 1;
             env->terminals[i] = 1;
             add_log(env, i, true);
