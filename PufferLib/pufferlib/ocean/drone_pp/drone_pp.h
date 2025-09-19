@@ -498,6 +498,10 @@ void reset_pp2(DronePP* env, Drone *agent, int idx) {
     float drone_capacity = agent->params.arm_len * 4.0f;
     agent->box_size = rndf(0.05f, fmaxf(drone_capacity, 0.1f));
 
+    float box_volume = agent->box_size * agent->box_size * agent->box_size;
+    float base_density = 200.0f;
+    agent->box_mass = base_density * box_volume * rndf(0.5f, 2.0f);
+
     agent->base_mass = agent->params.mass;
     agent->base_ixx = agent->params.ixx;
     agent->base_iyy = agent->params.iyy;
@@ -537,6 +541,29 @@ void reset_agent(DronePP* env, Drone *agent, int idx) {
     }
 
     compute_reward(env, agent, env->task != TASK_RACE);
+}
+
+void update_gripping_physics(Drone* agent) {
+    if (agent->gripping) {
+        agent->params.mass = agent->base_mass + agent->box_mass * rndf(0.9f, 1.1f);
+
+        float grip_dist = agent->box_size * 0.5f;
+        float added_inertia = agent->box_mass * grip_dist * grip_dist * rndf(0.8f, 1.2f);
+        agent->params.ixx = agent->base_ixx + added_inertia;
+        agent->params.iyy = agent->base_iyy + added_inertia;
+        agent->params.izz = agent->base_izz + added_inertia * 0.5f;
+
+        float drag_multiplier = 1.0f + (agent->box_size / agent->params.arm_len) * rndf(0.5f, 1.0f);
+        agent->params.k_drag = agent->base_k_drag * drag_multiplier;
+        agent->params.b_drag = agent->base_b_drag * drag_multiplier;
+    } else {
+        agent->params.mass = agent->base_mass;
+        agent->params.ixx = agent->base_ixx;
+        agent->params.iyy = agent->base_iyy;
+        agent->params.izz = agent->base_izz;
+        agent->params.k_drag = agent->base_k_drag;
+        agent->params.b_drag = agent->base_b_drag;
+    }
 }
 
 void c_reset(DronePP *env) {
@@ -675,6 +702,7 @@ void c_step(DronePP *env) {
                             agent->color = (Color){100, 100, 255, 255}; // Light Blue
                         }
                         agent->gripping = true;
+                        update_gripping_physics(agent);
                         reward += 1.0f;
                     } else if (dist_to_hidden > 0.4f || speed > 0.4f) {
                         agent->color = (Color){255, 100, 100, 255}; // Light Red
@@ -709,6 +737,7 @@ void c_step(DronePP *env) {
                     if (xy_dist_to_drop < k * 0.2f && z_dist_above_drop < k * 0.2f) {
                         agent->hovering_pickup = false;
                         agent->gripping = false;
+                        update_gripping_physics(agent);
                         agent->hovering_drop = false;
                         reward += 1.0f;
                         agent->delivered = true;
