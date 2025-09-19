@@ -105,6 +105,8 @@ typedef struct {
     float grip_k_max;
     float grip_k_decay;
 
+    float box_base_density;
+
     Client *client;
 } DronePP;
 
@@ -489,8 +491,7 @@ void reset_pp2(DronePP* env, Drone *agent, int idx) {
     agent->box_size = rndf(0.05f, fmaxf(drone_capacity, 0.1f));
 
     float box_volume = agent->box_size * agent->box_size * agent->box_size;
-    float base_density = 200.0f;
-    agent->box_mass = base_density * box_volume * rndf(0.5f, 2.0f);
+    agent->box_mass = env->box_base_density * box_volume * rndf(0.5f, 2.0f);
 
     agent->base_mass = agent->params.mass;
     agent->base_ixx = agent->params.ixx;

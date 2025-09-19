@@ -138,6 +138,8 @@ int main() {
     env->grip_k_max = 15.0;
     env->grip_k_decay = 0.095;
 
+    env->box_base_density = 50.0;
+
     env->task = TASK_ORBIT;
     init(env);
 
