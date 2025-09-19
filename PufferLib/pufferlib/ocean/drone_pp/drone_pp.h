@@ -355,16 +355,6 @@ void set_target_race(DronePP* env, int idx) {
     agent->target_vel = (Vec3){0.0f, 0.0f, 0.0f};
 }
 
-void set_target_pp(DronePP* env, int idx) {
-    Drone* agent = &env->agents[idx];
-    if (!agent->gripping) {
-        agent->target_pos = (Vec3){agent->box_pos.x, agent->box_pos.y, agent->box_pos.z + 1.5f};
-    } else {
-        agent->target_pos = (Vec3){agent->drop_pos.x, agent->drop_pos.y, agent->drop_pos.z + 1.5f};
-    }
-    agent->target_vel = (Vec3){0.0f, 0.0f, 0.0f};
-}
-
 void set_target_pp2(DronePP* env, int idx) {
     Drone* agent = &env->agents[idx];
     if (!agent->gripping) {
@@ -1071,7 +1061,7 @@ void c_render(DronePP *env) {
         for (int i = 0; i < env->num_agents; i++) {
             Drone *agent = &env->agents[i];
             Vec3 render_pos = agent->box_pos;
-            DrawCube((Vector3){render_pos.x, render_pos.y, render_pos.z}, 0.4f, 0.4f, 0.4f, BROWN);
+            DrawCube((Vector3){render_pos.x, render_pos.y, render_pos.z}, agent->box_size, agent->box_size, agent->box_size, BROWN);
             DrawCube((Vector3){agent->drop_pos.x, agent->drop_pos.y, agent->drop_pos.z}, 0.5f, 0.5f, 0.1f, YELLOW);
             //DrawSphere((Vector3){agent->hidden_pos.x, agent->hidden_pos.y, agent->hidden_pos.z}, 0.05f, YELLOW);
         }
