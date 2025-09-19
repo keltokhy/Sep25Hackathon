@@ -114,20 +114,29 @@ WebRenderArgs *web_args = NULL;
 #endif
 
 int main() {
-    srand(time(NULL)); // Seed random number generator
+    //srand(time(NULL)); // Seed random number generator
+    srand(42); // Seed random number generator
 
     DronePP *env = calloc(1, sizeof(DronePP));
     env->num_agents = 64;
     env->max_rings = 10;
 
-    env->penalty_damping = 0.21;
-    env->reward_xy_dist = 0.12;
-    env->reward_hover_dist = 0.067;
-    env->reward_hover_alt = 0.11;
-    env->reward_hover = 0.2;
-    env->reward_maint_hover = 0.1;
-    env->reward_descent = 0.75;
-    env->penalty_lost_hover = 0.1;
+    env->reward_min_dist = 1.6;
+    env->reward_max_dist = 77.0;
+    env->dist_decay = 0.5;
+
+    env->w_position = 1.13;
+    env->w_velocity = 0.15;
+    env->w_stability = 2.0;
+    env->w_approach = 2.2;
+    env->w_hover = 1.5;
+
+    env->pos_const = 0.63;
+    env->pos_penalty = 0.03;
+
+    env->grip_k_min = 1.0;
+    env->grip_k_max = 15.0;
+    env->grip_k_decay = 0.095;
 
     env->task = TASK_ORBIT;
     init(env);

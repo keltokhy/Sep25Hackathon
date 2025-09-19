@@ -60,12 +60,18 @@ struct Log {
     float score;
     float perf;
     float gripping;
+    float perfect_grip;
+    float delivered;
+    float perfect_deliv;
     float to_pickup;
     float ho_pickup;
     float de_pickup;
     float to_drop;
     float ho_drop;
     float de_drop;
+    float dist;
+    float dist100;
+    float jitter;
     float n;
 };
 
@@ -241,11 +247,17 @@ typedef struct {
     Vec3 prev_pos;
     Vec3 target_pos;
     Vec3 target_vel;
+    Vec3 hidden_pos;
+    Vec3 hidden_vel;
 
     // PP Pick and Place
     Vec3 box_pos;
     Vec3 drop_pos;
     bool gripping;
+    bool perfect_grip;
+    bool delivered;
+    bool perfect_deliv;
+    bool has_delivered;
     float grip_height;
     bool approaching_pickup;
     bool hovering_pickup;
@@ -265,6 +277,7 @@ typedef struct {
     int episode_length;
     float score;
     int ring_idx;
+    float jitter;
 } Drone;
 
 

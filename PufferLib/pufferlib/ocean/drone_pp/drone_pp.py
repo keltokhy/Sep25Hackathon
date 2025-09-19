@@ -11,14 +11,22 @@ class DronePP(pufferlib.PufferEnv):
         num_drones=64,
         max_rings=5,
 
-        penalty_damping=0.21,
-        reward_xy_dist=0.12,
-        reward_hover_dist=0.067,
-        reward_hover_alt=0.11,
-        reward_hover=0.2,
-        reward_maint_hover=0.1,
-        reward_descent=0.75,
-        penalty_lost_hover=0.1,
+        reward_min_dist=1.6,
+        reward_max_dist=77.0,
+        dist_decay=0.15,
+
+        w_position=1.13,
+        w_velocity=0.15,
+        w_stability=2.0,
+        w_approach=2.2,
+        w_hover=1.5,
+
+        pos_const=0.63,
+        pos_penalty=0.03,
+
+        grip_k_min=1.0,
+        grip_k_max=15.0,
+        grip_k_decay=0.095,
 
         render_mode=None,
         report_interval=1024,
@@ -56,14 +64,22 @@ class DronePP(pufferlib.PufferEnv):
                 num_agents=num_drones,
                 max_rings=max_rings,
 
-                penalty_damping=penalty_damping,
-                reward_xy_dist=reward_xy_dist,
-                reward_hover_dist=reward_hover_dist,
-                reward_hover_alt=reward_hover_alt,
-                reward_hover=reward_hover,
-                reward_maint_hover=reward_maint_hover,
-                reward_descent=reward_descent,
-                penalty_lost_hover=penalty_lost_hover
+                reward_min_dist=reward_min_dist,
+                reward_max_dist=reward_max_dist,
+                dist_decay=dist_decay,
+
+                w_position=w_position,
+                w_velocity=w_velocity,
+                w_stability=w_stability,
+                w_approach=w_approach,
+                w_hover=w_hover,
+
+                pos_const=pos_const,
+                pos_penalty=pos_penalty,
+
+                grip_k_min=grip_k_min,
+                grip_k_max=grip_k_max,
+                grip_k_decay=grip_k_decay
             ))
 
         self.c_envs = binding.vectorize(*c_envs)
