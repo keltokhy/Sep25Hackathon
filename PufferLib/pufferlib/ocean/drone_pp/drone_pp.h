@@ -901,7 +901,7 @@ void c_render(DronePP *env) {
         }
     }
     env->render = true;
-    env->grip_k_max = 1.0f
+    env->grip_k_max = 1.0f;
     env->grip_k_min = 1.0f;
     if (WindowShouldClose()) {
         c_close(env);
