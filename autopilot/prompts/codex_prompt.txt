@@ -26,6 +26,7 @@ Context:
   * On a 28‑core Mac Studio, prefer `vec.num_workers ≤ 28` and `vec.num_envs ∈ {{28, 56, 84}}`. Switching `train.device` to `cpu` is allowed for diagnostics but will slow runs considerably.
 - Training artifacts for the active run live in `$PUFFER_AUTOPILOT_RUN_DIR`; structured metrics write to `$PUFFER_AUTOPILOT_SUMMARY` when available.
 - Keep the JSON valid; write `{{}}` if you want the next run to reuse the baseline without overrides.
+- Past run folders live under `autopilot/runs/`; skim recent `summary.json` and `notes.txt` entries so proposals consider multi-run trends, not just the latest metrics.
 
 Execution rules:
 - Step 1 is mandatory. Launch {script} immediately (via `bash -lc` from repo root) and allow **at least 15 minutes** of timeout budget so the training can finish.

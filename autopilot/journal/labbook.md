@@ -49,3 +49,5 @@
 - 2025-09-20T10:39:25Z | run complete | Run 2025-09-20T103243Z (iteration 2) | metrics captured | 
 
 - 2025-09-20T10:40:22Z | timeout policy tweak | Relaxed wording: agent must allow ≥15 min timeout when launching training script | ready to test loop again | next: rerun quick mode
+
+- 2025-09-20T10:42:26Z | prompt nudge | Added guidance for Codex to read prior run summaries before proposing changes | reinforces trend-aware adjustments | next: observe behaviour in next loop run

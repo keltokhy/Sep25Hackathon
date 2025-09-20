@@ -41,6 +41,7 @@ Workflow expectations:
 - The orchestrator clears this file before each launch so any content must come from the most recent run’s decision.
 - Each run folder under `runs/<run_id>/` contains: `config.json` (applied), `override.json` (proposal used), `train.log`, `trainer_summary.json` (structured metrics incl. SPS/steps/epoch), `summary.json` (final snapshot), and `notes.txt`.
 - Codex runs must start by executing `./scripts/run_training.sh` (from repo root with `bash -lc`) and grant at least 15 minutes before timeout; if no new log appears under `logs/`, treat that iteration as failed and rerun.
+- Encourage the agent to review recent `runs/<run_id>/summary.json` and `notes.txt` files so proposals account for trends across iterations, not just the latest metrics.
 
 Troubleshooting tips:
 - If the trainer “sticks” after a brief CPU spike, check divisibility (`vec.num_envs % vec.num_workers`) and the batch rule above.
