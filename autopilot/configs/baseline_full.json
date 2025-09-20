@@ -1,0 +1,23 @@
+{
+  "train": {
+    "device": "mps",
+    "total_timesteps": 200000000,
+    "bptt_horizon": 16,
+    "checkpoint_interval": 100,
+    "batch_size": 32768,
+    "minibatch_size": 32768,
+    "max_minibatch_size": 32768,
+    "learning_rate": 0.0063508,
+    "ent_coef": 0.15933,
+    "seed": 42
+  },
+  "env": {
+    "num_envs": 32,
+    "num_drones": 32
+  },
+  "vec": {
+    "num_workers": 20,
+    "num_envs": 20
+  },
+  "wandb": true
+}

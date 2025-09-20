@@ -1,1 +1,0 @@
-Run the shell script autopilot/run_training_quick.sh. and when the training is done write a short report with observations called observations.md

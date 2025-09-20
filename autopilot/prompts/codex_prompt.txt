@@ -1,0 +1,20 @@
+Context:
+- Baseline configs live in `autopilot/configs/` (quick vs. full).
+- `autopilot/proposals/next_config.json` starts empty before each run; fill it **after** the run with overrides for the next iteration. Touch only these keys and respect the safety ranges:
+  * `train.learning_rate` (1e-6 – 1.0)
+  * `train.ent_coef` (0 – 1)
+  * `train.batch_size`, `train.minibatch_size`, `train.max_minibatch_size` (64 – 65536; require batch_size ≥ minibatch_size and divisible by bptt_horizon as required)
+  * `train.bptt_horizon` (1 – 512)
+  * `train.total_timesteps` (1,000 – 1,000,000,000)
+  * `train.seed` (0 – 2,147,483,647)
+  * `env.num_envs`, `env.num_drones` (1 – 256)
+  * `vec.num_envs`, `vec.num_workers` (1 – 256)
+- Constraint: keep `vec.num_envs` divisible by `vec.num_workers`. On Mac Studio (28 cores), prefer `vec.num_workers ≤ 28` and values like `vec.num_envs ∈ {28, 56, 84}`.
+- Training artifacts for the active run live in `$PUFFER_AUTOPILOT_RUN_DIR`; structured metrics, when available, write to `$PUFFER_AUTOPILOT_SUMMARY`.
+- Keep the JSON valid; write `{{}}` if you want the next run to reuse the baseline without overrides.
+
+Steps:
+1. Execute {script} and wait for it to finish.
+2. Inspect the results (e.g., tail the fresh log under `autopilot/logs/` or read `$PUFFER_AUTOPILOT_SUMMARY` when it exists).
+3. Based on those results, update `autopilot/proposals/next_config.json` with overrides for the **next** run (or `{{}}` if no change).
+4. Create or overwrite {notes_path} with a concise status update (for example, `Notes: run completed`).

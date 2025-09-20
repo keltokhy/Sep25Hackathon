@@ -1,0 +1,19 @@
+{
+  "type": "object",
+  "properties": {
+    "run_id": {"type": "string"},
+    "timestamp": {"type": "string"},
+    "seed": {"type": ["integer", "null"]},
+    "success_rate": {"type": ["number", "null"]},
+    "mean_reward": {"type": ["number", "null"]},
+    "episode_length": {"type": ["number", "null"]},
+    "config_diff": {"type": "string"},
+    "artifacts": {
+      "type": "array",
+      "items": {"type": "string"}
+    },
+    "notes": {"type": "string"}
+  },
+  "required": ["run_id", "timestamp", "config_diff"],
+  "additionalProperties": true
+}
