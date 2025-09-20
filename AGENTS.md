@@ -17,19 +17,20 @@
 
 ## Experiment Logging & Autopilot Workflow
 - `autopilot/journal/labbook.md` is the canonical audit log—record every meaningful action, hypothesis, and follow-up there immediately after the run; mirror key observations in `autopilot/journal/notes.md` when longer context helps.
-- Post-run, read `runs/<run_id>/trainer_summary.json` (or the mirrored `train.log`) and then stage the **next** overrides in `autopilot/proposals/next_config.json`. The loop clears this file before launching the script, so anything present was written after the most recent run. Only touch the whitelisted keys (learning_rate, ent_coef, batch/minibatch/max_minibatch, bptt_horizon, total_timesteps, seed, env/vec counts) and keep values within range; write `{}` if you want to keep the baseline. The training scripts consume the saved config directly, so every override takes effect on the very next launch.
+- Post-run, read `runs/<run_id>/trainer_summary.json` (or the mirrored `train.log`) and then stage the **next** overrides in `autopilot/proposals/next_config.json`. The loop clears this file before launching the script, so anything present was written after the most recent run. Only touch the whitelisted keys (learning_rate, ent_coef, batch/minibatch/max_minibatch, bptt_horizon, update_epochs, gae_lambda, gamma, clip_coef, vf_clip_coef, total_timesteps, seed, device, env/vec counts) and keep values within range; write `{}` if you want to keep the baseline. The training scripts consume the saved config directly, so every override takes effect on the very next launch.
 - Keep `vec.num_envs` divisible by `vec.num_workers` (e.g., on a 28‑core Mac Studio: workers 28 with envs 28/56/84). Note any tuning in the labbook for reproducibility.
 - Capture run-specific rationale in `runs/<run_id>/notes.txt` and summarise longer-term heuristics back in the labbook so future iterations inherit the learning.
 
 ## Autopilot Baseline & Knobs
 - Full baseline (high‑util on M3 Ultra) is encoded in `autopilot/configs/baseline_full.json`: `vec 28/56`, `env 4×8`, `bptt 16`, `batch 28672`.
 - Expect one full iteration to complete in roughly 5–6 minutes; use the quicker baseline (`baseline_quick.json`, ~1 minute) for rapid smoke checks.
-- Agent may change, post‑run only: `train.learning_rate`, `train.ent_coef`, `train.seed`, `train.bptt_horizon`, `env.num_envs`, `env.num_drones`, `vec.num_workers`, `vec.num_envs`.
+- Agent may change, post-run only: `train.learning_rate`, `train.ent_coef`, `train.seed`, `train.bptt_horizon`, `train.update_epochs`, `train.gae_lambda`, `train.gamma`, `train.clip_coef`, `train.vf_clip_coef`, `train.device`, `env.num_envs`, `env.num_drones`, `vec.num_workers`, `vec.num_envs`.
 - Always enforce:
   - `vec.num_envs % vec.num_workers == 0`.
   - `train.batch_size = (env.num_envs × env.num_drones × vec.num_envs) × train.bptt_horizon`.
   - `train.minibatch_size = train.batch_size = train.max_minibatch_size`.
   - Record rationale and observed SPS/utilization in `journal/labbook.md`.
+- `train.device` should typically stay on `mps`; switch to `cpu` only for diagnostics and log the slower runtime expectations.
 
 ## Performance Tuning
 - The Mac Studio (M3 Ultra) can usually handle higher concurrency—bump `vec.num_workers`, `vec.num_envs`, and `env.num_envs` via `proposals/next_config.json` until the `train.log` utilisation panel shows sustained 90%+ CPU without throttling.

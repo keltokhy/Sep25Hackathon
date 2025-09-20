@@ -29,6 +29,11 @@ CONFIG_RANGES: Dict[Tuple[str, str], Tuple[type, Number, Number]] = {
     ("train", "minibatch_size"): (int, 64, 65536),
     ("train", "max_minibatch_size"): (int, 64, 65536),
     ("train", "bptt_horizon"): (int, 1, 512),
+    ("train", "update_epochs"): (int, 1, 32),
+    ("train", "gae_lambda"): (float, 0.0, 1.0),
+    ("train", "gamma"): (float, 0.0, 0.999999),
+    ("train", "clip_coef"): (float, 0.0, 1.0),
+    ("train", "vf_clip_coef"): (float, 0.0, 10.0),
     ("train", "total_timesteps"): (int, 1_000, 1_000_000_000),
     ("train", "seed"): (int, 0, 2_147_483_647),
     ("env", "num_envs"): (int, 1, 256),
@@ -84,6 +89,10 @@ def validate_config(config: Dict[str, Any]) -> None:
     if {"batch_size", "minibatch_size"}.issubset(train):
         if train["batch_size"] < train["minibatch_size"]:
             raise ValidationError("train.batch_size must be >= train.minibatch_size")
+
+    device = train.get("device")
+    if device is not None and device not in {"mps", "cpu", "cuda"}:
+        raise ValidationError("train.device must be one of {'mps', 'cpu', 'cuda'}")
 
 
 def validate_summary(summary: Dict[str, Any]) -> None:

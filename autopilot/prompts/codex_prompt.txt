@@ -10,6 +10,12 @@ Context:
   * `train.bptt_horizon` (1 – 512)
   * `train.total_timesteps` (1,000 – 1,000,000,000)
   * `train.seed` (0 – 2,147,483,647)
+  * `train.update_epochs` (1 – 32)
+  * `train.gae_lambda` (0 – 1)
+  * `train.gamma` (0 – 0.999999)
+  * `train.clip_coef` (0 – 1)
+  * `train.vf_clip_coef` (0 – 10)
+  * `train.device` (`mps`, `cpu`, or `cuda` for diagnostics)
   * `env.num_envs`, `env.num_drones` (1 – 256)
   * `vec.num_envs`, `vec.num_workers` (1 – 256)
 - Constraints:
@@ -17,7 +23,7 @@ Context:
   * Derive batch sizes from your proposal:
     - `train.batch_size = (env.num_envs × env.num_drones × vec.num_envs) × train.bptt_horizon`
     - `train.minibatch_size = train.batch_size = train.max_minibatch_size`
-  * On a 28‑core Mac Studio, prefer `vec.num_workers ≤ 28` and `vec.num_envs ∈ {{28, 56, 84}}`.
+  * On a 28‑core Mac Studio, prefer `vec.num_workers ≤ 28` and `vec.num_envs ∈ {{28, 56, 84}}`. Switching `train.device` to `cpu` is allowed for diagnostics but will slow runs considerably.
 - Training artifacts for the active run live in `$PUFFER_AUTOPILOT_RUN_DIR`; structured metrics write to `$PUFFER_AUTOPILOT_SUMMARY` when available.
 - Keep the JSON valid; write `{{}}` if you want the next run to reuse the baseline without overrides.
 

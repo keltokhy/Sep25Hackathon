@@ -27,13 +27,14 @@ Baseline profiles (M3 Ultra):
 
 Allowed knobs & constraints for the agent:
 - Whitelisted keys (post‑run only):
-  - train: `learning_rate`, `ent_coef`, `seed`, `bptt_horizon`.
+  - train: `learning_rate`, `ent_coef`, `seed`, `bptt_horizon`, `update_epochs`, `gae_lambda`, `gamma`, `clip_coef`, `vf_clip_coef`, `device`.
   - env: `num_envs`, `num_drones`.
   - vec: `num_workers`, `num_envs`.
 - Constraints to avoid stalls:
   - Divisibility: `vec.num_envs % vec.num_workers == 0`.
   - Segments rule: set `train.batch_size = (env.num_envs × env.num_drones × vec.num_envs) × train.bptt_horizon`.
   - Match: set `train.minibatch_size = train.batch_size = train.max_minibatch_size` (until gradient accumulation is introduced).
+  - Device: prefer `mps`; `cpu` is allowed for diagnostics (expect slower wall-clock times) and log the rationale in the labbook.
 
 Workflow expectations:
 - The agent proposes changes by writing JSON to `proposals/next_config.json` after a run completes. Include the derived `train.batch_size` and `train.minibatch_size` per the rule above.

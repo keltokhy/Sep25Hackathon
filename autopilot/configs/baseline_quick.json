@@ -9,7 +9,12 @@
     "learning_rate": 0.0063508,
     "ent_coef": 0.15933,
     "seed": 42,
-    "checkpoint_interval": 1000
+    "checkpoint_interval": 1000,
+    "update_epochs": 1,
+    "gae_lambda": 0.95,
+    "gamma": 0.99,
+    "clip_coef": 0.12,
+    "vf_clip_coef": 1.0
   },
   "env": {
     "num_envs": 4,

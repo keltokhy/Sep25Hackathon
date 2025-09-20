@@ -9,7 +9,12 @@
     "max_minibatch_size": 28672,
     "learning_rate": 0.003,
     "ent_coef": 0.12,
-    "seed": 42
+    "seed": 42,
+    "update_epochs": 1,
+    "gae_lambda": 0.95,
+    "gamma": 0.99,
+    "clip_coef": 0.12,
+    "vf_clip_coef": 1.0
   },
   "env": {
     "num_envs": 4,

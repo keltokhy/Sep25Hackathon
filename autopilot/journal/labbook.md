@@ -32,3 +32,5 @@
 - 2025-09-20T10:11:30Z | baseline update | Increased full baseline to 1e7 steps (~5–6 min) and reset checkpoint to 200 | logs/runs cleared for fresh cadence | next: run full iteration to confirm duration
 - 2025-09-20T10:15:01Z | run complete | Run 2025-09-20T101314Z (iteration 1) success 0.00, mean_reward 8.38, collision 5.6e-4, SPS 114k | stable; CPU ~357%, GPU ~0% | next: drop ent_coef to 0.02 and extend to 1e7 steps for more exploitation
 - 2025-09-20T10:16:04Z | run complete | Run 2025-09-20T101314Z (iteration 1) | metrics captured | 
+
+- 2025-09-20T10:19:52Z | hyperparameter surface | Added PPO knobs (update_epochs, gae_lambda, gamma, clip_coef, vf_clip_coef, device toggle) to autopilot + docs | schema & configs patched | next: verify loop accepts new overrides
