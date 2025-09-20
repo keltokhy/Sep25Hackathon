@@ -1,4 +1,5 @@
 {
+  "env_name": "puffer_drone_pp",
   "train": {
     "device": "mps",
     "total_timesteps": 10000000,

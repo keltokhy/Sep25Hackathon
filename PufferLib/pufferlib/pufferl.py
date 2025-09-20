@@ -73,7 +73,13 @@ def _write_autopilot_summary(train_args, env_args, vec_args, logs, all_logs):
         "epoch": None,
     }
     if latest:
-        metrics["success_rate"] = latest.get("environment/perfect_deliv")
+        # Success rate: prefer env-specific key, with fallbacks
+        sr = latest.get("environment/perfect_deliv")
+        if sr is None:
+            # PickPlace logs placement_success as a natural success proxy
+            sr = latest.get("environment/placement_success")
+        metrics["success_rate"] = sr
+
         metrics["mean_reward"] = latest.get("environment/score")
         metrics["episode_length"] = latest.get("environment/episode_length")
         metrics["collision_rate"] = latest.get("environment/collision_rate")

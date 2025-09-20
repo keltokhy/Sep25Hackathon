@@ -59,9 +59,15 @@ def extract_metrics(log_path: Path) -> Dict[str, Optional[float]]:
                     data = json.loads(line)
                 except json.JSONDecodeError:
                     continue
-                metrics["success_rate"] = metrics["success_rate"] or data.get("environment/perfect_deliv")
-                metrics["mean_reward"] = metrics["mean_reward"] or data.get("environment/score")
-                metrics["episode_length"] = metrics["episode_length"] or data.get("environment/episode_length")
+                if metrics["success_rate"] is None:
+                    sr = data.get("environment/perfect_deliv")
+                    if sr is None:
+                        sr = data.get("environment/placement_success")
+                    metrics["success_rate"] = sr
+                if metrics["mean_reward"] is None:
+                    metrics["mean_reward"] = data.get("environment/score")
+                if metrics["episode_length"] is None:
+                    metrics["episode_length"] = data.get("environment/episode_length")
                 if all(v is not None for v in metrics.values()):
                     break
     except UnicodeDecodeError:
@@ -115,7 +121,8 @@ def latest_final_checkpoint() -> Optional[Path]:
     exp_dir = experiments_dir()
     if not exp_dir.exists():
         return None
-    candidates = sorted(exp_dir.glob("puffer_drone_pp_*.pt"), key=lambda p: p.stat().st_mtime)
+    # Accept checkpoints for any env (pp or pickplace) and pick the newest
+    candidates = sorted(exp_dir.glob("*.pt"), key=lambda p: p.stat().st_mtime)
     return candidates[-1] if candidates else None
 
 

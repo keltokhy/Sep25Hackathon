@@ -18,6 +18,7 @@ Usage:
 - Launch runs via `python3 autopilot/loop.py --runs N --mode {quick,full}`.
 - Each iteration copies `configs/`->`runs/<run_id>/config.json`, clears `proposals/next_config.json`, then calls Codex to run the training script.
 - Training scripts invoke `scripts/render_cli_args.py` so the merged config drives every launch—override the JSON to change batch sizes, worker counts, etc.
+ - You can select the environment via a top-level `env_name` in the config (e.g., `"puffer_drone_pp"` or `"puffer_drone_pickplace"`). The training script reads this value and passes it as the positional environment argument.
 - After the run, Codex (or a human) should review `runs/<run_id>/trainer_summary.json` or the mirrored log and write the **next** overrides back into `proposals/next_config.json` (stay within the whitelisted keys/ranges).
 - Inspect results under `runs/<run_id>/` (look for `trainer_summary.json`, `summary.json`, `train.log`, `notes.txt`) and keep the journal up to date.
  - Warm start: set `autopilot.resume_mode: "continue"` and `autopilot.resume_from: "latest" | "best" | "/path/to/model.pt"` in the override to reuse a prior checkpoint. The orchestrator will inject `--load-model-path` for you and record the chosen source in the summary. Control artifact retention with `autopilot.save_strategy: "best" | "latest" | "all"` (default: `best`).
@@ -38,6 +39,7 @@ Allowed knobs & constraints for the agent:
   - Segments rule: set `train.batch_size = (env.num_envs × env.num_drones × vec.num_envs) × train.bptt_horizon`.
   - Match: set `train.minibatch_size = train.batch_size = train.max_minibatch_size` (until gradient accumulation is introduced).
   - Device: prefer `mps`; `cpu` is allowed for diagnostics (expect slower wall-clock times) and log the rationale in the labbook.
+ - The launcher normalizes the config at runtime to enforce the divisibility and batch-size rules above. If `vec.num_envs` is not divisible by `vec.num_workers`, it rounds `vec.num_envs` up to the nearest multiple, then derives `train.batch_size = train.minibatch_size = train.max_minibatch_size` from the product `(env.num_envs × env.num_drones × vec.num_envs × train.bptt_horizon)`.
 
 Workflow expectations:
 - The agent proposes changes by writing JSON to `proposals/next_config.json` after a run completes. Include the derived `train.batch_size` and `train.minibatch_size` per the rule above.

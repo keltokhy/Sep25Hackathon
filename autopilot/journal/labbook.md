@@ -68,3 +68,88 @@
 - 2025-09-20T11:18:30Z | run complete | Run 2025-09-20T111304Z (iteration 3) success 0.00, mean_reward 13.92, collision 5.9e-4, SPS 104.5k, CPU ~357% | clipfrac≈0 with annealed lr; next: keep ent 0.02/update_epochs 4/20M steps but set lr 2.5e-3 and anneal_lr false to keep updates active
 - 2025-09-20T11:21:22Z | run complete | Run 2025-09-20T111304Z (iteration 3) | metrics captured | 
 - 2025-09-20T11:29:57Z | run complete | Run 2025-09-20T112722Z (iteration 1) | metrics captured | 
+<<<<<<< Updated upstream
+=======
+- 2025-09-20T11:32:39Z | run complete | 2025-09-20T113019Z success 0.00, mean_reward 11.37, collision 5.6e-4, SPS 124k; CPU ~357%, GPU 0%; vec 28/56, env 4×8, bptt 16, batch 28672 | stable; updates conservative (clipfrac≈0, KL≈0); collisions low, OOB high; consistent with prior trend that lower entropy + more epochs lifts reward | next: ent_coef 0.03, update_epochs 4, total_timesteps 2e7, resume=latest; keep mps and 28/56; expect higher mean_reward and first nonzero success
+- 2025-09-20T11:34:45Z | run complete | Run 2025-09-20T113019Z (iteration 1) | metrics captured | 
+- 2025-09-20T11:40:32Z | run complete | Run 2025-09-20T113445Z (iteration 2) | metrics captured | 
+- 2025-09-20T11:40:32Z | run complete | Run 2025-09-20T113445Z (iteration 2) | metrics captured |
+- 2025-09-20T11:47:34Z | run complete | Run 2025-09-20T114533Z full baseline; success 0.00, mean_reward 8.67, collision 6.16e-4; SPS 124k | stable; CPU ~357%, GPU ~0%; batch 28672; clipfrac≈0, KL≈0 | next: update_epochs 4, ent 0.05, clip 0.20; resume=latest
+- 2025-09-20T11:49:27Z | run complete | Run 2025-09-20T114533Z (iteration 1) | metrics captured | 
+- 2025-09-20T11:53:31Z | run complete | Run 2025-09-20T114927Z (iteration 2) | metrics captured | 
+- 2025-09-20T12:02:05Z | run complete | Run 2025-09-20T115742Z (iteration 1) success 0.00, mean_reward 8.47, collision 5.6e-4, SPS 122.7k | staged next: resume best; vec 28/84; ent 0.03; epochs 4; steps 2e7; batch 43008
+- 2025-09-20T12:02:16Z | run complete | Run 2025-09-20T115742Z (iteration 1) | metrics captured | 
+- 2025-09-20T12:07:35Z | run complete | Run 2025-09-20T120216Z (iteration 2) | metrics captured | 
+- 2025-09-20T12:10:08Z | run complete | Run 2025-09-20T120735Z (iteration 3) success 0.00, mean_reward 16.87, collision 6.22e-4, SPS 179k, batch 43008, vec 28/84, env 4×8 | +3.5% mean_reward vs best; success still 0, OOB ~0.96 | next: gamma 0.995, gae_lambda 0.98, ent 0.02; continue from best
+- 2025-09-20T12:11:53Z | run complete | Run 2025-09-20T120735Z (iteration 3) | metrics captured | 
+- 2025-09-20T12:13:25Z | run complete | Run 2025-09-20T121153Z success 0.00, mean_reward 13.93, collision 5.9e-4, SPS 176k | stable; under-updating suspected (epochs=1, clip=0.12) | next: update_epochs 3, clip 0.20, vf_coef 1.0, total_timesteps 2e7, resume latest
+- 2025-09-20T12:15:39Z | run complete | Run 2025-09-20T121153Z (iteration 4) | metrics captured | 
+—
+- 2025-09-20T12:26:57Z | run complete | Run 2025-09-20T122529Z (quick) success 0.00, mean_reward 2.78, collision 4.41e-4, SPS 18.6k | CPU~87%, VRAM~0%; batch=2048 (4×8×4×16), vec 4/4 divisible ✓
+- 2025-09-20T12:27:20Z | proposal | reduce entropy, increase update pressure, loosen clip; continue from latest; save best | ent 0.05, update_epochs 3, clip 0.20, vf_coef 1.0, lr 3.2e-3 | next: re-run quick; if reward ↑ and collisions acceptable, validate on full baseline (28/56, 1e7)
+- 2025-09-20T12:28:27Z | run complete | Run 2025-09-20T122529Z (iteration 1) | metrics captured | 
+- 2025-09-20T12:49:03Z | run complete | full_overrides_resume_20250920T124550Z | success 0.00, mean_reward 13.53, collision 5.9e-4, SPS 89k | next: epochs 4–6 or switch to adam; keep resume latest
+- 2025-09-20T12:50:13Z | proposal | increase update_epochs to 5; keep lr 3.2e-3, ent 0.05, clip 0.2, vf 1.0 | resume latest; expect higher KL/clipfrac | next: run quick to confirm then full
+- 2025-09-20T12:59:18Z | run complete | Run 2025-09-20T125104Z (iteration 1) | metrics captured | 
+- 2025-09-20T13:03:15Z | run complete | Run 2025-09-20T125918Z success 0.00, mean_reward 15.04, collision 6.2e-4, SPS 139.6k | proposing clip 0.2, ent 0.05, vf_coef 1.0, vec 28/56 | next: continue from best with batch 28672
+- 2025-09-20T13:05:05Z | run complete | Run 2025-09-20T125918Z (iteration 2) | metrics captured | 
+- 2025-09-20T13:14:11Z | run complete | Run 2025-09-20T130505Z (iteration 3) | metrics captured | 
+- 2025-09-20T13:15:23Z | proposal | reduce ent to 0.03; epochs 10; max_grad_norm 1.0; raise vec.num_envs to 84; resume best | batch 43008 (4×8×84×16), total_steps 20M; expect ~140k SPS | next: run quick/full to validate KL/clipfrac>0 and OOB↓
+ - 2025-09-20T13:21:31Z | run complete | Run 2025-09-20T131553Z | success 0.00, mean_reward 14.63, collision 5.6e-4, SPS 150.5k; CPU ~356% | next: ent 0.01, gamma 0.995, anneal_lr false; resume latest
+- 2025-09-20T13:23:16Z | run complete | Run 2025-09-20T131553Z (iteration 1) | metrics captured | 
+- 2025-09-20T13:27:29Z | run complete | Run 2025-09-20T132316Z (iteration 2) | metrics captured | 
+- 2025-09-20T13:47:43Z | run complete | Run 2025-09-20T134507Z (iteration 1) | metrics captured | 
+- 2025-09-20T13:51:53Z | run complete | Run 2025-09-20T134806Z | mean_reward 2.83, SPS 14.45k, batch 3584; env 4×1; vec 28/56 | next: restore full baseline (4×8, vec 28/56, batch 28672), ent 0.03, update_epochs 3, resume=best, 1e7 steps
+- 2025-09-20T13:52:11Z | run complete | Run 2025-09-20T134806Z (iteration 1) | metrics captured | 
+ - 2025-09-20T13:55:48Z | run complete | Run 2025-09-20T135305Z success 0.00, mean_reward 11.30, collision 5.16e-4, SPS ~120k | theory: entropy too high causing OOB drift; next: ent 0.01, 2e7 steps, anneal_lr true, resume latest (deterministic on)
+- 2025-09-20T13:57:15Z | run complete | Run 2025-09-20T135305Z (iteration 1) | metrics captured |
+- 2025-09-20T14:03:18Z | run complete | Run 2025-09-20T140103Z success 0.00, mean_reward 2.61, collision 6.0e-4, SPS 106k | next: ent 0.08, update_epochs 3, clip 0.3, lr 3.2e-3; resume=best
+- 2025-09-20T14:05:08Z | run complete | Run 2025-09-20T140103Z (iteration 1) | metrics captured | 
+- 2025-09-20T14:28:23Z | run complete | Run 2025-09-20T140553Z (iteration 1) | metrics captured | 
+- 2025-09-20T14:30:57Z | run complete | Run 2025-09-20T142823Z success 0.00, mean_reward 14.61, collision 6.0e-4, SPS 125k | stable; approx_kl≈0 clipfrac≈0 | next: ent 0.10, clip 0.30, 20M steps; resume latest; save best
+- 2025-09-20T14:33:30Z | run complete | Run 2025-09-20T142823Z (iteration 2) | metrics captured | 
+- 2025-09-20T14:36:57Z | run complete | Run 2025-09-20T143330Z (iteration 3) success 0.00, mean_reward 15.00, collision 6.1e-4, SPS 121.7k | stable; CPU ~357%, GPU ~0% | next: ent_coef→0.02, update_epochs→2; resume best
+- 2025-09-20T14:39:04Z | run complete | Run 2025-09-20T143330Z (iteration 3) | metrics captured | 
+- 2025-09-20T14:43:34Z | run complete | Run 2025-09-20T143904Z (iteration 4) | metrics captured | 
+- 2025-09-20T14:48:26Z | run complete | Run 2025-09-20T144334Z (iteration 5) | metrics captured | 
+- 2025-09-20T14:53:59Z | run complete | Run 2025-09-20T144826Z full baseline; success 0.00, mean_reward 8.44, collision 2.1e-3; SPS 119k | CPU ~357%, GPU ~0%; batch 28672; KL≈0 clipfrac≈0 | next: ent 0.08, lr 0.002, epochs 2; resume latest; save best
+- 2025-09-20T14:54:05Z | proposal | reduce entropy and LR; add a second PPO epoch; warm-start from latest; save best | ent 0.08, lr 2e-3, update_epochs 2; topology unchanged (28/56, env 4×8), bptt 16; derived batch 28672
+- 2025-09-20T14:55:43Z | run complete | Run 2025-09-20T144826Z (iteration 6) | metrics captured | 
+- 2025-09-20T14:58:00Z | run complete | Run 2025-09-20T145543Z success 0.00, mean_reward 12.40, collision 0.0010, SPS 142k | stable; batch 28672 (4×8×56×16) | next: resume best, gamma 0.997, lambda 0.97, epochs 4, lr 2.5e-3, ent 0.06, 20M steps
+- 2025-09-20T14:59:30Z | run complete | Run 2025-09-20T145543Z (iteration 7) | metrics captured | 
+ - 2025-09-20T15:03:58Z | run complete | Run 2025-09-20T145930Z full baseline (vec 28/56, env 4×8, batch 28672); SPS ~121k; mean_reward 12.90; success 0.00; collision 5.4e-4; OOB ~0.95 | stable but under-updating (KL≈0, clipfrac≈0) with high exploration | next: resume best; lr 3e-3; ent 0.04; update_epochs 8; clip 0.20
+- 2025-09-20T15:06:31Z | run complete | Run 2025-09-20T145930Z (iteration 8) | metrics captured | 
+- 2025-09-20T15:11:34Z | run complete | Run 2025-09-20T150631Z (iteration 9) | metrics captured | 
+ - 2025-09-20T15:20:58Z | run complete | Run 2025-09-20T151134Z full baseline; resume=best; ent 0.02; lr 3e-3 | success 285.60, mean_reward 438.33, collision 0.0033, SPS 125k; KL≈0 clipfrac≈0 | next: fine‑tune (lr 2.5e-3, ent 0.01, epochs 20, clip 0.15); continue best; keep 28/56 and batch 28672
+- 2025-09-20T15:22:44Z | run complete | Run 2025-09-20T151134Z (iteration 10) | metrics captured | 
+2025-09-20T15:33Z — full baseline, warm-start from best; stabilize updates
+
+- Config: mps, muon, lr 0.0025, ent 0.01, bptt 16, update_epochs 20, clip 0.15, max_grad_norm 1.5; vec 28/56; env 4×8. Derived batch 28672 (4×8×56×16). Divisibility OK (56 % 28 == 0).
+- Outcome (20.9M steps): mean_reward 535.24; success_rate 894.45 (env-mapped), collision_rate 0.00343; SPS ~128k; explained_var ~0.873. CPU ~316–329%; GPU/VRAM 0%.
+- Comparison: vs 2025-09-20T151134Z reward +22%, collisions +5% (absolute ×1e-3).
+- Theory: Reduce per-batch update aggressiveness to trim collision tail without hurting reward.
+- Next proposal: update_epochs → 12, clip_coef → 0.12, max_grad_norm → 1.0; keep lr/ent/topology; resume=continue from best; save_strategy=best.
+- 2025-09-20T15:35:15Z | run complete | Run 2025-09-20T152244Z (iteration 11) | metrics captured | 
+- 2025-09-20T15:41:05Z | run complete | Run 2025-09-20T153515Z (iteration 12) | metrics captured | 
+ - 2025-09-20T15:50:31Z | full run | 28/56, 4×8, bptt 16; lr 0.003, ent 0.10; resumed latest | success 0.00, mean_reward -4.95, coll 4.5e-4, SPS 119.6k; OOB ≈0.95 | next: resume best; ent 0.02, lr 0.0025, clip 0.15, update_epochs 20
+- 2025-09-20T15:52:29Z | run complete | Run 2025-09-20T154105Z (iteration 13) | metrics captured | 
+- 2025-09-20T16:02:57Z | run complete | Run 2025-09-20T155229Z (iteration 14) success 512.39, mean_reward 479.79, collision 3.46e-3, SPS 123.9k | recovered from high-entropy regression; still below earlier best | next: ent 0.01, update_epochs 12, clip 0.12, max_grad_norm 1.0; resume=best; monitor clipfrac
+- 2025-09-20T16:04:33Z | run complete | Run 2025-09-20T155229Z (iteration 14) | metrics captured | 
+- 2025-09-20T16:10:21Z | run complete | Run 2025-09-20T160433Z (iteration 15) | metrics captured | 
+- 2025-09-20T16:14:13Z | run complete | Run 2025-09-20T161021Z (full, lr=0.002, ent=0.01, 20M) | success 1226.13, mean_reward 481.55, coll 4.57e-3, SPS 124k; KL≈0, clipfrac≈0 (under-updating) | next: resume=best; lr 0.0025 + anneal_lr=true; update_epochs=2; total_timesteps=1e7; monitor KL/clipfrac
+- 2025-09-20T16:16:02Z | run complete | Run 2025-09-20T161021Z (iteration 16) | metrics captured | 
+- 2025-09-20T16:18:00Z | run complete | Run 2025-09-20T161602Z (full, resume=best) | success 1255.57, mean_reward 474.92, coll 6.40e-3, SPS 132k; KL≈0, clipfrac≈0 (still under-updating) | next: update_epochs 3; clip 0.10; max_grad_norm 1.0; total_timesteps 2e7; resume=best; monitor collision vs reward
+- 2025-09-20T16:20:17Z | run complete | Run 2025-09-20T161602Z (iteration 17) | metrics captured | 
+- 2025-09-20T16:24:38Z | run complete | Run 2025-09-20T162017Z (full, resume=best) success 9.38, mean_reward 250.57, collision 0.00235, SPS 126.7k | under-updating (clipfrac≈0); next: ent 0.06, clip 0.20, update_epochs 4; keep lr 2.5e-3; resume=best
+- 2025-09-20T16:26:35Z | run complete | Run 2025-09-20T162017Z (iteration 18) | metrics captured | 
+- 2025-09-20T16:33:25Z | run complete | Run 2025-09-20T162635Z (iteration 19) | metrics captured | 
+- 2025-09-20T16:37:54Z | run complete | Run 2025-09-20T163325Z (full, resume=best, lr=0.002, ent=0.01) | success 1647.37, mean_reward 462.53, collision 5.0e-3, SPS 127k; clipfrac≈0 (under-updating) | next: lr 0.0018, total_timesteps 3e7, resume=best; monitor reward/collision and KL/clipfrac; consider update_epochs 6 if needed
+- 2025-09-20T16:39:51Z | run complete | Run 2025-09-20T163325Z (iteration 20) | metrics captured | 
+- 2025-09-20T16:44:56Z | run complete | Run 2025-09-20T163951Z: mean_reward 481.61, success 1519.85, collision 0.00492, SPS 119k | staging next: lr 1.5e-3, ent 0.008, update_epochs 3, clip 0.25; resume latest | batch 28672; vec 28/56 (divisible)
+- 2025-09-20T16:47:00Z | run complete | Run 2025-09-20T163951Z (iteration 21) | metrics captured | 
+- 2025-09-20T16:53:06Z | run complete | Run 2025-09-20T164700Z (full) success 1579.33, mean_reward 474.41, collision 0.0056, SPS 125041 | update_epochs→6 staged; resume=latest; batch=28672; vec 28/56 (divisible)
+- 2025-09-20T16:54:55Z | run complete | Run 2025-09-20T164700Z (iteration 22) | metrics captured | 
+- 2025-09-20T17:02:37Z | run complete | Run 2025-09-20T165455Z (full, resume=latest, update_epochs=6) | success 0.00, mean_reward 0.66, collision 4.32e-4, SPS 128k; CPU ~357%, GPU ~0% | next: resume=best; lr 1.8e-3; ent 0.01; update_epochs 4; clip 0.20; muon; total_timesteps 2e7; batch 28672; vec 28/56
+- 2025-09-20T17:04:34Z | run complete | Run 2025-09-20T165455Z (iteration 23) | metrics captured | 
+- 2025-09-20T17:11:26Z | run complete | Run 2025-09-20T170434Z (iteration 24) | metrics captured | 
+>>>>>>> Stashed changes
