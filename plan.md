@@ -15,7 +15,7 @@
 
 ## Execution Surface
 - Codex calls use `--dangerously-bypass-approvals-and-sandbox`; ensure this remains acceptable for your environment.
-- `autopilot/scripts/run_training.sh` & `autopilot/scripts/run_training_quick.sh`: activate venv, render CLI args from `runs/<run_id>/config.json` via `scripts/render_cli_args.py`, then run training with production vs. smoke-test settings.
+- `autopilot/scripts/run_training.sh`: activates venv, renders CLI args from `runs/<run_id>/config.json` via `scripts/render_cli_args.py`, then launches training (used for both quick and full modes).
 - `autopilot/scripts/run_codex.py`: one-off helper to trigger Codex manually.
 - Scripts should ultimately emit structured output so agents avoid parsing terminal noise (current tee logging is temporary).
 

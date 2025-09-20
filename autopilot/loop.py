@@ -28,7 +28,7 @@ PROMPTS_DIR = AUTOPILOT_DIR / "prompts"
 
 BASELINE_CONFIG = CONFIG_DIR / "baseline_full.json"
 QUICK_CONFIG = CONFIG_DIR / "baseline_quick.json"
-QUICK_SCRIPT = SCRIPTS_DIR / "run_training_quick.sh"
+QUICK_SCRIPT = SCRIPTS_DIR / "run_training.sh"
 FULL_SCRIPT = SCRIPTS_DIR / "run_training.sh"
 CODEX_PROMPT_PATH = PROMPTS_DIR / "codex_prompt.txt"
 OVERRIDE_PATH = AUTOPILOT_DIR / "proposals" / "next_config.json"

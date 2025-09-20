@@ -3,6 +3,7 @@ Goal:
 
 Context:
 - Baseline configs live in `autopilot/configs/` (quick vs. full).
+- Runtime budget guidance: quick mode (~1 minute) uses the smoke baseline; full mode (~5–6 minutes) uses the high-util baseline (`total_timesteps` ≈ 1e7). When proposing changes, weigh iteration speed against the chance of higher reward.
 - `autopilot/proposals/next_config.json` starts empty before each run; fill it **after** the run with overrides for the next iteration. Touch only these keys and respect the safety ranges:
   * `train.learning_rate` (1e-6 – 1.0)
   * `train.ent_coef` (0 – 1)
