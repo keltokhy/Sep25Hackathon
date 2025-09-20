@@ -40,3 +40,8 @@
 - 2025-09-20T10:27:18Z | run failed | 2025-09-20T102706Z: Codex run did not produce a new log in autopilot/logs/ | halt | 
 
 - 2025-09-20T10:28:25Z | prompt guardrail | Strengthened Codex instructions to execute training script via bash and documented fallback | prevents missing-log failures | next: rerun quick loop to confirm
+- 2025-09-20T10:31:12Z | run complete | Run 2025-09-20T102907Z success 0.00, mean_reward 7.53, collision 5.5e-4, SPS 98k | baseline stable; CPU ~357%, vec 28/56, batch 28672 | next: drop ent_coef to 0.08 and raise update_epochs to 2 for more exploitation
+- 2025-09-20T10:32:43Z | run complete | Run 2025-09-20T102907Z (iteration 1) | metrics captured | 
+- 2025-09-20T10:32:44Z | run complete | Run 2025-09-20T102914Z success 0.00, mean_reward 5.46, collision 5.1e-4, SPS 17.5k | quick baseline vec 4/4, env 4x8, batch 2048; CPU ~95%, GPU ~0% | next: 2e6 steps, lr 5e-3, ent 0.12, update_epochs 2
+
+- 2025-09-20T10:36:16Z | timeout guardrail | Prompt/docs now require `timeout 900` wrapper around training script to avoid 2-min CLI limit | ready to rerun multi-iter loop | next: verify Codex obeys timeout

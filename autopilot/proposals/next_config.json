@@ -1,1 +1,11 @@
-{}
+{
+  "train": {
+    "total_timesteps": 2000000,
+    "learning_rate": 0.005,
+    "ent_coef": 0.12,
+    "update_epochs": 2,
+    "batch_size": 2048,
+    "minibatch_size": 2048,
+    "max_minibatch_size": 2048
+  }
+}
