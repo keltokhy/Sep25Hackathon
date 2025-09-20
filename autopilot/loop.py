@@ -223,6 +223,76 @@ def run_training(script: Path, run_dir: Path) -> Path:
     return log_path
 
 
+def analyze_drone_behavior(metrics: Dict[str, Optional[float]]) -> Dict[str, Any]:
+    """Analyze metrics to understand what the drone is actually doing."""
+    insights = []
+    severity = "ok"
+    next_focus = "continue"
+
+    # Get metrics with safe defaults
+    grip_rate = metrics.get("grip_success", 0) or 0
+    grip_attempts = metrics.get("grip_attempts", 0) or 0
+    delivery_rate = metrics.get("delivery_success", 0) or 0
+    e2e_rate = metrics.get("end_to_end_success", 0) or 0
+    hover_efficiency = metrics.get("hover_efficiency", 0) or 0
+    collision_rate = metrics.get("collision_rate", 0) or 0
+
+    # Calculate grip efficiency
+    grip_efficiency = 0
+    if grip_attempts > 0:
+        grip_efficiency = grip_rate / grip_attempts
+
+    # Analyze grip behavior
+    if grip_attempts == 0 or grip_attempts < 0.001:
+        insights.append("🚨 Drone not attempting to grip objects at all")
+        severity = "critical"
+        next_focus = "diagnostic_grip"
+    elif grip_rate < 0.1:
+        insights.append("🔧 Grip mechanism failing (<10% success rate)")
+        severity = "warning"
+        next_focus = "improve_grip"
+    elif grip_rate < 0.3:
+        insights.append("⚠️ Low grip success rate (<30%)")
+        next_focus = "tune_grip"
+
+    # Analyze delivery chain
+    if grip_rate > 0.3 and delivery_rate < 0.1:
+        insights.append("📦 Can grip but cannot deliver - carrying/navigation issue")
+        next_focus = "improve_carrying"
+    elif delivery_rate > 0.3 and e2e_rate < 0.1:
+        insights.append("🔄 Delivery works but full chain fails")
+        next_focus = "improve_coordination"
+
+    # Check for stability issues
+    if collision_rate > 0.5:
+        insights.append("💥 High collision rate - stability/control problem")
+        severity = "warning" if severity == "ok" else severity
+        next_focus = "fix_stability"
+
+    # Check hovering behavior
+    if hover_efficiency > 0.5 and grip_rate < 0.2:
+        insights.append("🎯 Hovering at pickup but not gripping")
+        next_focus = "fix_grip_activation"
+
+    # If everything is working reasonably well
+    if grip_rate > 0.5 and delivery_rate > 0.3:
+        insights.append("✅ Basic behaviors working - ready for optimization")
+        next_focus = "optimize_performance"
+
+    return {
+        "insights": insights,
+        "severity": severity,
+        "next_focus": next_focus,
+        "grip_efficiency": grip_efficiency,
+        "metrics_summary": {
+            "grip_success": f"{grip_rate:.1%}",
+            "delivery_success": f"{delivery_rate:.1%}",
+            "end_to_end": f"{e2e_rate:.1%}",
+            "collision_rate": f"{collision_rate:.1%}"
+        }
+    }
+
+
 def summarize(
     run_dir: Path,
     config: Dict[str, Any],
@@ -236,6 +306,9 @@ def summarize(
         if value is not None:
             merged_metrics[key] = value
 
+    # Perform behavioral analysis
+    behavior = analyze_drone_behavior(merged_metrics)
+
     summary = {
         "run_id": run_dir.name,
         "timestamp": timestamp(),
@@ -245,6 +318,7 @@ def summarize(
         "end_to_end_success": merged_metrics.get("end_to_end_success"),
         "mean_reward": merged_metrics.get("mean_reward"),
         "episode_length": merged_metrics.get("episode_length"),
+        "behavioral_analysis": behavior,  # Add behavioral insights
         "config_diff": json.dumps(diff, indent=2) if diff else "{}",
         "artifacts": [],
         "notes": "auto-generated run summary",
@@ -259,6 +333,17 @@ def summarize(
     write_summary(run_dir, summary)
     if diff:
         (run_dir / "config_diff.json").write_text(json.dumps(diff, indent=2), encoding="utf-8")
+
+    # Print behavioral insights to console for immediate feedback
+    if behavior["insights"]:
+        print(f"\n🔍 DREX Behavioral Analysis for {run_dir.name}:")
+        print(f"   Severity: {behavior['severity'].upper()}")
+        for insight in behavior["insights"]:
+            print(f"   {insight}")
+        print(f"   Next Focus: {behavior['next_focus']}")
+        print(f"   Metrics: Grip {behavior['metrics_summary']['grip_success']} | "
+              f"Delivery {behavior['metrics_summary']['delivery_success']} | "
+              f"E2E {behavior['metrics_summary']['end_to_end']}")
 
 
 def load_previous_config() -> Optional[Dict[str, Any]]:

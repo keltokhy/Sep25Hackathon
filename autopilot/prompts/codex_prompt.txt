@@ -1,5 +1,24 @@
 Goal:
-- Drive the training toward better policy quality (higher `success_rate`, `mean_reward`, lower `collision_rate`) while keeping runs stable and reproducible.
+- Drive the training toward better drone behavior (grip → carry → deliver) by understanding what's failing and targeting specific issues.
+- Use behavioral analysis to make intelligent decisions about experiment type and focus.
+
+Context:
+- BEHAVIORAL ANALYSIS: Each run's summary.json contains a "behavioral_analysis" field with:
+  * "insights": What the drone is actually doing wrong
+  * "severity": critical/warning/ok - how bad the problem is
+  * "next_focus": Suggested area to improve (diagnostic_grip, improve_carrying, optimize_performance, etc.)
+  * "metrics_summary": Quick view of grip/delivery/end-to-end success rates
+
+Decision Framework for DREX:
+- Check behavioral_analysis BEFORE changing hyperparameters:
+  * severity="critical" → Run SHORT diagnostic experiments (100K-500K timesteps)
+  * next_focus="diagnostic_grip" → Drone isn't trying to grip - fundamental issue
+  * next_focus="improve_carrying" → Grip works but delivery fails - different problem
+  * next_focus="optimize_performance" → Basics work - now optimize hyperparameters
+- Match experiment type to problem:
+  * Not attempting grip? → Reduce complexity, shorter runs, debug reward structure
+  * High collision rate? → Focus on stability params, not learning rate
+  * Can grip but can't deliver? → Navigation/carrying issue, not optimization
 
 Context:
 - Baseline configs live in `autopilot/configs/` (quick vs. full).
@@ -38,8 +57,21 @@ Example override:
 }}
 ```
 
+Experiment Selection Strategy:
+- Based on behavioral_analysis.next_focus:
+  * "diagnostic_grip" → Set total_timesteps to 100,000-500,000 for quick debugging
+  * "improve_grip" → Focus on grip rewards, reduce num_drones for clarity
+  * "improve_carrying" → Test stability params, may need longer runs (1M-5M timesteps)
+  * "fix_stability" → Reduce learning rate, check collision penalties
+  * "optimize_performance" → Full runs (10M+ timesteps) with hyperparameter tuning
+
 Steps:
 1. Execute {script} (with ≥15‑minute timeout allowance) and wait for it to finish.
 2. Inspect the results (e.g., tail the fresh log under `autopilot/logs/` or read `$PUFFER_AUTOPILOT_SUMMARY` when it exists).
-3. Based on those results, update `autopilot/proposals/next_config.json` with overrides for the **next** run (or `{{}}` if no change). Include any `autopilot.*` resume policy if you want to continue from `latest`/`best`.
-4. Create or overwrite {notes_path} with an insightful status entry. Summarise key metrics, compare to recent runs, record diagnostic observations (CPU/GPU utilisation, SPS, divisibility checks, derived batch), articulate the theory you just tested, and describe how the results update your thinking for the next iteration.
+3. CHECK BEHAVIORAL ANALYSIS in the summary to understand what the drone is doing wrong.
+4. Based on behavioral insights AND metrics, update `autopilot/proposals/next_config.json` with overrides for the **next** run (or `{{}}` if no change). Match experiment type to the identified problem.
+5. Create or overwrite {notes_path} with an insightful status entry. Include:
+   - Behavioral analysis insights (what's the drone doing wrong?)
+   - Severity and recommended next focus
+   - Why you chose specific experiment parameters
+   - Theory about fixing the identified issue
