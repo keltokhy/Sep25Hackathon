@@ -40,6 +40,7 @@ Workflow expectations:
 - The agent proposes changes by writing JSON to `proposals/next_config.json` after a run completes. Include the derived `train.batch_size` and `train.minibatch_size` per the rule above.
 - The orchestrator clears this file before each launch so any content must come from the most recent run’s decision.
 - Each run folder under `runs/<run_id>/` contains: `config.json` (applied), `override.json` (proposal used), `train.log`, `trainer_summary.json` (structured metrics incl. SPS/steps/epoch), `summary.json` (final snapshot), and `notes.txt`.
+- Codex runs must start by executing `bash -lc './scripts/run_training.sh'`; if no new log appears under `logs/`, treat that iteration as failed and rerun.
 
 Troubleshooting tips:
 - If the trainer “sticks” after a brief CPU spike, check divisibility (`vec.num_envs % vec.num_workers`) and the batch rule above.

@@ -34,3 +34,9 @@
 - 2025-09-20T10:16:04Z | run complete | Run 2025-09-20T101314Z (iteration 1) | metrics captured | 
 
 - 2025-09-20T10:19:52Z | hyperparameter surface | Added PPO knobs (update_epochs, gae_lambda, gamma, clip_coef, vf_clip_coef, device toggle) to autopilot + docs | schema & configs patched | next: verify loop accepts new overrides
+- 2025-09-20T10:23:02Z | run complete | Run 2025-09-20T102056Z (iteration 1) success 0.00, mean_reward 9.42, collision 5.8e-4, SPS 105.8k | stable; CPU ~357%, GPU ~0% | next: ent_coef 0.01, total_timesteps 2e7, keep 28/56 vec and batch 28672 for longer exploitation
+- 2025-09-20T10:24:01Z | run complete | Run 2025-09-20T102109Z (iteration 1) | metrics captured | 
+- 2025-09-20T10:24:16Z | run failed | 2025-09-20T102401Z: Codex run did not produce a new log in autopilot/logs/ | halt | 
+- 2025-09-20T10:27:18Z | run failed | 2025-09-20T102706Z: Codex run did not produce a new log in autopilot/logs/ | halt | 
+
+- 2025-09-20T10:28:25Z | prompt guardrail | Strengthened Codex instructions to execute training script via bash and documented fallback | prevents missing-log failures | next: rerun quick loop to confirm
