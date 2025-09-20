@@ -1,4 +1,6 @@
-# Autopilot Workspace
+# DREX - Drone Research Explorer
+
+An intelligent autopilot system that understands drone behavior and selects appropriate experiments based on what's actually failing.
 
 ```
 autopilot/
@@ -13,6 +15,27 @@ autopilot/
 ├─ helpers.py        # Validation and journaling utilities
 └─ loop.py           # Orchestrator driving Codex + training
 ```
+
+## Key Features
+
+### Behavioral Analysis
+DREX analyzes training metrics to understand what the drone is actually doing:
+- **Grip Detection**: Is the drone attempting to grip objects?
+- **Delivery Chain**: Can it grip but not deliver? Navigation issue?
+- **Stability Issues**: High collision rate? Control problems?
+- **Performance Ready**: Everything working? Ready for optimization?
+
+### Intelligent Experiment Selection
+Based on behavioral analysis, DREX selects appropriate experiments:
+- `diagnostic_grip` → Quick 100K-500K timestep runs to debug grip issues
+- `improve_carrying` → Medium 1-5M runs to fix navigation/carrying
+- `optimize_performance` → Full 10M+ runs when basics work
+
+### Metrics Tracking
+- **Grip Success Rate** (`perfect_grip`)
+- **Delivery Success Rate** (`perfect_deliv`)
+- **End-to-End Success** (`perfect_now`)
+- **Behavioral Diagnostics** (attempts, hovering, collisions)
 
 Usage:
 - Launch runs via `python3 autopilot/loop.py --runs N --mode {quick,full}`.
