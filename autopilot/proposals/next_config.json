@@ -1,1 +1,21 @@
-{}
+{
+  "train": {
+    "total_timesteps": 400000,
+    "bptt_horizon": 16,
+    "batch_size": 256,
+    "minibatch_size": 256,
+    "max_minibatch_size": 256,
+    "learning_rate": 0.003,
+    "ent_coef": 0.05,
+    "optimizer": "adam",
+    "anneal_lr": false,
+    "torch_deterministic": true
+  },
+  "env": {"num_envs": 4, "num_drones": 1},
+  "vec": {"num_workers": 4, "num_envs": 4},
+  "autopilot": {
+    "resume_mode": "fresh",
+    "resume_from": null,
+    "save_strategy": "best"
+  }
+}

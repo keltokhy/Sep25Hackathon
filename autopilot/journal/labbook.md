@@ -150,3 +150,10 @@
 - 2025-09-20T17:02:37Z | run complete | Run 2025-09-20T165455Z (full, resume=latest, update_epochs=6) | success 0.00, mean_reward 0.66, collision 4.32e-4, SPS 128k; CPU ~357%, GPU ~0% | next: resume=best; lr 1.8e-3; ent 0.01; update_epochs 4; clip 0.20; muon; total_timesteps 2e7; batch 28672; vec 28/56
 - 2025-09-20T17:04:34Z | run complete | Run 2025-09-20T165455Z (iteration 23) | metrics captured | 
 - 2025-09-20T17:11:26Z | run complete | Run 2025-09-20T170434Z (iteration 24) | metrics captured | 
+- 2025-09-20T22:15:04Z | run complete | Run 2025-09-20T221150Z (iteration 1) | metrics captured | 
+- 2025-09-20T22:28:43Z | run complete | Run 2025-09-20T222756Z (diagnostic quick; vec 4/4, env 4×, drones 4, bptt 16) | no grip (perfect_grip=0), oob≈0.966, SPS≈9.0k, CPU≈83% | next: diagnostic_grip – reduce drones→2, total_timesteps→5e5, lr→2.5e-3, checkpoint_interval→200, fresh
+- 2025-09-20T22:30:32Z | run complete | Run 2025-09-20T222756Z (iteration 1) | metrics captured | 
+- 2025-09-20T22:35:08Z | diagnostic_grip plan | Run 2025-09-20T223101Z: perfect_grip=0; oob~0.97; critical | next config: 300k steps, 1 drone, vec 4/4, ckpt 100 | run quick diagnostic; inspect grip attempts/ho_pickup
+- 2025-09-20T22:35:22Z | run complete | Run 2025-09-20T223101Z (iteration 1) | metrics captured | 
+- 2025-09-20T22:38:41Z | run complete | Run 2025-09-20T223547Z (quick diag) oob~0.97, perfect_grip=0.0, perfect_deliv=0.0, SPS~2.3k | severity=critical; next_focus=diagnostic_grip | next: LR 3e-3, ent 0.05, adam, 400k steps; watch for first grip attempts
+- 2025-09-20T22:44:00Z | policy update | Enforced no-hparam overrides; DREX honors only autopilot.* in proposals | baselines aligned to Dan (box2); quick keeps 1e6 steps for runtime | next: smoke test quick to verify

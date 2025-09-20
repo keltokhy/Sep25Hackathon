@@ -15,7 +15,6 @@ from helpers import (
     register_run,
     save_config,
     write_summary,
-    diff_configs,
     list_runs,
     timestamp,
     ValidationError,
@@ -105,17 +104,23 @@ def extract_metrics(log_path: Path) -> Dict[str, Optional[float]]:
     return metrics
 
 
-def deep_merge(base: Dict[str, Any], override: Dict[str, Any]) -> Dict[str, Any]:
+def apply_autopilot_override(base: Dict[str, Any], override: Dict[str, Any]) -> Dict[str, Any]:
+    """Apply only autopilot settings to base config."""
     result = json.loads(json.dumps(base))  # deep copy
-    for key, value in override.items():
-        if isinstance(value, dict) and isinstance(result.get(key), dict):
-            result[key] = deep_merge(result[key], value)
-        else:
-            result[key] = value
+    if "autopilot" in override:
+        result["autopilot"] = override["autopilot"]
     return result
 
 
 def load_override() -> Dict[str, Any]:
+    """Load overrides from proposals/next_config.json but enforce the
+    no-hyperparameter policy: only the top-level 'autopilot' section
+    is honored. Any 'train', 'env', or 'vec' keys are ignored.
+
+    This implements the repo policy to lock hparams to the baselines
+    (Dan's defaults) and keep DREX focused on environment iteration
+    and run policy (resume/save) decisions.
+    """
     OVERRIDE_PATH.parent.mkdir(parents=True, exist_ok=True)
     if not OVERRIDE_PATH.exists():
         return {}
@@ -126,9 +131,103 @@ def load_override() -> Dict[str, Any]:
         data = json.loads(raw)
     except json.JSONDecodeError as exc:
         raise SystemExit(f"Invalid JSON in {OVERRIDE_PATH}: {exc}") from exc
+
     if not isinstance(data, dict):
-        raise SystemExit(f"Override file {OVERRIDE_PATH} must contain a JSON object")
-    return data
+        return {}
+
+    # Keep only autopilot policy; drop any accidental hparam overrides
+    allowed: Dict[str, Any] = {}
+    if "autopilot" in data:
+        ap = data.get("autopilot")
+        if isinstance(ap, dict):
+            allowed["autopilot"] = ap
+
+    dropped_keys = [k for k in data.keys() if k not in {"autopilot"}]
+    if dropped_keys:
+        try:
+            append_labbook(
+                "ignore overrides",
+                f"Dropped keys {dropped_keys} per no-hparam policy",
+                "using baselines",
+            )
+        except Exception:
+            pass
+    return allowed
+
+
+def capture_environment_state(run_dir: Path) -> Dict[str, str]:
+    """Capture current state of environment code for tracking changes."""
+    env_state = {}
+
+    # Get git diff of uncommitted changes to drone environment
+    drone_path = "PufferLib/pufferlib/ocean/drone_pp/"
+
+    # Get unstaged changes (working directory)
+    result = subprocess.run(
+        ["git", "diff", drone_path],
+        capture_output=True,
+        text=True,
+        cwd=AUTOPILOT_DIR.parent
+    )
+    if result.stdout:
+        env_state["uncommitted_changes"] = result.stdout
+        (run_dir / "env_uncommitted.diff").write_text(result.stdout)
+
+    # Get staged changes
+    result = subprocess.run(
+        ["git", "diff", "--cached", drone_path],
+        capture_output=True,
+        text=True,
+        cwd=AUTOPILOT_DIR.parent
+    )
+    if result.stdout:
+        env_state["staged_changes"] = result.stdout
+        (run_dir / "env_staged.diff").write_text(result.stdout)
+
+    # Get current commit hash for reference
+    result = subprocess.run(
+        ["git", "rev-parse", "HEAD"],
+        capture_output=True,
+        text=True,
+        cwd=AUTOPILOT_DIR.parent
+    )
+    env_state["base_commit"] = result.stdout.strip()
+
+    # Get list of modified files
+    result = subprocess.run(
+        ["git", "status", "--porcelain", drone_path],
+        capture_output=True,
+        text=True,
+        cwd=AUTOPILOT_DIR.parent
+    )
+    if result.stdout:
+        env_state["modified_files"] = result.stdout.strip()
+
+    return env_state
+
+
+def compare_environment_changes(prev_run_dir: Path, curr_run_dir: Path) -> str:
+    """Compare environment changes between two runs."""
+    prev_diff = prev_run_dir / "env_uncommitted.diff"
+    curr_diff = curr_run_dir / "env_uncommitted.diff"
+
+    if not prev_diff.exists() and not curr_diff.exists():
+        return "No environment changes in either run"
+
+    if not prev_diff.exists():
+        return "Previous run had no changes, current run has modifications"
+
+    if not curr_diff.exists():
+        return "Previous run had changes, current run has none"
+
+    # Could do more sophisticated diff comparison here
+    prev_content = prev_diff.read_text()
+    curr_content = curr_diff.read_text()
+
+    if prev_content == curr_content:
+        return "Environment code unchanged from previous run"
+    else:
+        return "Environment code modified since previous run"
 
 
 def load_trainer_summary(run_dir: Path) -> Dict[str, Any]:
@@ -293,12 +392,48 @@ def analyze_drone_behavior(metrics: Dict[str, Optional[float]]) -> Dict[str, Any
     }
 
 
+def compare_environment_changes(current_run: Path, previous_run: Optional[Path]) -> Dict[str, Any]:
+    """Compare environment changes between runs."""
+    comparison = {
+        "has_changes": False,
+        "description": "",
+        "files_changed": []
+    }
+
+    if not previous_run:
+        return comparison
+
+    prev_diff = previous_run / "env_uncommitted.diff"
+    curr_diff = current_run / "env_uncommitted.diff"
+
+    if curr_diff.exists():
+        curr_content = curr_diff.read_text()
+        if prev_diff.exists():
+            prev_content = prev_diff.read_text()
+            if curr_content != prev_content:
+                comparison["has_changes"] = True
+                comparison["description"] = "Environment code modified since last run"
+                # Parse diff to extract file names
+                for line in curr_content.split("\n"):
+                    if line.startswith("diff --git"):
+                        parts = line.split()
+                        if len(parts) > 2:
+                            file_path = parts[2].replace("a/", "")
+                            if file_path not in comparison["files_changed"]:
+                                comparison["files_changed"].append(file_path)
+        elif curr_content:
+            comparison["has_changes"] = True
+            comparison["description"] = "New environment modifications in this run"
+
+    return comparison
+
+
 def summarize(
     run_dir: Path,
     config: Dict[str, Any],
-    diff: Dict[str, Any],
     metrics: Dict[str, Optional[float]],
     trainer_summary: Dict[str, Any],
+    env_state: Dict[str, str],
 ) -> None:
     trainer_metrics = trainer_summary.get("metrics", {}) if trainer_summary else {}
     merged_metrics = dict(metrics)
@@ -308,6 +443,21 @@ def summarize(
 
     # Perform behavioral analysis
     behavior = analyze_drone_behavior(merged_metrics)
+
+    # Check if there were environment changes
+    has_env_changes = bool(env_state.get("uncommitted_changes") or env_state.get("staged_changes"))
+
+    # Compare with previous run's environment
+    prev_run = None
+    runs = list_runs()
+    if len(runs) > 1:
+        # Find the most recent run before this one
+        for run in reversed(runs):
+            if run != run_dir:
+                prev_run = run
+                break
+
+    env_comparison = compare_environment_changes(run_dir, prev_run)
 
     summary = {
         "run_id": run_dir.name,
@@ -319,7 +469,10 @@ def summarize(
         "mean_reward": merged_metrics.get("mean_reward"),
         "episode_length": merged_metrics.get("episode_length"),
         "behavioral_analysis": behavior,  # Add behavioral insights
-        "config_diff": json.dumps(diff, indent=2) if diff else "{}",
+        "environment_changes": has_env_changes,  # Flag if environment was modified
+        "environment_comparison": env_comparison,  # Comparison with previous run
+        "base_commit": env_state.get("base_commit", "unknown"),
+        "modified_files": env_state.get("modified_files", ""),
         "artifacts": [],
         "notes": "auto-generated run summary",
     }
@@ -331,8 +484,6 @@ def summarize(
     summary["resume_from"] = ap.get("resume_from")
     summary["save_strategy"] = ap.get("save_strategy", "best")
     write_summary(run_dir, summary)
-    if diff:
-        (run_dir / "config_diff.json").write_text(json.dumps(diff, indent=2), encoding="utf-8")
 
     # Print behavioral insights to console for immediate feedback
     if behavior["insights"]:
@@ -344,6 +495,22 @@ def summarize(
         print(f"   Metrics: Grip {behavior['metrics_summary']['grip_success']} | "
               f"Delivery {behavior['metrics_summary']['delivery_success']} | "
               f"E2E {behavior['metrics_summary']['end_to_end']}")
+
+    # Report environment changes if any
+    if has_env_changes or env_comparison["has_changes"]:
+        print(f"\n🛠️  Environment Code Changes:")
+        if env_comparison["has_changes"]:
+            print(f"   {env_comparison['description']}")
+            if env_comparison["files_changed"]:
+                for file in env_comparison["files_changed"][:3]:  # Show first 3 files
+                    print(f"   • {file}")
+                if len(env_comparison["files_changed"]) > 3:
+                    print(f"   • ... and {len(env_comparison['files_changed']) - 3} more files")
+        elif has_env_changes:
+            print(f"   Uncommitted changes in environment code")
+            if env_state.get("modified_files"):
+                print(f"   Files: {env_state['modified_files']}")
+        print(f"   See {run_dir}/env_uncommitted.diff for full details")
 
 
 def load_previous_config() -> Optional[Dict[str, Any]]:
@@ -364,8 +531,7 @@ def run_iteration(iteration: int, use_quick: bool, prev_config: Optional[Dict[st
 
     base_config = load_config(config_path)
     override = load_override()
-    config = deep_merge(base_config, override) if override else base_config
-    diff = diff_configs(prev_config or {}, config)
+    config = apply_autopilot_override(base_config, override) if override else base_config
 
     metadata = {
         "mode": "quick" if use_quick else "full",
@@ -376,6 +542,10 @@ def run_iteration(iteration: int, use_quick: bool, prev_config: Optional[Dict[st
         metadata["parent_run"] = parent_run
 
     run_dir = register_run(metadata)
+
+    # Capture environment state at start of run
+    env_state = capture_environment_state(run_dir)
+
     # Resolve resume policy and inject load_model_path (top-level) if continuing
     ap_cfg = config.get("autopilot", {}) or {}
     resume_mode = ap_cfg.get("resume_mode", "fresh")
@@ -420,7 +590,7 @@ def run_iteration(iteration: int, use_quick: bool, prev_config: Optional[Dict[st
 
     trainer_summary = load_trainer_summary(run_dir)
     metrics = extract_metrics(log_path)
-    summarize(run_dir, effective_config, diff, metrics, trainer_summary)
+    summarize(run_dir, effective_config, metrics, trainer_summary, env_state)
 
     # Discover and record final model path from experiments dir
     model_path = latest_final_checkpoint()

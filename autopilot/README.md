@@ -31,6 +31,12 @@ Based on behavioral analysis, DREX selects appropriate experiments:
 - `improve_carrying` → Medium 1-5M runs to fix navigation/carrying
 - `optimize_performance` → Full 10M+ runs when basics work
 
+### No‑HParam Changes Policy
+- DREX does not modify any training hyperparameters or topology (`train.*`, `env.*`, `vec.*`).
+- Baselines in `autopilot/configs/` (reflecting Dan’s defaults) are treated as canonical.
+- Only `autopilot.*` fields (`resume_mode`, `resume_from`, `save_strategy`) may be set in `proposals/next_config.json`; otherwise leave `{}`.
+- The orchestrator enforces this by ignoring non‑autopilot keys in overrides.
+
 ### Metrics Tracking
 - **Grip Success Rate** (`perfect_grip`)
 - **Delivery Success Rate** (`perfect_deliv`)
@@ -43,6 +49,7 @@ Usage:
 - Training scripts invoke `scripts/render_cli_args.py` so the merged config drives every launch—override the JSON to change batch sizes, worker counts, etc.
  - You can select the environment via a top-level `env_name` in the config (e.g., `"puffer_drone_pp"` or `"puffer_drone_pickplace"`). The training script reads this value and passes it as the positional environment argument.
 - After the run, Codex (or a human) should review `runs/<run_id>/trainer_summary.json` or the mirrored log and write the **next** overrides back into `proposals/next_config.json` (stay within the whitelisted keys/ranges).
+  - With no‑hparam policy enabled, only `autopilot.*` keys are honored; all other keys are ignored.
 - Inspect results under `runs/<run_id>/` (look for `trainer_summary.json`, `summary.json`, `train.log`, `notes.txt`) and keep the journal up to date.
  - Warm start: set `autopilot.resume_mode: "continue"` and `autopilot.resume_from: "latest" | "best" | "/path/to/model.pt"` in the override to reuse a prior checkpoint. The orchestrator will inject `--load-model-path` for you and record the chosen source in the summary. Control artifact retention with `autopilot.save_strategy: "best" | "latest" | "all"` (default: `best`).
 
@@ -51,7 +58,7 @@ Baseline profiles (M3 Ultra):
 - Full: `vec 28/56`, `env 4×8`, `bptt 16`, `batch 28672`, `total_timesteps 1e7`, checkpoint 200 (~5–6 minutes; see `autopilot/configs/baseline_full.json`).
 
 Allowed knobs & constraints for the agent:
-- Whitelisted keys (post‑run only):
+- Whitelisted keys (post‑run only, but see no‑hparam policy above):
   - Core PPO scalars: `train.learning_rate`, `train.ent_coef`, `train.seed`, `train.bptt_horizon`, `train.update_epochs`, `train.gae_lambda`, `train.gamma`, `train.clip_coef`, `train.vf_clip_coef`, `train.total_timesteps`.
   - Optimiser & stability: `train.optimizer` (`muon`/`adam`/`adamw`), `train.vf_coef`, `train.max_grad_norm`, `train.checkpoint_interval`, `train.adam_beta1`, `train.adam_beta2`, `train.adam_eps`.
   - Schedule & determinism: `train.anneal_lr`, `train.torch_deterministic`, `train.cpu_offload`, `train.compile`, `train.compile_fullgraph`, `train.precision`, `train.compile_mode` (pick documented values).

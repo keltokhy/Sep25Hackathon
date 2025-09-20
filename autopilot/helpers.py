@@ -1,4 +1,4 @@
-"""Support utilities for labbook logging, config validation, and run bookkeeping."""
+"""Support utilities for labbook logging and run bookkeeping."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ import json
 import datetime as dt
 from collections import OrderedDict
 from pathlib import Path
-from typing import Any, Dict, List, Tuple, Union
+from typing import Any, Dict, List
 
 AUTOPILOT_DIR = Path(__file__).resolve().parent
 JOURNAL_DIR = AUTOPILOT_DIR / "journal"
@@ -18,44 +18,11 @@ NOTES_PATH = JOURNAL_DIR / "notes.md"
 
 
 class ValidationError(RuntimeError):
-    """Raised when a proposed config or summary violates schema."""
+    """Raised when a config or summary violates requirements."""
 
 
-Number = Union[int, float]
-
-CONFIG_RANGES: Dict[Tuple[str, str], Tuple[type, Number, Number]] = {
-    ("train", "learning_rate"): (float, 1e-6, 1.0),
-    ("train", "ent_coef"): (float, 0.0, 1.0),
-    ("train", "batch_size"): (int, 64, 65536),
-    ("train", "minibatch_size"): (int, 64, 65536),
-    ("train", "max_minibatch_size"): (int, 64, 65536),
-    ("train", "bptt_horizon"): (int, 1, 512),
-    ("train", "update_epochs"): (int, 1, 32),
-    ("train", "gae_lambda"): (float, 0.0, 1.0),
-    ("train", "gamma"): (float, 0.0, 0.999999),
-    ("train", "clip_coef"): (float, 0.0, 1.0),
-    ("train", "vf_clip_coef"): (float, 0.0, 10.0),
-    ("train", "vf_coef"): (float, 0.0, 10.0),
-    ("train", "max_grad_norm"): (float, 0.0, 100.0),
-    ("train", "total_timesteps"): (int, 1_000, 1_000_000_000),
-    ("train", "seed"): (int, 0, 2_147_483_647),
-    ("train", "checkpoint_interval"): (int, 1, 1_000_000),
-    ("train", "anneal_lr"): (bool, 0, 1),
-    ("train", "torch_deterministic"): (bool, 0, 1),
-    ("train", "cpu_offload"): (bool, 0, 1),
-    ("train", "compile"): (bool, 0, 1),
-    ("train", "compile_fullgraph"): (bool, 0, 1),
-    ("train", "adam_beta1"): (float, 0.0, 0.999999),
-    ("train", "adam_beta2"): (float, 0.0, 0.999999),
-    ("train", "adam_eps"): (float, 1e-14, 1e-2),
-    ("env", "num_envs"): (int, 1, 256),
-    ("env", "num_drones"): (int, 1, 256),
-    ("vec", "num_envs"): (int, 1, 256),
-    ("vec", "num_workers"): (int, 1, 256),
-}
-
-SUMMARY_REQUIRED = {"run_id", "timestamp", "config_diff"}
-SUMMARY_OPTIONAL_FLOATS = {"success_rate", "mean_reward", "episode_length"}
+SUMMARY_REQUIRED = {"run_id", "timestamp"}
+SUMMARY_OPTIONAL_FLOATS = {"grip_success", "delivery_success", "end_to_end_success", "mean_reward", "episode_length"}
 
 
 def timestamp() -> str:
@@ -69,44 +36,12 @@ def append_labbook(action: str, observation: str, outcome: str, next_step: str =
         fp.write(entry)
 
 
-def _ensure_section(cfg: Dict[str, Any], key: str) -> Dict[str, Any]:
-    if key not in cfg or not isinstance(cfg[key], dict):
-        raise ValidationError(f"Config missing '{key}' section or it is not a dict")
-    return cfg[key]
-
-
-def _check_range(value: Any, expected_type: type, low: Number, high: Number, path: str) -> None:
-    if not isinstance(value, expected_type):
-        raise ValidationError(f"Config field '{path}' must be {expected_type.__name__}, got {type(value).__name__}")
-    if not (low <= value <= high):
-        raise ValidationError(f"Config field '{path}' out of range [{low}, {high}]: {value}")
-
-
-def validate_config(config: Dict[str, Any]) -> None:
+def validate_autopilot_config(config: Dict[str, Any]) -> None:
+    """Only validate autopilot section since we don't change hyperparameters."""
     if not isinstance(config, dict):
         raise ValidationError("Config must be a dictionary")
 
-    sections: Dict[str, Dict[str, Any]] = {}
-    for section, field in {(s, f) for s, f in CONFIG_RANGES.keys()}:
-        if section not in sections:
-            sections[section] = _ensure_section(config, section)
-
-    for (section, field), (expected_type, low, high) in CONFIG_RANGES.items():
-        sec = sections[section]
-        if field not in sec:
-            continue  # allow missing fields; defaults may apply elsewhere
-        _check_range(sec[field], expected_type, low, high, f"{section}.{field}")
-
-    train = sections.get("train", {})
-    if {"batch_size", "minibatch_size"}.issubset(train):
-        if train["batch_size"] < train["minibatch_size"]:
-            raise ValidationError("train.batch_size must be >= train.minibatch_size")
-
-    device = train.get("device")
-    if device is not None and device not in {"mps", "cpu", "cuda"}:
-        raise ValidationError("train.device must be one of {'mps', 'cpu', 'cuda'}")
-
-    # Optional autopilot-only section
+    # Only check autopilot section if present
     ap = config.get("autopilot", {})
     if ap:
         if not isinstance(ap, dict):
@@ -119,7 +54,7 @@ def validate_config(config: Dict[str, Any]) -> None:
             raise ValidationError("autopilot.save_strategy must be one of {'all','best','latest'}")
         rf = ap.get("resume_from")
         if rf is not None and not isinstance(rf, (str, type(None))):
-            raise ValidationError("autopilot.resume_from must be null or a string ('latest','best', or a path)")
+            raise ValidationError("autopilot.resume_from must be null or a string")
 
 
 def validate_summary(summary: Dict[str, Any]) -> None:
@@ -134,8 +69,6 @@ def validate_summary(summary: Dict[str, Any]) -> None:
         raise ValidationError("Summary run_id must be a string")
     if not isinstance(summary["timestamp"], str):
         raise ValidationError("Summary timestamp must be a string")
-    if not isinstance(summary["config_diff"], str):
-        raise ValidationError("Summary config_diff must be a string (JSON)")
 
     for key in SUMMARY_OPTIONAL_FLOATS:
         value = summary.get(key)
@@ -174,37 +107,19 @@ def write_summary(run_dir: Path, summary: Dict[str, Any]) -> Path:
 
 
 def save_config(run_dir: Path, config: Dict[str, Any]) -> Path:
-    validate_config(config)
+    """Save config to run directory (no validation needed since we use baselines)."""
     config_path = run_dir / "config.json"
     config_path.write_text(json.dumps(config, indent=2), encoding="utf-8")
     return config_path
 
 
-def diff_configs(prev_config: Dict[str, Any], new_config: Dict[str, Any]) -> Dict[str, Any]:
-    diff: Dict[str, Any] = {}
-    keys = set(prev_config.keys()) | set(new_config.keys())
-    for key in sorted(keys):
-        prev_val = prev_config.get(key)
-        new_val = new_config.get(key)
-        if prev_val == new_val:
-            continue
-        if isinstance(prev_val, dict) and isinstance(new_val, dict):
-            nested = diff_configs(prev_val, new_val)
-            if nested:
-                diff[key] = nested
-        else:
-            diff[key] = {"old": prev_val, "new": new_val}
-    return diff
-
-
 __all__ = [
     "append_labbook",
-    "validate_config",
+    "validate_autopilot_config",
     "validate_summary",
     "register_run",
     "write_summary",
     "save_config",
-    "diff_configs",
     "list_runs",
     "timestamp",
     "ValidationError",
