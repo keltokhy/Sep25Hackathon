@@ -5,7 +5,7 @@
       "type": "object",
       "properties": {
         "learning_rate": {"type": "number", "minimum": 1e-6, "maximum": 1.0},
-        "entropy_coef": {"type": "number", "minimum": 0.0, "maximum": 1.0},
+        "ent_coef": {"type": "number", "minimum": 0.0, "maximum": 1.0},
         "batch_size": {"type": "integer", "minimum": 64, "maximum": 65536},
         "minibatch_size": {"type": "integer", "minimum": 64, "maximum": 65536},
         "max_minibatch_size": {"type": "integer", "minimum": 64, "maximum": 65536},

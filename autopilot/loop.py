@@ -206,28 +206,9 @@ def capture_environment_state(run_dir: Path) -> Dict[str, str]:
     return env_state
 
 
-def compare_environment_changes(prev_run_dir: Path, curr_run_dir: Path) -> str:
-    """Compare environment changes between two runs."""
-    prev_diff = prev_run_dir / "env_uncommitted.diff"
-    curr_diff = curr_run_dir / "env_uncommitted.diff"
-
-    if not prev_diff.exists() and not curr_diff.exists():
-        return "No environment changes in either run"
-
-    if not prev_diff.exists():
-        return "Previous run had no changes, current run has modifications"
-
-    if not curr_diff.exists():
-        return "Previous run had changes, current run has none"
-
-    # Could do more sophisticated diff comparison here
-    prev_content = prev_diff.read_text()
-    curr_content = curr_diff.read_text()
-
-    if prev_content == curr_content:
-        return "Environment code unchanged from previous run"
-    else:
-        return "Environment code modified since previous run"
+# Note: compare_environment_changes is defined below with an improved
+# signature returning structured details; remove the earlier variant to
+# avoid shadowing and confusion.
 
 
 def load_trainer_summary(run_dir: Path) -> Dict[str, Any]:
@@ -273,6 +254,18 @@ def read_best_score() -> tuple[Optional[float], Optional[float], Optional[str]]:
         return (None, None, None)
 
 
+def _format_prompt(template: str, **kwargs: str) -> str:
+    """Safely inject named fields into a prompt containing literal braces.
+
+    We escape all braces, then re-enable the specific placeholders we intend
+    to fill (e.g., {script}, {notes_path}) before calling str.format().
+    """
+    escaped = template.replace('{', '{{').replace('}', '}}')
+    for key in kwargs.keys():
+        escaped = escaped.replace(f'{{{{{key}}}}}', f'{{{key}}}')
+    return escaped.format(**kwargs)
+
+
 def run_training(script: Path, run_dir: Path) -> Path:
     LOGS_DIR.mkdir(parents=True, exist_ok=True)
     before = {path: path.stat().st_mtime for path in LOGS_DIR.glob("*.log")}
@@ -290,7 +283,7 @@ def run_training(script: Path, run_dir: Path) -> Path:
     except ValueError:
         rel_notes = notes_file
 
-    prompt = prompt_template.format(script=str(rel_script), notes_path=str(rel_notes))
+    prompt = _format_prompt(prompt_template, script=str(rel_script), notes_path=str(rel_notes))
 
     env = os.environ.copy()
     summary_file = run_dir / "trainer_summary.json"

@@ -1,106 +1,89 @@
-Goal:
+OVERVIEW & GOALS
+- Use behavioral analysis to improve the drone pick‑and‑place task (grip → carry → deliver) by changing environment code, not hyperparameters.
+- Honor a strict no‑hyperparameter‑changes policy. Treat `autopilot/journal/notes.md` as long‑term memory and constraints.
+
+OPERATING PRINCIPLES (Thoughtful, Memory‑Driven)
+- Read `autopilot/journal/notes.md` before acting; mirror key learnings to `autopilot/journal/labbook.md` after each run.
+- For non‑trivial work, write a brief 2–4 step plan, then execute and verify against constraints (divisibility, batch math).
+- Always state the behavioral hypothesis you are testing and the expected effect on grip/hover/carry/deliver metrics.
+- If guidance conflicts, prefer Dan/Kinvert’s latest environment code and the Notes file.
+
+WORKFLOW (Numbered Core Loop)
+1) Execute {script} (autopilot/scripts/run_training.sh) with ≥15‑minute timeout. Do not skip.
+2) Read the fresh run’s `trainer_summary.json` or mirrored `train.log` and extract behavioral_analysis and key metrics.
+3) Identify the specific failure mode from behavioral_analysis and metrics.
+4) Make minimal, targeted environment code changes to address the failure.
+5) Rebuild bindings and smoke‑test import.
+6) Configure the next run using only `autopilot.*` overrides (or `{}`) in `autopilot/proposals/next_config.json`.
+7) Record actions/observations/outcomes/next steps in labbook and notes; repeat.
+
+DECISION FRAMEWORK
+- Read behavioral_analysis first. Use it to choose an environment‑focused response:
+  • diagnostic_grip: Agents aren’t attempting/achieving grip → relax grip gates slightly, refine target hover point, add attempt counters/logs.
+  • improve_carrying: Grip works but drops/fails delivery → tune carry stability (mass, drag, grip decay), adjust delivery success gating.
+  • fix_stability/high_collisions: Crashes/OOB high → adjust physics constants, collision penalties, spawn spacing, jitter handling.
+  • optimize_performance (only after success thresholds met): Improve throughput/observability, not hparams; add logging, keep environment stable.
+
+WHAT YOU CAN CHANGE
+- Environment code (primary): e.g., `PufferLib/pufferlib/ocean/drone_pp/drone_pp.h` and adjacent files when necessary.
+- Autopilot settings only via overrides file: `autopilot/proposals/next_config.json` keys permitted: 
+  • `autopilot.resume_mode` = `fresh` | `continue`
+  • `autopilot.resume_from` = `latest` | `best` | explicit checkpoint path
+  • `autopilot.save_strategy` = `best` | `latest` | `all`
+- Notes and labbook entries.
+
+WHAT YOU CANNOT CHANGE (Hard Rule)
+- Do not modify any `train.*`, `env.*`, or `vec.*` hyperparameters in proposals. Under current policy these are off‑limits; the orchestrator ignores them.
+- The training script may enforce derived constraints (batch sizing, vec divisibility) for correctness; this is not a policy exception and should not be edited.
+
+ENVIRONMENT DEBUGGING CHECKLIST
+1) Identify failure from behavioral_analysis and concrete metrics.
+2) Locate relevant code in `drone_pp.h` (hover targeting, grip gates, delivery checks, physics constants).
+3) Make a minimal, documented change tied to the hypothesis.
+4) Rebuild: `cd PufferLib && NO_TRAIN=1 python3 setup.py build_ext --inplace --force`.
+5) Test: `pytest PufferLib/tests/test_env_binding.py -q` (if present) and ensure import works.
+6) Document in `runs/<run_id>/notes.txt`: problem → change → expected outcome.
+
+SUCCESS METRICS (Define thresholds)
+- Baseline environment “working” when, over a stable eval slice:
+  • grip_success ≥ 60% and delivery_success ≥ 40% across agents/episodes.
+  • end_to_end_success shows an upward trend across 2–3 consecutive runs.
+  • OOB/crash resets ≤ 10% of steps; collision‑induced terminations ≤ 5% episodes.
+- Stop environment debugging when thresholds are met and metrics are stable; shift to performance/observability improvements only (no hparam tuning).
+
+FAILSAFES
+- No behavioral_analysis in summary: fall back to `train.log` inspection; compute basic rates (grips, deliveries, OOB). If absent, add logging counters in env and rerun.
+- Build fails: revert the last env patch, rebuild clean, and re‑apply a smaller, testable change.
+- Metrics regress for ≥2 runs after a change: revert to previous known‑good env state (use git restore to last good commit) and document rollback.
+- When in doubt, prefer smaller env edits and clearer logging over larger refactors.
+
+TECHNICAL DETAILS
+- File locations: environment code under `PufferLib/pufferlib/ocean/…` (primary: `drone_pp.h`), configs under `autopilot/configs/`, prompts under `autopilot/prompts/`.
+- Build: `cd PufferLib && NO_TRAIN=1 python3 setup.py build_ext --inplace --force` (rebuild native bindings after `.h` changes).
+- Tests: `pytest PufferLib/tests/test_env_binding.py -q` when available; otherwise smoke‑import.
+- Constraints the script enforces before training:
+  • `vec.num_envs % vec.num_workers == 0`.
+  • `train.batch_size = env.num_envs × env.num_drones × vec.num_envs × train.bptt_horizon`.
+  • `train.minibatch_size = train.batch_size = train.max_minibatch_size`.
+- Device: Prefer `mps`; switch to `cpu` only for diagnostics and note slower runtime.
+- Run artifacts: `$PUFFER_AUTOPILOT_RUN_DIR`; logs under `autopilot/logs/`.
+
+EXECUTION RULES
+- Step 1 is mandatory: Launch {script} immediately from repo root and allow ≥15 minutes. Wait until it completes and capture stdout/stderr. Diagnose early exits before changing configs.
+- After the run, write the next overrides as `{}` or only `autopilot.*` keys. Do not propose any other hparam changes.
+
+RECORDKEEPING
+- Labbook (`autopilot/journal/labbook.md`): actions, observations (SPS/CPU%), outcome, next step.
+- Notes (`autopilot/journal/notes.md`): longer‑term learnings; treat as long‑term memory.
 - Drive the training toward better drone behavior (grip → carry → deliver) by understanding what's failing and targeting specific issues.
 - Use behavioral analysis to make intelligent decisions about experiment type and focus.
 - Honor a strict no‑hyperparameter‑changes policy; use Dan’s baselines as‑is.
 
-Context:
-- BEHAVIORAL ANALYSIS: Each run's summary.json contains a "behavioral_analysis" field with:
-  * "insights": What the drone is actually doing wrong
-  * "severity": critical/warning/ok - how bad the problem is
-  * "next_focus": Suggested area to improve (diagnostic_grip, improve_carrying, optimize_performance, etc.)
-  * "metrics_summary": Quick view of grip/delivery/end-to-end success rates
-
-Decision Framework for DREX:
-- Check behavioral_analysis BEFORE changing hyperparameters:
-  * severity="critical" → Run SHORT diagnostic experiments (100K-500K timesteps)
-  * next_focus="diagnostic_grip" → Drone isn't trying to grip - fundamental issue
-  * next_focus="improve_carrying" → Grip works but delivery fails - different problem
-  * next_focus="optimize_performance" → Basics work - now optimize hyperparameters
-- Match experiment type to problem:
-  * Not attempting grip? → Reduce complexity, shorter runs, debug reward structure
-  * High collision rate? → Focus on stability params, not learning rate
-  * Can grip but can't deliver? → Navigation/carrying issue, not optimization
-
-No‑HParam Changes Policy (Hard Rule):
-- Do not modify any `train.*`, `env.*`, or `vec.*` values in `autopilot/proposals/next_config.json`.
-- Use the baselines in `autopilot/configs/` unchanged (these reflect Dan’s defaults).
-- You may set only `autopilot.*` fields (`resume_mode`, `resume_from`, `save_strategy`) for warm starts or artifact policy. Otherwise write `{}`.
-- The orchestrator enforces this and will ignore any attempted hparam overrides.
-
-Context:
-- Baseline configs live in `autopilot/configs/` (quick vs. full).
-- Runtime budget guidance: quick mode uses the smoke baseline and is ideal for exploratory tweaks; full mode relies on the high-util baseline (~1e7–2e7 timesteps) and is where you validate promising theories for real gains. When proposing changes, weigh iteration speed against the chance of higher reward.
-- `autopilot/proposals/next_config.json` starts empty before each run; fill it **after** the run with overrides for the next iteration. Touch only these keys and respect the safety ranges:
-  * Core PPO scalars: `train.learning_rate` (1e-6–1.0), `train.ent_coef` (0–1), `train.bptt_horizon` (1–512), `train.total_timesteps` (1,000–1,000,000,000), `train.seed` (0–2,147,483,647), `train.update_epochs` (1–32), `train.gae_lambda` (0–1), `train.gamma` (0–0.999999), `train.clip_coef` (0–1), `train.vf_clip_coef` (0–10).
-  * Optimiser & stability knobs: `train.optimizer` (`muon`, `adam`, or `adamw`), `train.vf_coef` (0–10), `train.max_grad_norm` (0–100), `train.checkpoint_interval` (1–1,000,000), `train.adam_beta1` (0–0.999999), `train.adam_beta2` (0–0.9999999), `train.adam_eps` (1e-14–1e-2).
-  * Schedule & determinism toggles: `train.anneal_lr`, `train.torch_deterministic`, `train.cpu_offload`, `train.compile`, `train.compile_fullgraph` (Booleans; stick with JSON `true`/`false`), plus `train.precision` (`float32`, `bfloat16`) and `train.compile_mode` (documented choices in PufferLib, default `max-autotune-no-cudagraphs`).
-  * Device & topology: `train.device` (`mps`, `cpu`, `cuda`), `env.num_envs`, `env.num_drones` (1–256), `vec.num_envs`, `vec.num_workers` (1–256).
-  * Autopilot run policy (not CLI flags; handled by the orchestrator): `autopilot.resume_mode` (`fresh` or `continue`), `autopilot.resume_from` (`latest`, `best`, or an explicit checkpoint path), and `autopilot.save_strategy` (`best`, `latest`, or `all`). When continuing, the orchestrator will inject the correct `--load-model-path` for you.
-- Constraints:
-  * Keep `vec.num_envs` divisible by `vec.num_workers`.
-  * Derive batch sizes from your proposal:
-    - `train.batch_size = (env.num_envs × env.num_drones × vec.num_envs) × train.bptt_horizon`
-    - `train.minibatch_size = train.batch_size = train.max_minibatch_size`
-  * On a 28‑core Mac Studio, prefer `vec.num_workers ≤ 28` and `vec.num_envs ∈ {{28, 56, 84}}`. Switching `train.device` to `cpu` is allowed for diagnostics but will slow runs considerably.
-- Training artifacts for the active run live in `$PUFFER_AUTOPILOT_RUN_DIR`; structured metrics write to `$PUFFER_AUTOPILOT_SUMMARY` when available.
-- Keep the JSON valid; write `{{}}` if you want the next run to reuse the baseline without overrides.
-- Past run folders live under `autopilot/runs/`; skim recent `summary.json` and `notes.txt` entries so proposals consider multi-run trends, not just the latest metrics.
-- Before changing anything, pause to form a concrete theory about why the last run behaved as it did, decide how to test that theory, and document the rationale.
-- Treat `notes.txt` entries as a running lab log: capture what changed, why you changed it, how it performed, what theory you were testing, and what you plan to try next.
- - If you want to warm-start, set `autopilot.resume_mode` to `continue` and choose `autopilot.resume_from` (`latest` or `best`) so the next run reuses a strong checkpoint instead of starting from scratch.
-
-Environment‑First Iteration (Dan's Guidance):
-- Focus on task correctness on evaluation; training is a proxy. If the agent isn't gripping/delivering, it's usually an environment issue.
-- After each run, use behavioral analysis to identify failures, then iterate on environment code (not hparams):
-  * Primary target: `PufferLib/pufferlib/ocean/drone_pp/drone_pp.h` (and adjacent files in that folder if needed).
-  * Typical levers: spawn/curriculum near pickup, grip activation windows/conditions, delivery success gating, logging counters for attempts vs successes, OOB mitigation.
-  * Implementation workflow:
-    1) Make minimal, well‑scoped edits with clear rationale in `runs/<run_id>/notes.txt`.
-    2) Rebuild: `cd PufferLib && NO_TRAIN=1 python3 setup.py build_ext --inplace --force`.
-    3) Sanity tests: `pytest PufferLib/tests/test_env_binding.py -q` (if present) and ensure import works.
-    4) Do not run a second training inside the same iteration; let the next loop pick up the new env.
-  * Never change `.h` for "tuning" metrics alone; change logic so agents can learn to actually grip and deliver.
-
-Environment Change Tracking (DREX Feature):
-- Each run captures git diffs of environment code in `env_uncommitted.diff`
-- The summary includes `environment_comparison` showing what changed vs previous run
-- Use this information to correlate environment changes with behavioral outcomes:
-  * If grip_success improved after modifying grip detection → good change, keep it
-  * If collision_rate increased after physics changes → revert or adjust
-  * Track which files were modified: drone_pp.h, drone_pp.c, binding.c
-- Document environment changes in notes.txt with clear rationale:
-  * What behavioral problem prompted the change
-  * What specific code was modified and why
-  * Expected vs actual impact on metrics
-
-Execution rules:
-- Step 1 is mandatory. Launch {script} immediately (via `bash -lc` from repo root) and allow **at least 15 minutes** of timeout budget so the training can finish.
-- Do not replace, skip, or defer this command; wait until it completes and capture stdout/stderr.
-- If the command exits early or times out, report the exit code and diagnose before changing configs.
-
-Post‑run actions (strict order):
-1. Read the fresh run’s `trainer_summary.json` or mirrored `train.log` and extract grip/delivery/end‑to‑end.
-2. Write an insight‑rich `runs/<run_id>/notes.txt` entry.
-3. If environment issues are identified, implement targeted edits to `drone_pp.h` (and companions), rebuild, and smoke‑import to validate.
-4. Save the **next** overrides as `{}` or only `autopilot.*` (no hparam changes).
-
-Experiment Selection Strategy:
-- Based on behavioral_analysis.next_focus:
-  * "diagnostic_grip" → Set total_timesteps to 100,000-500,000 for quick debugging
-  * "improve_grip" → Focus on grip rewards, reduce num_drones for clarity
-  * "improve_carrying" → Test stability params, may need longer runs (1M-5M timesteps)
-  * "fix_stability" → Reduce learning rate, check collision penalties
-  * "optimize_performance" → Full runs (10M+ timesteps) with hyperparameter tuning
-
-Note: Strategy above describes general RL practice; under the no‑hparam policy, do not change those values. Translate “strategy” into environment/code changes and/or resume policy only.
-
-Steps:
-1. Execute {script} (with ≥15‑minute timeout allowance) and wait for it to finish.
-2. Inspect the results (e.g., tail the fresh log under `autopilot/logs/` or read `$PUFFER_AUTOPILOT_SUMMARY` when it exists).
-3. CHECK BEHAVIORAL ANALYSIS in the summary to understand what the drone is doing wrong.
-4. Based on behavioral insights AND metrics, update `autopilot/proposals/next_config.json` with overrides for the **next** run (or `{{}}` if no change). Match experiment type to the identified problem.
-5. Create or overwrite {notes_path} with an insightful status entry. Include:
-   - Behavioral analysis insights (what's the drone doing wrong?)
-   - Severity and recommended next focus
-   - Why you chose specific experiment parameters
-   - Theory about fixing the identified issue
+ENVIRONMENT CHANGE TRACKING (DREX Feature)
+- Each run captures diffs of environment code (e.g., `env_uncommitted.diff`).
+- Summaries may include `environment_comparison` vs the previous run.
+- Use these to correlate env changes with outcomes:
+  • Grip improves after grip‑gate tweak → keep it.
+  • Collision rate spikes after physics change → revert/adjust.
+  • Track which files were modified: `drone_pp.h`, `drone_pp.c`, bindings.
+Document what changed, why, expected vs actual impact in `runs/<run_id>/notes.txt`.

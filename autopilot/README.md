@@ -53,18 +53,13 @@ Usage:
 - Inspect results under `runs/<run_id>/` (look for `trainer_summary.json`, `summary.json`, `train.log`, `notes.txt`) and keep the journal up to date.
  - Warm start: set `autopilot.resume_mode: "continue"` and `autopilot.resume_from: "latest" | "best" | "/path/to/model.pt"` in the override to reuse a prior checkpoint. The orchestrator will inject `--load-model-path` for you and record the chosen source in the summary. Control artifact retention with `autopilot.save_strategy: "best" | "latest" | "all"` (default: `best`).
 
-Baseline profiles (M3 Ultra):
-- Quick: `vec 4/4`, `env 4×8`, `bptt 16`, `batch 2048`, `total_timesteps 1e6` (~1 minute smoke test).
-- Full: `vec 28/56`, `env 4×8`, `bptt 16`, `batch 28672`, `total_timesteps 1e7`, checkpoint 200 (~5–6 minutes; see `autopilot/configs/baseline_full.json`).
+Baseline profiles:
+- Quick (default for iteration): `vec 4/4`, `env 4×8`, `bptt 64`, `batch 2048`, `total_timesteps 1e6`. Intended as a ~1 minute smoke test to collect behavioral evidence.
+- Full (Dan’s defaults; heavy): `vec 28/56`, `env 4×8`, `bptt 64`, `batch 28672`, `total_timesteps 2e8`, checkpoint 200 (see `autopilot/configs/baseline_full.json`). Use sparingly; most loops should stay on quick until behavior is correct.
 
 Allowed knobs & constraints for the agent:
-- Whitelisted keys (post‑run only, but see no‑hparam policy above):
-  - Core PPO scalars: `train.learning_rate`, `train.ent_coef`, `train.seed`, `train.bptt_horizon`, `train.update_epochs`, `train.gae_lambda`, `train.gamma`, `train.clip_coef`, `train.vf_clip_coef`, `train.total_timesteps`.
-  - Optimiser & stability: `train.optimizer` (`muon`/`adam`/`adamw`), `train.vf_coef`, `train.max_grad_norm`, `train.checkpoint_interval`, `train.adam_beta1`, `train.adam_beta2`, `train.adam_eps`.
-  - Schedule & determinism: `train.anneal_lr`, `train.torch_deterministic`, `train.cpu_offload`, `train.compile`, `train.compile_fullgraph`, `train.precision`, `train.compile_mode` (pick documented values).
-- Device & topology: `train.device`, `env.num_envs`, `env.num_drones`, `vec.num_workers`, `vec.num_envs`.
- - Autopilot policy (not CLI flags): `autopilot.resume_mode`, `autopilot.resume_from`, `autopilot.save_strategy`.
-- Constraints to avoid stalls:
+- With the no‑hparam policy enabled, only `autopilot.*` keys are honored (`resume_mode`, `resume_from`, `save_strategy`). Other keys will be ignored by the orchestrator and logged to the labbook.
+- Constraints to avoid stalls (enforced by the launcher when it writes your run config):
   - Divisibility: `vec.num_envs % vec.num_workers == 0`.
   - Segments rule: set `train.batch_size = (env.num_envs × env.num_drones × vec.num_envs) × train.bptt_horizon`.
   - Match: set `train.minibatch_size = train.batch_size = train.max_minibatch_size` (until gradient accumulation is introduced).

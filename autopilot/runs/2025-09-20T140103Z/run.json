@@ -1,9 +1,0 @@
-{
-  "run_id": "2025-09-20T140103Z",
-  "created_at": "2025-09-20T14:01:03Z",
-  "metadata": {
-    "mode": "quick",
-    "config_template": "configs/baseline_quick.json",
-    "iteration": 1
-  }
-}
