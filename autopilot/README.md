@@ -20,6 +20,7 @@ Usage:
 - Training scripts invoke `scripts/render_cli_args.py` so the merged config drives every launch—override the JSON to change batch sizes, worker counts, etc.
 - After the run, Codex (or a human) should review `runs/<run_id>/trainer_summary.json` or the mirrored log and write the **next** overrides back into `proposals/next_config.json` (stay within the whitelisted keys/ranges).
 - Inspect results under `runs/<run_id>/` (look for `trainer_summary.json`, `summary.json`, `train.log`, `notes.txt`) and keep the journal up to date.
+ - Warm start: set `autopilot.resume_mode: "continue"` and `autopilot.resume_from: "latest" | "best" | "/path/to/model.pt"` in the override to reuse a prior checkpoint. The orchestrator will inject `--load-model-path` for you and record the chosen source in the summary. Control artifact retention with `autopilot.save_strategy: "best" | "latest" | "all"` (default: `best`).
 
 Baseline profiles (M3 Ultra):
 - Quick: `vec 4/4`, `env 4×8`, `bptt 16`, `batch 2048`, `total_timesteps 1e6` (~1 minute smoke test).
@@ -27,9 +28,11 @@ Baseline profiles (M3 Ultra):
 
 Allowed knobs & constraints for the agent:
 - Whitelisted keys (post‑run only):
-  - train: `learning_rate`, `ent_coef`, `seed`, `bptt_horizon`, `update_epochs`, `gae_lambda`, `gamma`, `clip_coef`, `vf_clip_coef`, `device`.
-  - env: `num_envs`, `num_drones`.
-  - vec: `num_workers`, `num_envs`.
+  - Core PPO scalars: `train.learning_rate`, `train.ent_coef`, `train.seed`, `train.bptt_horizon`, `train.update_epochs`, `train.gae_lambda`, `train.gamma`, `train.clip_coef`, `train.vf_clip_coef`, `train.total_timesteps`.
+  - Optimiser & stability: `train.optimizer` (`muon`/`adam`/`adamw`), `train.vf_coef`, `train.max_grad_norm`, `train.checkpoint_interval`, `train.adam_beta1`, `train.adam_beta2`, `train.adam_eps`.
+  - Schedule & determinism: `train.anneal_lr`, `train.torch_deterministic`, `train.cpu_offload`, `train.compile`, `train.compile_fullgraph`, `train.precision`, `train.compile_mode` (pick documented values).
+- Device & topology: `train.device`, `env.num_envs`, `env.num_drones`, `vec.num_workers`, `vec.num_envs`.
+ - Autopilot policy (not CLI flags): `autopilot.resume_mode`, `autopilot.resume_from`, `autopilot.save_strategy`.
 - Constraints to avoid stalls:
   - Divisibility: `vec.num_envs % vec.num_workers == 0`.
   - Segments rule: set `train.batch_size = (env.num_envs × env.num_drones × vec.num_envs) × train.bptt_horizon`.
@@ -42,6 +45,7 @@ Workflow expectations:
 - Each run folder under `runs/<run_id>/` contains: `config.json` (applied), `override.json` (proposal used), `train.log`, `trainer_summary.json` (structured metrics incl. SPS/steps/epoch), `summary.json` (final snapshot), and `notes.txt`.
 - Codex runs must start by executing `./scripts/run_training.sh` (from repo root with `bash -lc`) and grant at least 15 minutes before timeout; if no new log appears under `logs/`, treat that iteration as failed and rerun.
 - Encourage the agent to review recent `runs/<run_id>/summary.json` and `notes.txt` files so proposals account for trends across iterations, not just the latest metrics.
+ - Best/latest artifacts: the orchestrator maintains `autopilot/models/latest.pt` and (when improved) `autopilot/models/best.pt` plus `autopilot/runs/best.json`. Summaries stamp `resume_mode`/`resume_from` so you can audit warm starts.
 
 Troubleshooting tips:
 - If the trainer “sticks” after a brief CPU spike, check divisibility (`vec.num_envs % vec.num_workers`) and the batch rule above.

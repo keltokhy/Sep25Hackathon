@@ -51,3 +51,20 @@
 - 2025-09-20T10:40:22Z | timeout policy tweak | Relaxed wording: agent must allow ≥15 min timeout when launching training script | ready to test loop again | next: rerun quick mode
 
 - 2025-09-20T10:42:26Z | prompt nudge | Added guidance for Codex to read prior run summaries before proposing changes | reinforces trend-aware adjustments | next: observe behaviour in next loop run
+- 2025-09-20T10:43:28Z | run complete | Run 2025-09-20T104111Z (iteration 1) success 0.00, mean_reward 8.70, collision 7.3e-4, SPS 10.4k | CPU ~357%, GPU ~0%; vec 4/4, env 4x8, batch 2048 | next: switch to full baseline (28/56) with lr 3e-3, ent 0.12, 1e7 steps
+- 2025-09-20T10:38:30Z | tooling fix | host missing coreutils timeout; dropped python shim at /tmp/timeout to satisfy guardrail | monitor for early termination message
+- 2025-09-20T10:43:48Z | run complete | Run 2025-09-20T103925Z success 0.00, mean_reward 11.73, collision 5.4e-4, SPS 115k | CPU ~357%, GPU ~0%; fallback timeout tripped at ~214s but logs show full 15M steps | next: drop ent_coef to 0.02 and extend to 2e7 steps to push exploitation
+- 2025-09-20T10:45:40Z | run complete | Run 2025-09-20T103925Z (iteration 3) | metrics captured | 
+- 2025-09-20T10:50:46Z | run complete | Run 2025-09-20T104540Z success 0.00, mean_reward 13.51, collision 5.4e-4, SPS 104k | stable; CPU ~357%, GPU ~0%; vec 28/56, env 4x8, batch 28672 | next: extend total_timesteps to 3e7 and drop lr to 2e-3 to consolidate gains
+- 2025-09-20T10:52:49Z | run complete | Run 2025-09-20T104540Z (iteration 4) | metrics captured | 
+- 2025-09-20T10:59:30Z | todo | Prompt still references {script}/{notes_path} without defaults | document explicit defaults and make placeholders configurable in next revision | autopilot prompt
+- 2025-09-20T11:02:40Z | run complete | Run 2025-09-20T110240Z success 0.00, mean_reward 6.76, collision 6.4e-4, SPS 112k | CPU ~357%, GPU ~0%; oob ~0.96, rings 0 | next: ent 0.05, lr 2.5e-3, update_epochs 3, gamma 0.995, total_timesteps 15M
+- 2025-09-20T11:06:19Z | run complete | Run 2025-09-20T110240Z (iteration 1) | metrics captured | 
+
+- 2025-09-20T11:12:00Z | knob audit | Listed non-hyperparam levers (curriculum seeds, env randomization, wrappers, reward shaping, eval cadence, debugging hooks) | captured plan to log per-run rationale in labbook with dedicated checklist | next: extend prompt/schema so agent can pilot these safely
+- 2025-09-20T11:18:00Z | resume wiring | Added autopilot resume knobs (resume_mode/resume_from/save_strategy); orchestrator now injects load_model_path & manages best/latest symlinks | ready to trial warm-start loops | next: gate adoption via A/B eval vs best
+- 2025-09-20T11:13:00Z | run complete | Run 2025-09-20T110619Z (iteration 2) success 0.00, mean_reward 10.78, collision 6.2e-4, SPS 110.9k | reward recovered +4 vs prior but OOB 0.97 persists; clipfrac ~0 indicates conservative updates | next: ent 0.02, update_epochs 4, total_timesteps 20M to push on-track success
+- 2025-09-20T11:13:04Z | run complete | Run 2025-09-20T110619Z (iteration 2) | metrics captured | 
+- 2025-09-20T11:18:30Z | run complete | Run 2025-09-20T111304Z (iteration 3) success 0.00, mean_reward 13.92, collision 5.9e-4, SPS 104.5k, CPU ~357% | clipfrac≈0 with annealed lr; next: keep ent 0.02/update_epochs 4/20M steps but set lr 2.5e-3 and anneal_lr false to keep updates active
+- 2025-09-20T11:21:22Z | run complete | Run 2025-09-20T111304Z (iteration 3) | metrics captured | 
+- 2025-09-20T11:29:57Z | run complete | Run 2025-09-20T112722Z (iteration 1) | metrics captured | 

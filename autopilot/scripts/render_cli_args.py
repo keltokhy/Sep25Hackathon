@@ -24,7 +24,10 @@ def emit_args(prefix: str, payload: Any, argv: List[str]) -> None:
 
     flag = f"--{prefix}"
     if isinstance(payload, bool):
-        if payload:
+        if "." in prefix:
+            argv.append(flag)
+            argv.append("True" if payload else "False")
+        elif payload:
             argv.append(flag)
         return
 
@@ -37,8 +40,14 @@ def render(config_path: Path) -> Iterable[str]:
     if not isinstance(data, dict):
         raise SystemExit("Config root must be a JSON object")
 
+    # Keys to skip because they are handled by the autopilot harness
+    # and are not valid CLI flags for pufferlib.
+    SKIP_TOP_LEVEL = {"autopilot"}
+
     argv: List[str] = []
     for section, payload in data.items():
+        if section in SKIP_TOP_LEVEL:
+            continue
         if not isinstance(payload, dict):
             emit_args(hyphenate(section), payload, argv)
             continue

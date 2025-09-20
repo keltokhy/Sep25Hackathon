@@ -33,6 +33,7 @@ FULL_SCRIPT = SCRIPTS_DIR / "run_training.sh"
 CODEX_PROMPT_PATH = PROMPTS_DIR / "codex_prompt.txt"
 OVERRIDE_PATH = AUTOPILOT_DIR / "proposals" / "next_config.json"
 LOGS_DIR = AUTOPILOT_DIR / "logs"
+MODELS_DIR = AUTOPILOT_DIR / "models"
 
 
 def load_config(path: Path) -> Dict[str, Any]:
@@ -103,6 +104,38 @@ def load_trainer_summary(run_dir: Path) -> Dict[str, Any]:
         return json.loads(path.read_text())
     except json.JSONDecodeError:
         return {}
+
+
+def experiments_dir() -> Path:
+    # PufferLib saves to PufferLib/experiments when launched from that dir
+    return (AUTOPILOT_DIR.parent / "PufferLib" / "experiments").resolve()
+
+
+def latest_final_checkpoint() -> Optional[Path]:
+    exp_dir = experiments_dir()
+    if not exp_dir.exists():
+        return None
+    candidates = sorted(exp_dir.glob("puffer_drone_pp_*.pt"), key=lambda p: p.stat().st_mtime)
+    return candidates[-1] if candidates else None
+
+
+def best_record_path() -> Path:
+    return AUTOPILOT_DIR / "runs" / "best.json"
+
+
+def read_best_score() -> tuple[Optional[float], Optional[float], Optional[str]]:
+    bp = best_record_path()
+    if not bp.exists():
+        return (None, None, None)
+    try:
+        data = json.loads(bp.read_text())
+        return (
+            data.get("success_rate"),
+            data.get("mean_reward"),
+            data.get("model_path"),
+        )
+    except Exception:
+        return (None, None, None)
 
 
 def run_training(script: Path, run_dir: Path) -> Path:
@@ -180,6 +213,11 @@ def summarize(
     }
     if trainer_summary:
         summary["trainer_summary"] = trainer_summary
+    # Stamp resume info if present
+    ap = config.get("autopilot", {})
+    summary["resume_mode"] = ap.get("resume_mode", "fresh")
+    summary["resume_from"] = ap.get("resume_from")
+    summary["save_strategy"] = ap.get("save_strategy", "best")
     write_summary(run_dir, summary)
     if diff:
         (run_dir / "config_diff.json").write_text(json.dumps(diff, indent=2), encoding="utf-8")
@@ -215,7 +253,34 @@ def run_iteration(iteration: int, use_quick: bool, prev_config: Optional[Dict[st
         metadata["parent_run"] = parent_run
 
     run_dir = register_run(metadata)
-    save_config(run_dir, config)
+    # Resolve resume policy and inject load_model_path (top-level) if continuing
+    ap_cfg = config.get("autopilot", {}) or {}
+    resume_mode = ap_cfg.get("resume_mode", "fresh")
+    resume_from = ap_cfg.get("resume_from")  # None | 'latest' | 'best' | '/path/model.pt'
+
+    load_path: Optional[str] = None
+    if resume_mode == "continue":
+        if isinstance(resume_from, str):
+            if resume_from == "latest":
+                lp = latest_final_checkpoint()
+                load_path = str(lp) if lp else None
+            elif resume_from == "best":
+                _, _, best_path = read_best_score()
+                load_path = best_path
+            else:
+                # Treat as explicit path
+                load_path = resume_from
+        elif resume_from is None:
+            # Default to latest if continuing and not specified
+            lp = latest_final_checkpoint()
+            load_path = str(lp) if lp else None
+
+    # Create a working copy for saving and rendering
+    effective_config = json.loads(json.dumps(config))
+    if load_path:
+        effective_config["load_model_path"] = load_path
+
+    save_config(run_dir, effective_config)
     if override:
         (run_dir / "override.json").write_text(json.dumps(override, indent=2), encoding="utf-8")
 
@@ -232,7 +297,73 @@ def run_iteration(iteration: int, use_quick: bool, prev_config: Optional[Dict[st
 
     trainer_summary = load_trainer_summary(run_dir)
     metrics = extract_metrics(log_path)
-    summarize(run_dir, config, diff, metrics, trainer_summary)
+    summarize(run_dir, effective_config, diff, metrics, trainer_summary)
+
+    # Discover and record final model path from experiments dir
+    model_path = latest_final_checkpoint()
+    if model_path:
+        (run_dir / "model_path.txt").write_text(str(model_path), encoding="utf-8")
+        MODELS_DIR.mkdir(parents=True, exist_ok=True)
+        # Maintain a handy "latest" symlink
+        latest_link = MODELS_DIR / "latest.pt"
+        try:
+            if latest_link.exists() or latest_link.is_symlink():
+                latest_link.unlink()
+            latest_link.symlink_to(model_path)
+        except OSError:
+            # Fallback to copy if symlinks are restricted
+            import shutil as _sh
+            _sh.copy2(model_path, latest_link)
+
+    # Update best checkpoint depending on save_strategy
+    save_strategy = ap_cfg.get("save_strategy", "best")
+    if save_strategy in {"best", "latest"} and model_path:
+        # Select score: prefer success_rate, fallback to mean_reward
+        sr = None
+        mr = None
+        if trainer_summary:
+            m = trainer_summary.get("metrics", {})
+            sr = m.get("success_rate")
+            mr = m.get("mean_reward")
+        if sr is None:
+            sr = metrics.get("success_rate")
+        if mr is None:
+            mr = metrics.get("mean_reward")
+
+        best_sr, best_mr, _best_path = read_best_score()
+        is_better = False
+        if save_strategy == "latest":
+            is_better = True
+        else:
+            # Compare success_rate first; if equal or None, use mean_reward
+            if best_sr is None and sr is not None:
+                is_better = True
+            elif sr is not None and best_sr is not None:
+                if sr > best_sr + 1e-9:
+                    is_better = True
+                elif abs(sr - best_sr) <= 1e-9 and mr is not None and best_mr is not None and mr > best_mr:
+                    is_better = True
+            elif best_sr is None and best_mr is None and mr is not None:
+                is_better = True
+
+        if is_better:
+            # Write best.json record and update symlink
+            record = {
+                "run_id": run_dir.name,
+                "model_path": str(model_path),
+                "success_rate": sr,
+                "mean_reward": mr,
+                "timestamp": timestamp(),
+            }
+            best_record_path().write_text(json.dumps(record, indent=2), encoding="utf-8")
+            best_link = MODELS_DIR / "best.pt"
+            try:
+                if best_link.exists() or best_link.is_symlink():
+                    best_link.unlink()
+                best_link.symlink_to(model_path)
+            except OSError:
+                import shutil as _sh
+                _sh.copy2(model_path, best_link)
     append_labbook(
         "run complete",
         f"Run {run_dir.name} (iteration {iteration})",
@@ -240,7 +371,7 @@ def run_iteration(iteration: int, use_quick: bool, prev_config: Optional[Dict[st
     )
 
     return {
-        "config": config,
+        "config": effective_config,
         "run_dir": run_dir,
         "metrics": metrics,
     }

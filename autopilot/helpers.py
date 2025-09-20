@@ -11,6 +11,7 @@ from typing import Any, Dict, List, Tuple, Union
 AUTOPILOT_DIR = Path(__file__).resolve().parent
 JOURNAL_DIR = AUTOPILOT_DIR / "journal"
 RUNS_DIR = AUTOPILOT_DIR / "runs"
+MODELS_DIR = AUTOPILOT_DIR / "models"
 
 LABBOOK_PATH = JOURNAL_DIR / "labbook.md"
 NOTES_PATH = JOURNAL_DIR / "notes.md"
@@ -34,8 +35,19 @@ CONFIG_RANGES: Dict[Tuple[str, str], Tuple[type, Number, Number]] = {
     ("train", "gamma"): (float, 0.0, 0.999999),
     ("train", "clip_coef"): (float, 0.0, 1.0),
     ("train", "vf_clip_coef"): (float, 0.0, 10.0),
+    ("train", "vf_coef"): (float, 0.0, 10.0),
+    ("train", "max_grad_norm"): (float, 0.0, 100.0),
     ("train", "total_timesteps"): (int, 1_000, 1_000_000_000),
     ("train", "seed"): (int, 0, 2_147_483_647),
+    ("train", "checkpoint_interval"): (int, 1, 1_000_000),
+    ("train", "anneal_lr"): (bool, 0, 1),
+    ("train", "torch_deterministic"): (bool, 0, 1),
+    ("train", "cpu_offload"): (bool, 0, 1),
+    ("train", "compile"): (bool, 0, 1),
+    ("train", "compile_fullgraph"): (bool, 0, 1),
+    ("train", "adam_beta1"): (float, 0.0, 0.999999),
+    ("train", "adam_beta2"): (float, 0.0, 0.999999),
+    ("train", "adam_eps"): (float, 1e-14, 1e-2),
     ("env", "num_envs"): (int, 1, 256),
     ("env", "num_drones"): (int, 1, 256),
     ("vec", "num_envs"): (int, 1, 256),
@@ -93,6 +105,21 @@ def validate_config(config: Dict[str, Any]) -> None:
     device = train.get("device")
     if device is not None and device not in {"mps", "cpu", "cuda"}:
         raise ValidationError("train.device must be one of {'mps', 'cpu', 'cuda'}")
+
+    # Optional autopilot-only section
+    ap = config.get("autopilot", {})
+    if ap:
+        if not isinstance(ap, dict):
+            raise ValidationError("autopilot section must be a dict if present")
+        mode = ap.get("resume_mode")
+        if mode is not None and mode not in {"fresh", "continue"}:
+            raise ValidationError("autopilot.resume_mode must be 'fresh' or 'continue'")
+        save = ap.get("save_strategy")
+        if save is not None and save not in {"all", "best", "latest"}:
+            raise ValidationError("autopilot.save_strategy must be one of {'all','best','latest'}")
+        rf = ap.get("resume_from")
+        if rf is not None and not isinstance(rf, (str, type(None))):
+            raise ValidationError("autopilot.resume_from must be null or a string ('latest','best', or a path)")
 
 
 def validate_summary(summary: Dict[str, Any]) -> None:
