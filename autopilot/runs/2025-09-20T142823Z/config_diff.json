@@ -1,0 +1,38 @@
+{
+  "autopilot": {
+    "resume_from": {
+      "old": null,
+      "new": "latest"
+    },
+    "resume_mode": {
+      "old": "fresh",
+      "new": "continue"
+    }
+  },
+  "train": {
+    "clip_coef": {
+      "old": 0.2,
+      "new": 0.12
+    },
+    "ent_coef": {
+      "old": 0.12,
+      "new": 0.08
+    },
+    "max_grad_norm": {
+      "old": 1.0,
+      "new": 1.5
+    },
+    "total_timesteps": {
+      "old": 120000000,
+      "new": 10000000
+    },
+    "update_epochs": {
+      "old": 1,
+      "new": 4
+    },
+    "vf_coef": {
+      "old": 1.0,
+      "new": 2.0
+    }
+  }
+}

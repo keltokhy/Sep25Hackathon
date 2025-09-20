@@ -1,0 +1,12 @@
+{
+  "train": {
+    "total_timesteps": 20000000,
+    "ent_coef": 0.1,
+    "clip_coef": 0.3
+  },
+  "autopilot": {
+    "resume_mode": "continue",
+    "resume_from": "latest",
+    "save_strategy": "best"
+  }
+}

@@ -1,0 +1,33 @@
+Run 2025-09-20T163951Z — full baseline (30M steps)
+
+Summary
+- SPS: 119.2k; Epochs: 1047; Uptime ~4m42s
+- Metrics: success_rate=1519.85, mean_reward=481.61, collision_rate=0.00492, episode_length≈856.0
+- Utilization (panel): CPU ~357%, GPU 0% (MPS; telemetry expected to read 0%), DRAM ~35%, VRAM 0%
+- PPO diag: approx_kl≈0.000, clipfrac≈0.000, entropy≈24.85, explained_variance≈0.732
+- Topology: vec 28/56, env 4×8, device=mps
+- Divisibility: 56 % 28 == 0 (ok)
+- Derived batch: 4×8×56×16 = 28,672; minibatch=max_minibatch=28,672 (single-batch updates)
+
+Trend vs recent runs
+- 2025-09-20T163325Z: mean_reward=462.53, success_rate=1647.37, collision=0.00500, SPS=127.19k
+- 2025-09-20T162017Z: mean_reward=250.57, success_rate=9.38,   collision=0.00235, SPS=126.67k
+- Latest improves mean_reward (+4.1%) over 163325Z with similar collision rate; SPS slightly lower (−6.3%), likely due to longer horizon (30M vs 20M steps) and overhead variance.
+
+Theory
+- Lowering learning_rate over recent iterations has correlated with higher mean_reward.
+- Panel shows approx_kl and clipfrac ~0.0, suggesting policy updates are conservative per epoch. With a single large minibatch, increasing update_epochs should increase effective policy movement without changing sample budget.
+- Collision rate is already low; reducing entropy slightly should shift toward exploitation and better task completion consistency.
+- Enable LR annealing and torch_deterministic to stabilize/standardize learning across runs.
+
+Next step (staged in proposals/next_config.json)
+- train.learning_rate: 0.0015 (from 0.0018)
+- train.ent_coef: 0.008 (down from ~0.01 default)
+- train.update_epochs: 3 (increase to strengthen updates)
+- train.clip_coef: 0.25 (allow modestly larger policy steps)
+- train.anneal_lr: true; train.torch_deterministic: true
+- Keep topology and bptt the same; derived batch remains 28,672
+- Warm start: autopilot.resume_mode=continue from latest; save_strategy=best
+
+Success criteria for next run
+- Mean_reward ≥ 490 without increasing collision_rate (>0.006). If collision spikes or KL rises sharply, revert clip_coef to 0.20 and/or reduce update_epochs to 2.

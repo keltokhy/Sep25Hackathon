@@ -1,0 +1,45 @@
+Goal:
+- Drive the training toward better policy quality (higher `success_rate`, `mean_reward`, lower `collision_rate`) while keeping runs stable and reproducible.
+
+Context:
+- Baseline configs live in `autopilot/configs/` (quick vs. full).
+- Runtime budget guidance: quick mode uses the smoke baseline and is ideal for exploratory tweaks; full mode relies on the high-util baseline (~1e7–2e7 timesteps) and is where you validate promising theories for real gains. When proposing changes, weigh iteration speed against the chance of higher reward.
+- `autopilot/proposals/next_config.json` starts empty before each run; fill it **after** the run with overrides for the next iteration. Touch only these keys and respect the safety ranges:
+  * Core PPO scalars: `train.learning_rate` (1e-6–1.0), `train.ent_coef` (0–1), `train.bptt_horizon` (1–512), `train.total_timesteps` (1,000–1,000,000,000), `train.seed` (0–2,147,483,647), `train.update_epochs` (1–32), `train.gae_lambda` (0–1), `train.gamma` (0–0.999999), `train.clip_coef` (0–1), `train.vf_clip_coef` (0–10).
+  * Optimiser & stability knobs: `train.optimizer` (`muon`, `adam`, or `adamw`), `train.vf_coef` (0–10), `train.max_grad_norm` (0–100), `train.checkpoint_interval` (1–1,000,000), `train.adam_beta1` (0–0.999999), `train.adam_beta2` (0–0.9999999), `train.adam_eps` (1e-14–1e-2).
+  * Schedule & determinism toggles: `train.anneal_lr`, `train.torch_deterministic`, `train.cpu_offload`, `train.compile`, `train.compile_fullgraph` (Booleans; stick with JSON `true`/`false`), plus `train.precision` (`float32`, `bfloat16`) and `train.compile_mode` (documented choices in PufferLib, default `max-autotune-no-cudagraphs`).
+  * Device & topology: `train.device` (`mps`, `cpu`, `cuda`), `env.num_envs`, `env.num_drones` (1–256), `vec.num_envs`, `vec.num_workers` (1–256).
+  * Autopilot run policy (not CLI flags; handled by the orchestrator): `autopilot.resume_mode` (`fresh` or `continue`), `autopilot.resume_from` (`latest`, `best`, or an explicit checkpoint path), and `autopilot.save_strategy` (`best`, `latest`, or `all`). When continuing, the orchestrator will inject the correct `--load-model-path` for you.
+- Constraints:
+  * Keep `vec.num_envs` divisible by `vec.num_workers`.
+  * Derive batch sizes from your proposal:
+    - `train.batch_size = (env.num_envs × env.num_drones × vec.num_envs) × train.bptt_horizon`
+    - `train.minibatch_size = train.batch_size = train.max_minibatch_size`
+  * On a 28‑core Mac Studio, prefer `vec.num_workers ≤ 28` and `vec.num_envs ∈ {{28, 56, 84}}`. Switching `train.device` to `cpu` is allowed for diagnostics but will slow runs considerably.
+- Training artifacts for the active run live in `$PUFFER_AUTOPILOT_RUN_DIR`; structured metrics write to `$PUFFER_AUTOPILOT_SUMMARY` when available.
+- Keep the JSON valid; write `{{}}` if you want the next run to reuse the baseline without overrides.
+- Past run folders live under `autopilot/runs/`; skim recent `summary.json` and `notes.txt` entries so proposals consider multi-run trends, not just the latest metrics.
+- Before changing anything, pause to form a concrete theory about why the last run behaved as it did, decide how to test that theory, and document the rationale.
+- Treat `notes.txt` entries as a running lab log: capture what changed, why you changed it, how it performed, what theory you were testing, and what you plan to try next.
+ - If you want to warm-start, set `autopilot.resume_mode` to `continue` and choose `autopilot.resume_from` (`latest` or `best`) so the next run reuses a strong checkpoint instead of starting from scratch.
+
+Execution rules:
+- Step 1 is mandatory. Launch {script} immediately (via `bash -lc` from repo root) and allow **at least 15 minutes** of timeout budget so the training can finish.
+- Do not replace, skip, or defer this command; wait until it completes and capture stdout/stderr.
+- If the command exits early or times out, report the exit code and diagnose before changing configs.
+
+Example override:
+```
+{{
+  "train": {{"learning_rate": 0.0032, "ent_coef": 0.10, "bptt_horizon": 16,
+             "batch_size": 28672, "minibatch_size": 28672, "max_minibatch_size": 28672}},
+  "env": {{"num_envs": 4, "num_drones": 8}},
+  "vec": {{"num_workers": 28, "num_envs": 56}}
+}}
+```
+
+Steps:
+1. Execute {script} (with ≥15‑minute timeout allowance) and wait for it to finish.
+2. Inspect the results (e.g., tail the fresh log under `autopilot/logs/` or read `$PUFFER_AUTOPILOT_SUMMARY` when it exists).
+3. Based on those results, update `autopilot/proposals/next_config.json` with overrides for the **next** run (or `{{}}` if no change). Include any `autopilot.*` resume policy if you want to continue from `latest`/`best`.
+4. Create or overwrite {notes_path} with an insightful status entry. Summarise key metrics, compare to recent runs, record diagnostic observations (CPU/GPU utilisation, SPS, divisibility checks, derived batch), articulate the theory you just tested, and describe how the results update your thinking for the next iteration.

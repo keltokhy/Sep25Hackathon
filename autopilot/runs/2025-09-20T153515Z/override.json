@@ -1,0 +1,12 @@
+{
+  "train": {
+    "update_epochs": 12,
+    "clip_coef": 0.12,
+    "max_grad_norm": 1.0
+  },
+  "autopilot": {
+    "resume_mode": "continue",
+    "resume_from": "best",
+    "save_strategy": "best"
+  }
+}

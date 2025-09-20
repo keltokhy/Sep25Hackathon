@@ -1,0 +1,32 @@
+Run 2025-09-20T170434Z — full baseline; resume=continue(best)
+
+Summary
+- Steps: 20.93M; Epoch: 698; SPS: 124.9k
+- Reward: mean_reward 520.03; collision_rate 0.00392
+- Episode length: ~925; explained_var ~0.88 (stable value loss)
+- Device/topology: mps; vec 28/56; env 4×8; bptt 16
+- Derived batch: 4×8×56×16 = 28672 (minibatch=max=28672)
+- Utilization panel: CPU ~357%; GPU VRAM ~0% (MPS underutilized)
+
+Recent comparison
+- 2025-09-20T163951Z (lr=1.8e-3, ent=0.01, 30M): reward 481.61, coll 0.00492, SPS 119k
+- 2025-09-20T164700Z (lr=1.5e-3, ent=0.008, 30M): reward 474.41, coll 0.00563, SPS 125k
+- 2025-09-20T165455Z (lr=3e-3, ent=0.12, 30M): reward ~0.66, coll 0.00043 (over-entropy/too-high lr → poor learning)
+
+Interpretation
+- The muon optimizer with lr=1.8e-3 and ent=0.01 is currently the best-performing setting on this topology.
+- Today’s shorter 20M-step run achieved higher mean_reward (520) and lower collisions (~0.0039) than prior 30M-step runs, consistent with a better checkpoint and annealed LR improving late-run quality.
+- CPU is not saturated (panel ~357% with 28 workers), and MPS shows 0% VRAM usage; we have headroom to scale env.num_drones if quality plateaus.
+- Divisibility constraint satisfied: 56 % 28 == 0.
+
+Theory tested
+- Hypothesis: moderate entropy (0.01) + lr around 1–2e-3 with annealing improves policy quality (higher reward, lower collisions) compared to lower entropy (0.008) or aggressive settings (lr 3e-3, ent 0.12). Result supports the hypothesis.
+
+Next step (proposal prepared in proposals/next_config.json)
+- Continue from best checkpoint; extend training horizon to 30M to consolidate gains.
+- Slightly lower lr → 1.5e-3 (keep ent=0.01) to reduce update noise and potentially lower collisions while preserving reward.
+- Keep topology (vec 28/56, env 4×8, bptt 16); derived batch remains 28672.
+
+If next run plateaus or util stays low
+- Consider bumping env.num_drones to 12 (batch 43008) to increase effective batch and GPU pressure; keep vec divisibility and record derived batch.
+- Optionally test gamma=0.995 if longer-horizon credit assignment appears limiting (watch for value loss/explained_var changes).

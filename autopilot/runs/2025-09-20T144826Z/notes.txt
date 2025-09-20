@@ -1,0 +1,36 @@
+2025-09-20T14:48:26Z — full baseline; tune exploration downward; warm-start next
+
+What changed (this run):
+- Baseline full config (vec 28/56, env 4×8, bptt 16). Device: mps. Seed: 42.
+- No overrides; treated as control to confirm current behaviour and utilization.
+
+Key results (trainer_summary.json):
+- success_rate: 0.000
+- mean_reward (score): 8.438
+- collision_rate: 0.002115
+- episode_length: 491.05
+- sps: 119.2K; agent_steps: 31.2238M; epoch: 1047
+
+Utilisation and throughput (train.log panel):
+- CPU ~350–360% (well below 28-core capacity), GPU (MPS) ~0% reported, DRAM ~33%.
+- Indicates CPU underutilization; SPS still high (peaks ~119K). VRAM shows 0% in TUI (likely MPS metric gap).
+
+Derivations and checks:
+- vec.num_workers: 28; vec.num_envs: 56 ⇒ divisible (56 % 28 == 0 ✅).
+- env.num_envs: 4; env.num_drones: 8; bptt_horizon: 16.
+- Derived batch_size = 4 × 8 × 56 × 16 = 28,672 ⇒ matches run config ✅.
+
+Diagnostics and theory:
+- success_rate remained at 0 despite stable training signal. Value head looks stable (value_loss ~0.003, explained_variance ~0.87). KL ~0, clipfrac ~0 ⇒ policy updates are very conservative with large batch and current clip/entropy settings.
+- Entropy coef at 0.12 likely keeps the policy too stochastic late in training; LR 3e-3 may also add noise around potential improvements.
+- Hypothesis: reduce exploration pressure and slightly strengthen per-batch optimization to convert reward into non-zero successes without destabilizing.
+
+Next run plan (overrides staged in proposals/next_config.json):
+- train.ent_coef: 0.12 → 0.08 (reduce exploration, encourage exploitation).
+- train.learning_rate: 0.003 → 0.002 (more stable updates).
+- train.update_epochs: +1 (set to 2) to extract more learning per batch while KL/clip remain conservative.
+- Warm start: autopilot.resume_mode=continue from latest; save_strategy=best.
+- Keep topology and bptt constant to make the comparison clean; batch will remain 28,672.
+
+Exit criteria for next step:
+- Expect success_rate to tick above 0 with same or lower collision_rate; mean_reward should increase. If CPU utilization remains low (<1000%), consider bumping env.num_envs to 6–8 in a follow-up to improve hardware utilization without changing batch semantics.

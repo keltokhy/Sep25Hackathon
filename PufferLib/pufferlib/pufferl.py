@@ -10,6 +10,7 @@ import os
 import sys
 import glob
 import ast
+import json
 import time
 import random
 import shutil
@@ -49,6 +50,72 @@ signal.signal(signal.SIGINT, lambda sig, frame: os._exit(0))
 # Assume advantage kernel has been built if CUDA compiler is available
 ADVANTAGE_CUDA = shutil.which("nvcc") is not None
 
+
+def _write_autopilot_summary(train_args, env_args, vec_args, logs, all_logs):
+    summary_path = os.environ.get("PUFFER_AUTOPILOT_SUMMARY")
+    if not summary_path:
+        return
+
+    latest = logs
+    if latest is None:
+        for entry in reversed(all_logs):
+            if entry:
+                latest = entry
+                break
+
+    metrics = {
+        "success_rate": None,
+        "mean_reward": None,
+        "episode_length": None,
+        "collision_rate": None,
+        "sps": None,
+        "agent_steps": None,
+        "epoch": None,
+    }
+    if latest:
+        # Success rate: prefer env-specific key, with fallbacks
+        sr = latest.get("environment/perfect_deliv")
+        if sr is None:
+            # PickPlace logs placement_success as a natural success proxy
+            sr = latest.get("environment/placement_success")
+        metrics["success_rate"] = sr
+
+        metrics["mean_reward"] = latest.get("environment/score")
+        metrics["episode_length"] = latest.get("environment/episode_length")
+        metrics["collision_rate"] = latest.get("environment/collision_rate")
+        # Throughput and progress
+        metrics["sps"] = latest.get("SPS")
+        metrics["agent_steps"] = latest.get("agent_steps")
+        metrics["epoch"] = latest.get("epoch")
+
+    payload = {
+        "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        "run_id": os.environ.get("PUFFER_AUTOPILOT_RUN_ID"),
+        "train": {
+            "seed": train_args.get("seed"),
+            "learning_rate": train_args.get("learning_rate", train_args.get("lr")),
+            "entropy_coef": train_args.get("entropy_coef", train_args.get("ent_coef")),
+            "batch_size": train_args.get("batch_size"),
+            "minibatch_size": train_args.get("minibatch_size"),
+            "max_minibatch_size": train_args.get("max_minibatch_size"),
+            "bptt_horizon": train_args.get("bptt_horizon"),
+            "total_timesteps": train_args.get("total_timesteps"),
+        },
+        "env": {
+            "num_envs": env_args.get("num_envs") if isinstance(env_args, dict) else None,
+            "num_drones": env_args.get("num_drones") if isinstance(env_args, dict) else None,
+        },
+        "vec": {
+            "num_envs": vec_args.get("num_envs") if isinstance(vec_args, dict) else None,
+            "num_workers": vec_args.get("num_workers") if isinstance(vec_args, dict) else None,
+        },
+        "metrics": metrics,
+    }
+    try:
+        with open(summary_path, 'w', encoding='utf-8') as fp:
+            json.dump(payload, fp, indent=2)
+    except OSError as exc:
+        print(f"Warning: failed to write autopilot summary: {exc}", file=sys.stderr)
 class PuffeRL:
     def __init__(self, config, vecenv, policy, logger=None):
         # Backend perf optimization
@@ -933,6 +1000,7 @@ def train(env_name, args=None, vecenv=None, policy=None, logger=None):
     if logs is not None:
         all_logs.append(logs)
 
+    _write_autopilot_summary(args.get('train', {}), args.get('env', {}), args.get('vec', {}), logs, all_logs)
     pufferl.print_dashboard()
     model_path = pufferl.close()
     pufferl.logger.close(model_path)

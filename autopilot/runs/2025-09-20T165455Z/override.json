@@ -1,0 +1,13 @@
+{
+  "train": {
+    "update_epochs": 6,
+    "total_timesteps": 30000000,
+    "anneal_lr": true,
+    "torch_deterministic": true
+  },
+  "autopilot": {
+    "resume_mode": "continue",
+    "resume_from": "latest",
+    "save_strategy": "best"
+  }
+}

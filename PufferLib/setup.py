@@ -189,8 +189,11 @@ extension_kwargs = dict(
 # Find C extensions
 c_extensions = []
 if not NO_OCEAN:
-    # Only build drone_pickplace
-    c_extension_paths = ['pufferlib/ocean/drone_pp/binding.c']
+    # Build ocean env bindings we use (drone_pp, drone_pickplace)
+    c_extension_paths = [
+        'pufferlib/ocean/drone_pp/binding.c',
+        'pufferlib/ocean/drone_pickplace/binding.c',
+    ]
     c_extensions = [
         Extension(
             path.rstrip('.c').replace('/', '.'),

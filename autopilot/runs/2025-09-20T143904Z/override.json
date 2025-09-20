@@ -1,0 +1,11 @@
+{
+  "train": {
+    "ent_coef": 0.02,
+    "update_epochs": 2
+  },
+  "autopilot": {
+    "resume_mode": "continue",
+    "resume_from": "best",
+    "save_strategy": "best"
+  }
+}

@@ -1,0 +1,48 @@
+{
+  "env_name": "puffer_drone_pp",
+  "train": {
+    "device": "mps",
+    "total_timesteps": 30000000,
+    "bptt_horizon": 16,
+    "checkpoint_interval": 200,
+    "batch_size": 28672,
+    "minibatch_size": 28672,
+    "max_minibatch_size": 28672,
+    "learning_rate": 0.0018,
+    "ent_coef": 0.01,
+    "seed": 42,
+    "update_epochs": 1,
+    "gae_lambda": 0.95,
+    "gamma": 0.99,
+    "clip_coef": 0.12,
+    "vf_clip_coef": 1.0,
+    "vf_coef": 2.0,
+    "max_grad_norm": 1.5,
+    "optimizer": "muon",
+    "anneal_lr": true,
+    "torch_deterministic": true,
+    "cpu_offload": false,
+    "precision": "float32",
+    "compile": false,
+    "compile_mode": "max-autotune-no-cudagraphs",
+    "compile_fullgraph": true,
+    "adam_beta1": 0.95,
+    "adam_beta2": 0.999,
+    "adam_eps": 1e-12
+  },
+  "env": {
+    "num_envs": 4,
+    "num_drones": 8
+  },
+  "vec": {
+    "num_workers": 28,
+    "num_envs": 56
+  },
+  "wandb": false,
+  "autopilot": {
+    "resume_mode": "continue",
+    "resume_from": "best",
+    "save_strategy": "best"
+  },
+  "load_model_path": "/Users/khaled/GitHub/Sep25Hackathon-master/PufferLib/experiments/puffer_drone_pp_175838602026.pt"
+}

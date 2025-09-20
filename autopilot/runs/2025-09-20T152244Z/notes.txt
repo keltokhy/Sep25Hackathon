@@ -1,0 +1,37 @@
+Run 2025-09-20T152244Z — full baseline, warm-start from best; goal: improve reward while keeping collisions low.
+
+Config (effective):
+- Device: mps; optimizer: muon; anneal_lr: true; torch_deterministic: true
+- PPO: lr 0.0025, ent_coef 0.01, bptt 16, update_epochs 20, clip_coef 0.15, vf_coef 2.0, vf_clip_coef 1.0, max_grad_norm 1.5
+- Topology: vec 28/56; env 4×8 (env.num_envs × num_drones)
+- Derived batch: 4 × 8 × 56 × 16 = 28672 (minibatch = max_minibatch = 28672)
+- Divisibility: 56 % 28 == 0 (OK)
+- Resume: continue from best (orchestrator injected load_model_path)
+
+Outcome (trainer_summary.json):
+- success_rate: 894.454 (note: mapped from env metric; corresponds to high delivery count)
+- mean_reward: 535.245; collision_rate: 0.003434; episode_length: 908.126
+- Throughput: SPS 128,243; agent_steps 20.93M; epoch 698
+- TUI: explained_variance ≈ 0.873; policy_loss ~0.019; value_loss ~0.003; clipfrac ~0.0
+
+Utilization observations (TUI panel):
+- CPU ~316–329%; GPU 0%; VRAM 0%; DRAM ~33% — suggests CPU-bound with headroom, MPS not heavily engaged.
+
+Comparison to recent runs:
+- 2025-09-20T151134Z: mean_reward 438.33, collision_rate 0.00326
+- Current run improved reward (+22%); collisions slightly higher (+5% absolute ×1e-3) but still very low.
+
+Theory:
+- Reward gains are solid; collisions are already low but can drift up if updates are too aggressive. Reducing per-batch update aggressiveness should preserve reward and modestly reduce collisions, improving stability.
+
+Next change (proposed overrides in proposals/next_config.json):
+- update_epochs: 20 → 12 (fewer passes per batch for smoother updates)
+- clip_coef: 0.15 → 0.12 (tighter PPO clipping to curb large policy moves)
+- max_grad_norm: 1.5 → 1.0 (slightly stronger gradient clipping)
+- Keep lr 0.0025, ent_coef 0.01, bptt 16, topology 28/56 with env 4×8 for reproducibility
+- Resume policy: continue from best; save_strategy: best
+
+What to watch next run:
+- mean_reward ≥ 535 with collision_rate ≤ 0.0034; similar or higher SPS
+- If reward stalls or collisions rise, consider lr → 0.0022 or ent_coef → 0.008; if CPU headroom persists, explore env.num_envs 8 (batch 57,344) paired with lower update_epochs (8–10).
+
