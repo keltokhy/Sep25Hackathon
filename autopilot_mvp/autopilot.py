@@ -144,6 +144,7 @@ def main():
             revert_last_commit()
             revert_msg = f"[{i}] REVERTED: score {pre_score:.4f} -> {post_score:.4f} (worse)"
             log_labbook(revert_msg)
+            # Don't update state on revert, keep the previous best
         else:
             # Update best score if improved
             if post_score > state["best_score"]:
