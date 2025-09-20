@@ -3,15 +3,15 @@ OVERVIEW & GOALS
 - Honor a strict no‑hyperparameter‑changes policy. Treat `autopilot/journal/notes.md` as long‑term memory and constraints.
 
 OPERATING PRINCIPLES (Thoughtful, Memory‑Driven)
-- Read `autopilot/journal/notes.md` before acting; specifically consult the section “Dan’s `drone_pp.h` evolution (Sep 11 → Sep 20, 2025)” for historical intent and guardrails. Mirror key learnings to `autopilot/journal/labbook.md` after each run.
+- Read `autopilot/journal/notes.md` before acting; specifically consult the section “Header evolution: `drone_pp.h` (Sep 11 → Sep 20, 2025)” for historical intent and guardrails. Mirror key learnings to `autopilot/journal/labbook.md` after each run.
 - For non‑trivial work, write a brief 2–4 step plan, then execute and verify against constraints (divisibility, batch math).
 - Always state the behavioral hypothesis you are testing and the expected effect on grip/hover/carry/deliver metrics.
-- If guidance conflicts, prefer Dan/Kinvert’s latest environment code and the Notes file.
+- If guidance conflicts, prefer the latest committed environment code and the Notes file.
 
 WORKFLOW (Numbered Core Loop)
 1) Execute {script} (autopilot/scripts/run_training.sh) with ≥15‑minute timeout. Do not skip.
 2) Read the fresh run’s `trainer_summary.json` or mirrored `train.log` and extract behavioral_analysis and key metrics.
-3) Identify the specific failure mode from behavioral_analysis and metrics. Cross‑check against “Dan’s `drone_pp.h` evolution” notes to avoid re‑introducing patterns previously removed.
+3) Identify the specific failure mode from behavioral_analysis and metrics. Cross‑check against the “Header evolution: `drone_pp.h`” notes to avoid re‑introducing patterns previously removed.
 4) Make minimal, targeted environment code changes to address the failure, aligned with the historical intent captured in Notes.
 5) Rebuild bindings and smoke‑test import.
 6) Configure the next run using only `autopilot.*` overrides (or `{}`) in `autopilot/proposals/next_config.json`.
@@ -38,7 +38,7 @@ WHAT YOU CANNOT CHANGE (Hard Rule)
 
 ENVIRONMENT DEBUGGING CHECKLIST
 1) Identify failure from behavioral_analysis and concrete metrics.
-2) Consult `autopilot/journal/notes.md` → “Dan’s `drone_pp.h` evolution (Sep 11 → Sep 20, 2025)” to understand prior changes and avoid reversions of removed behaviors (e.g., low‑altitude penalty) unless explicitly justified.
+2) Consult `autopilot/journal/notes.md` → “Header evolution: `drone_pp.h` (Sep 11 → Sep 20, 2025)” to understand prior changes and avoid reversions of removed behaviors (e.g., low‑altitude penalty) unless explicitly justified.
 3) Locate relevant code in `drone_pp.h` (hover targeting, grip gates, delivery checks, physics constants).
 4) Make a minimal, documented change tied to the hypothesis and historical context.
 5) Rebuild: `cd PufferLib && NO_TRAIN=1 python3 setup.py build_ext --inplace --force`.
@@ -78,7 +78,7 @@ RECORDKEEPING
 - Notes (`autopilot/journal/notes.md`): longer‑term learnings; treat as long‑term memory.
 - Drive the training toward better drone behavior (grip → carry → deliver) by understanding what's failing and targeting specific issues.
 - Use behavioral analysis to make intelligent decisions about experiment type and focus.
-- Honor a strict no‑hyperparameter‑changes policy; use Dan’s baselines as‑is.
+- Honor a strict no‑hyperparameter‑changes policy; use the provided baselines as‑is.
 
 ENVIRONMENT CHANGE TRACKING (DREX Feature)
 - Each run captures diffs of environment code (e.g., `env_uncommitted.diff`).

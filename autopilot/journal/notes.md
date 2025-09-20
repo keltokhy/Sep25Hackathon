@@ -3,13 +3,13 @@
 This file serves as long‑term memory for the agent. Summaries below distill stable
 lessons and intent so future iterations don’t re‑learn the same context.
 
-## 2025‑09‑20 — Restore `drone_pp.h` to Dan’s latest
-- Action: Reverted local/drex edits to `PufferLib/pufferlib/ocean/drone_pp/drone_pp.h` back to Dan/Kinvert’s latest version at commit `552502e` (2025‑09‑20 17:17:36‑0400), titled “Good - Sweep Event Rewards - Alter Hover Reward”.
-- Rationale: Undo curriculum/gate relaxations introduced by autopilot to return to Dan’s validated baseline before making any new changes.
-- Impact: Working tree now matches Dan’s header; no pending diff for that file.
+## 2025‑09‑20 — Restore `drone_pp.h` to latest upstream state
+- Action: Reverted local/drex edits to `PufferLib/pufferlib/ocean/drone_pp/drone_pp.h` back to the latest committed version at commit `552502e` (2025‑09‑20 17:17:36‑0400), titled “Good - Sweep Event Rewards - Alter Hover Reward”.
+- Rationale: Undo curriculum/gate relaxations introduced by autopilot to return to the validated baseline before making any new changes.
+- Impact: Working tree now matches the upstream header; no pending diff for that file.
 
-## Dan’s `drone_pp.h` evolution (Sep 11 → Sep 20, 2025)
-High‑level themes extracted from 62 commits by Dan/Kinvert touching `drone_pp.h`:
+## Header evolution: `drone_pp.h` (Sep 11 → Sep 20, 2025)
+High‑level themes extracted from 62 commits touching `drone_pp.h`:
 
 - Reward shaping & events
   - Introduced and iterated “Perfect” metrics and rewards; tightened/loosened gates to make “perfect grip” achievable without over‑rewarding noise.
