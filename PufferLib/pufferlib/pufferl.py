@@ -68,12 +68,19 @@ def _write_autopilot_summary(train_args, env_args, vec_args, logs, all_logs):
         "mean_reward": None,
         "episode_length": None,
         "collision_rate": None,
+        "sps": None,
+        "agent_steps": None,
+        "epoch": None,
     }
     if latest:
         metrics["success_rate"] = latest.get("environment/perfect_deliv")
         metrics["mean_reward"] = latest.get("environment/score")
         metrics["episode_length"] = latest.get("environment/episode_length")
         metrics["collision_rate"] = latest.get("environment/collision_rate")
+        # Throughput and progress
+        metrics["sps"] = latest.get("SPS")
+        metrics["agent_steps"] = latest.get("agent_steps")
+        metrics["epoch"] = latest.get("epoch")
 
     payload = {
         "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),

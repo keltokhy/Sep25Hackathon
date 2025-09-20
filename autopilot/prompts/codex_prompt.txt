@@ -17,4 +17,4 @@ Steps:
 1. Execute {script} and wait for it to finish.
 2. Inspect the results (e.g., tail the fresh log under `autopilot/logs/` or read `$PUFFER_AUTOPILOT_SUMMARY` when it exists).
 3. Based on those results, update `autopilot/proposals/next_config.json` with overrides for the **next** run (or `{{}}` if no change).
-4. Create or overwrite {notes_path} with a concise status update (for example, `Notes: run completed`).
+4. Create or overwrite {notes_path} with a concise status update (for example, `Notes: run completed`). Include brief diagnostics when relevant (CPU/GPU utilisation snapshot, vec/env divisibility, key arg choices).
