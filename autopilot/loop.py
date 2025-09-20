@@ -42,9 +42,20 @@ def load_config(path: Path) -> Dict[str, Any]:
 
 def extract_metrics(log_path: Path) -> Dict[str, Optional[float]]:
     metrics = {
-        "success_rate": None,
+        # Core objectives (Dan's focus)
+        "grip_success": None,          # perfect_grip
+        "delivery_success": None,      # perfect_deliv
+        "end_to_end_success": None,    # perfect_now (grip AND delivery)
+
+        # Behavioral diagnostics
+        "grip_attempts": None,         # to_pickup attempts
+        "delivery_attempts": None,     # to_drop attempts
+        "hover_efficiency": None,      # ho_pickup (hovering at pickup)
+
+        # Performance context
         "mean_reward": None,
         "episode_length": None,
+        "collision_rate": None,
     }
     if not log_path.exists():
         return metrics
@@ -59,16 +70,34 @@ def extract_metrics(log_path: Path) -> Dict[str, Optional[float]]:
                     data = json.loads(line)
                 except json.JSONDecodeError:
                     continue
-                if metrics["success_rate"] is None:
-                    sr = data.get("environment/perfect_deliv")
-                    if sr is None:
-                        sr = data.get("environment/placement_success")
-                    metrics["success_rate"] = sr
+
+                # Extract grip/delivery metrics
+                if metrics["grip_success"] is None:
+                    metrics["grip_success"] = data.get("environment/perfect_grip")
+                if metrics["delivery_success"] is None:
+                    metrics["delivery_success"] = data.get("environment/perfect_deliv")
+                if metrics["end_to_end_success"] is None:
+                    metrics["end_to_end_success"] = data.get("environment/perfect_now")
+
+                # Extract behavioral metrics
+                if metrics["grip_attempts"] is None:
+                    metrics["grip_attempts"] = data.get("environment/to_pickup")
+                if metrics["delivery_attempts"] is None:
+                    metrics["delivery_attempts"] = data.get("environment/to_drop")
+                if metrics["hover_efficiency"] is None:
+                    metrics["hover_efficiency"] = data.get("environment/ho_pickup")
+
+                # Performance metrics
                 if metrics["mean_reward"] is None:
                     metrics["mean_reward"] = data.get("environment/score")
                 if metrics["episode_length"] is None:
                     metrics["episode_length"] = data.get("environment/episode_length")
-                if all(v is not None for v in metrics.values()):
+                if metrics["collision_rate"] is None:
+                    metrics["collision_rate"] = data.get("environment/collision_rate")
+
+                # Check if we have all essential metrics
+                essential = ["grip_success", "delivery_success", "mean_reward", "episode_length"]
+                if all(metrics.get(k) is not None for k in essential):
                     break
     except UnicodeDecodeError:
         pass
@@ -137,7 +166,7 @@ def read_best_score() -> tuple[Optional[float], Optional[float], Optional[str]]:
     try:
         data = json.loads(bp.read_text())
         return (
-            data.get("success_rate"),
+            data.get("end_to_end_success") or data.get("success_rate"),  # Prefer new metric
             data.get("mean_reward"),
             data.get("model_path"),
         )
@@ -211,7 +240,9 @@ def summarize(
         "run_id": run_dir.name,
         "timestamp": timestamp(),
         "seed": config.get("train", {}).get("seed"),
-        "success_rate": merged_metrics.get("success_rate"),
+        "grip_success": merged_metrics.get("grip_success"),
+        "delivery_success": merged_metrics.get("delivery_success"),
+        "end_to_end_success": merged_metrics.get("end_to_end_success"),
         "mean_reward": merged_metrics.get("mean_reward"),
         "episode_length": merged_metrics.get("episode_length"),
         "config_diff": json.dumps(diff, indent=2) if diff else "{}",
@@ -325,30 +356,41 @@ def run_iteration(iteration: int, use_quick: bool, prev_config: Optional[Dict[st
     # Update best checkpoint depending on save_strategy
     save_strategy = ap_cfg.get("save_strategy", "best")
     if save_strategy in {"best", "latest"} and model_path:
-        # Select score: prefer success_rate, fallback to mean_reward
-        sr = None
+        # Select score: prefer end_to_end_success, then delivery_success, then grip_success
+        e2e = None
+        delivery = None
+        grip = None
         mr = None
         if trainer_summary:
             m = trainer_summary.get("metrics", {})
-            sr = m.get("success_rate")
+            e2e = m.get("end_to_end_success") or m.get("perfect_now")
+            delivery = m.get("delivery_success") or m.get("perfect_deliv")
+            grip = m.get("grip_success") or m.get("perfect_grip")
             mr = m.get("mean_reward")
-        if sr is None:
-            sr = metrics.get("success_rate")
+        if e2e is None:
+            e2e = metrics.get("end_to_end_success")
+        if delivery is None:
+            delivery = metrics.get("delivery_success")
+        if grip is None:
+            grip = metrics.get("grip_success")
         if mr is None:
             mr = metrics.get("mean_reward")
+
+        # Use best available metric for comparison
+        primary_score = e2e or delivery or grip or mr
 
         best_sr, best_mr, _best_path = read_best_score()
         is_better = False
         if save_strategy == "latest":
             is_better = True
         else:
-            # Compare success_rate first; if equal or None, use mean_reward
-            if best_sr is None and sr is not None:
+            # Compare primary score first
+            if best_sr is None and primary_score is not None:
                 is_better = True
-            elif sr is not None and best_sr is not None:
-                if sr > best_sr + 1e-9:
+            elif primary_score is not None and best_sr is not None:
+                if primary_score > best_sr + 1e-9:
                     is_better = True
-                elif abs(sr - best_sr) <= 1e-9 and mr is not None and best_mr is not None and mr > best_mr:
+                elif abs(primary_score - best_sr) <= 1e-9 and mr is not None and best_mr is not None and mr > best_mr:
                     is_better = True
             elif best_sr is None and best_mr is None and mr is not None:
                 is_better = True
@@ -358,7 +400,9 @@ def run_iteration(iteration: int, use_quick: bool, prev_config: Optional[Dict[st
             record = {
                 "run_id": run_dir.name,
                 "model_path": str(model_path),
-                "success_rate": sr,
+                "end_to_end_success": e2e,
+                "delivery_success": delivery,
+                "grip_success": grip,
                 "mean_reward": mr,
                 "timestamp": timestamp(),
             }
