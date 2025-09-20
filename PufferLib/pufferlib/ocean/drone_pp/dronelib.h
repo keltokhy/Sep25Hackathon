@@ -63,6 +63,7 @@ struct Log {
     float perfect_grip;
     float delivered;
     float perfect_deliv;
+    float perfect_now;
     float to_pickup;
     float ho_pickup;
     float de_pickup;
@@ -257,6 +258,8 @@ typedef struct {
     bool perfect_grip;
     bool delivered;
     bool perfect_deliv;
+    float perfect_deliveries;
+    bool perfect_now;
     bool has_delivered;
     float grip_height;
     bool approaching_pickup;
@@ -278,6 +281,17 @@ typedef struct {
     float score;
     int ring_idx;
     float jitter;
+
+    float base_mass;
+    float base_ixx;
+    float base_iyy;
+    float base_izz;
+    float base_k_drag;
+    float base_b_drag;
+    float box_size;
+    float box_base_mass;
+    float box_mass;
+    bool box_physics_on;
 } Drone;
 
 
