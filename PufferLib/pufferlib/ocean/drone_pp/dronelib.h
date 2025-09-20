@@ -288,6 +288,7 @@ typedef struct {
     float box_size;
     float box_base_mass;
     float box_mass;
+    bool box_physics_on;
 } Drone;
 
 

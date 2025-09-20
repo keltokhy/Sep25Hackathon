@@ -519,11 +519,12 @@ void reset_agent(DronePP* env, Drone *agent, int idx) {
     agent->perfect_deliv = false;
     agent->has_delivered = false;
     agent->jitter = 100.0f;
+    agent->box_physics_on = false;
 
     //float size = 0.2f;
     //init_drone(agent, size, 0.0f);
-    float size = rndf(0.1f, 0.4);
-    init_drone(agent, size, 0.1f);
+    float size = rndf(0.3f, 1.0);
+    init_drone(agent, size, 0.25f);
     agent->color = FLAG_COLORS[idx];
     agent->color = (Color){255, 0, 0, 255};
 
@@ -542,6 +543,16 @@ void reset_agent(DronePP* env, Drone *agent, int idx) {
     compute_reward(env, agent, env->task != TASK_RACE);
 }
 
+void random_bump(Drone* agent) {
+    agent->state.vel.x += rndf(-0.1f, 0.1f);
+    agent->state.vel.y += rndf(-0.1f, 0.1f);
+    agent->state.vel.z += rndf(0.05f, 0.3f);
+    agent->state.omega.x += rndf(-0.5f, 0.5f);
+    agent->state.omega.y += rndf(-0.5f, 0.5f);
+    agent->state.omega.z += rndf(-0.5f, 0.5f);
+
+}
+
 void update_gripping_physics(Drone* agent) {
     if (agent->gripping) {
         agent->params.mass = agent->base_mass + agent->box_mass * rndf(0.9f, 1.1f);
@@ -555,6 +566,7 @@ void update_gripping_physics(Drone* agent) {
         float drag_multiplier = 1.0f + (agent->box_size / agent->params.arm_len) * rndf(0.5f, 1.0f);
         agent->params.k_drag = agent->base_k_drag * drag_multiplier;
         agent->params.b_drag = agent->base_b_drag * drag_multiplier;
+        agent->box_physics_on = true;
     } else {
         agent->params.mass = agent->base_mass;
         agent->params.ixx = agent->base_ixx;
@@ -703,8 +715,8 @@ void c_step(DronePP *env) {
                             agent->color = (Color){100, 100, 255, 255}; // Light Blue
                         }
                         agent->gripping = true;
-                        update_gripping_physics(agent);
                         reward += 1.0f;
+                        random_bump(agent);
                     } else if (dist_to_hidden > 0.4f || speed > 0.4f) {
                         agent->color = (Color){255, 100, 100, 255}; // Light Red
                     }
@@ -718,6 +730,11 @@ void c_step(DronePP *env) {
                 float xy_dist_to_drop = sqrtf(powf(agent->state.pos.x - agent->drop_pos.x, 2) +
                                             powf(agent->state.pos.y - agent->drop_pos.y, 2));
                 float z_dist_above_drop = agent->state.pos.z - agent->drop_pos.z;
+
+                if (!agent->box_physics_on && agent->state.vel.z > 0.3f) {
+                    update_gripping_physics(agent);
+                }
+
                 if (!agent->hovering_drop) {
                     agent->target_pos = (Vec3){agent->drop_pos.x, agent->drop_pos.y, agent->drop_pos.z + 0.4f};
                     agent->hidden_pos = (Vec3){agent->drop_pos.x, agent->drop_pos.y, agent->drop_pos.z + 1.0f};
@@ -739,6 +756,7 @@ void c_step(DronePP *env) {
                         agent->hovering_pickup = false;
                         agent->gripping = false;
                         update_gripping_physics(agent);
+                        agent->box_physics_on = false;
                         agent->hovering_drop = false;
                         reward += 1.0f;
                         agent->delivered = true;
