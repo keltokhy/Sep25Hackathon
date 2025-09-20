@@ -787,7 +787,7 @@ void c_step(DronePP *env) {
                 if (a->delivered) env->log.delivered += 1.0f;
                 if (a->perfect_grip && env->grip_k < 1.01f) env->log.perfect_grip += 1.0f;
                 if (a->perfect_deliv && env->grip_k < 1.01f && a->perfect_grip) env->log.perfect_deliv += 1.0f;
-                if (a->perfect_deliv && env->grip_k < 1.01f && a->perfect_grip && a->perfect_now && env->box_k > 0.99f) env->log.now += 1.0f;
+                if (a->perfect_deliv && env->grip_k < 1.01f && a->perfect_grip && a->perfect_now && env->box_k > 0.99f) env->log.perfect_now += 1.0f;
                 if (a->approaching_drop) env->log.to_drop += 1.0f;
                 if (a->hovering_drop) env->log.ho_drop += 1.0f;
             }
