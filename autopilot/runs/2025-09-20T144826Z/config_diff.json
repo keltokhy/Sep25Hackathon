@@ -1,0 +1,38 @@
+{
+  "autopilot": {
+    "resume_from": {
+      "old": "best",
+      "new": "latest"
+    }
+  },
+  "load_model_path": {
+    "old": "/Users/khaled/GitHub/Sep25Hackathon-master/PufferLib/experiments/puffer_drone_pp_175837882704.pt",
+    "new": null
+  },
+  "train": {
+    "clip_coef": {
+      "old": 0.3,
+      "new": 0.12
+    },
+    "ent_coef": {
+      "old": 0.1,
+      "new": 0.12
+    },
+    "gae_lambda": {
+      "old": 0.95,
+      "new": 0.97
+    },
+    "gamma": {
+      "old": 0.99,
+      "new": 0.995
+    },
+    "total_timesteps": {
+      "old": 20000000,
+      "new": 30000000
+    },
+    "update_epochs": {
+      "old": 1,
+      "new": 2
+    }
+  }
+}

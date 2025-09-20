@@ -1,0 +1,30 @@
+{
+  "autopilot": {
+    "resume_from": {
+      "old": "best",
+      "new": "latest"
+    }
+  },
+  "load_model_path": {
+    "old": "/Users/khaled/GitHub/Sep25Hackathon-master/PufferLib/experiments/puffer_drone_pp_175838178003.pt",
+    "new": null
+  },
+  "train": {
+    "ent_coef": {
+      "old": 0.12,
+      "new": 0.1
+    },
+    "max_grad_norm": {
+      "old": 1.0,
+      "new": 1.5
+    },
+    "total_timesteps": {
+      "old": 10000000,
+      "new": 20000000
+    },
+    "update_epochs": {
+      "old": 12,
+      "new": 16
+    }
+  }
+}

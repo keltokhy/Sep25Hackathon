@@ -1,0 +1,45 @@
+{
+  "run_id": "2025-09-20T165455Z",
+  "timestamp": "2025-09-20T17:04:34Z",
+  "seed": 42,
+  "success_rate": 0.0,
+  "mean_reward": 0.6625606065083828,
+  "episode_length": 57.53043467657907,
+  "config_diff": "{\n  \"load_model_path\": {\n    \"old\": \"/Users/khaled/GitHub/Sep25Hackathon-master/PufferLib/experiments/puffer_drone_pp_175838641407.pt\",\n    \"new\": null\n  },\n  \"train\": {\n    \"clip_coef\": {\n      \"old\": 0.25,\n      \"new\": 0.12\n    },\n    \"ent_coef\": {\n      \"old\": 0.008,\n      \"new\": 0.12\n    },\n    \"learning_rate\": {\n      \"old\": 0.0015,\n      \"new\": 0.003\n    },\n    \"update_epochs\": {\n      \"old\": 3,\n      \"new\": 6\n    }\n  }\n}",
+  "artifacts": [],
+  "notes": "auto-generated run summary",
+  "trainer_summary": {
+    "timestamp": "2025-09-20T17:02:37Z",
+    "run_id": "2025-09-20T165455Z",
+    "train": {
+      "seed": 42,
+      "learning_rate": 0.003,
+      "entropy_coef": 0.12,
+      "batch_size": 28672,
+      "minibatch_size": 28672,
+      "max_minibatch_size": 28672,
+      "bptt_horizon": 16,
+      "total_timesteps": 30000000
+    },
+    "env": {
+      "num_envs": 4,
+      "num_drones": 8
+    },
+    "vec": {
+      "num_envs": 56,
+      "num_workers": 28
+    },
+    "metrics": {
+      "success_rate": 0.0,
+      "mean_reward": 0.6625606065083828,
+      "episode_length": 57.53043467657907,
+      "collision_rate": 0.00043180085763846625,
+      "sps": 128111.41414491234,
+      "agent_steps": 31223808,
+      "epoch": 1047
+    }
+  },
+  "resume_mode": "continue",
+  "resume_from": "latest",
+  "save_strategy": "best"
+}

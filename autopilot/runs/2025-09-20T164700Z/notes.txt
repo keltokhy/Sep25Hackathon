@@ -1,0 +1,22 @@
+Run 2025-09-20T164700Z summary
+- Mode: full (baseline 28/56, env 4×8, bptt 16)
+- Steps: ~1047.0 epochs, agent_steps 31223808
+- Metrics: mean_reward 474.41, success_metric 1579.33, collision_rate 0.0056, SPS 125041.4
+- Utilisation: CPU 89:CPU: 0.0%, GPU 27799:GPU: 0.0%, VRAM 27799:VRAM: 0.0%
+- Divisibility: vec.num_envs 56 % vec.num_workers 28 == 0 (OK if 0)
+- Derived batch: env.num_envs 4 × num_drones 8 × vec.num_envs 56 × bptt 16 = 28672
+
+Context vs recent runs
+- 2025-09-20T163951Z: mean_reward 481.61, success 1519.85, collision 0.00492, SPS 119k
+- 2025-09-20T163325Z: mean_reward 462.53, success 1647.37, collision 0.00500, SPS 127k
+- Current: mean_reward 474.41, success 1579.33, collision 0.00563, SPS 125041
+
+Theory
+- KL≈0 and clipfrac≈0 in recent full runs indicate under-updating despite large batches. With stable collision rate and near-plateaued reward, increasing the number of PPO epochs should improve fit per batch without destabilising.
+
+Change staged for next run
+- Increase train.update_epochs: 3 → 6 (more optimisation per batch); keep lr 1.5e-3, ent_coef 0.008, clip 0.25, topology unchanged.
+- Warm start: resume_mode=continue, resume_from=latest, save_strategy=best.
+
+Next
+- Monitor KL/clipfrac; if still ~0, consider lr 1.8e-3 or reducing entropy to 0.006. If collision spikes, step clip to 0.20 or reduce update_epochs to 4.

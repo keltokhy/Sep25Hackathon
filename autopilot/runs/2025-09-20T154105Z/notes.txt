@@ -1,0 +1,11 @@
+Run 2025-09-20T154105Z — full baseline (vec 28/56, env 4×8), resumed latest.
+
+- Config: lr 0.003, ent 0.10, bptt 16, update_epochs 16, clip 0.12, vf_coef 2.0, vf_clip_coef 1.0, muon, anneal_lr true, seed 42, device mps.
+- Derived batch: 4 × 8 × 56 × 16 = 28672 (minibatch = max = 28672). Divisibility holds: 56 % 28 = 0.
+- Outcome: success_rate 0.00, mean_reward -4.9489, collision_rate 4.5411e-4, episode_length 48.74, SPS 119.6k, steps 20.93M, epoch 698.
+- Utilisation (TUI): CPU ≈ 343–347%, GPU(MPS) 0.0%, DRAM ~34%, VRAM 0%.
+- Diagnostics: oob ≈ 0.95 dominates penalties; collisions are rare. Behavior suggests excessive exploration and drift; warm-started from a weak latest checkpoint.
+- Comparison: recent best 2025-09-20T152244Z achieved mean_reward 535.24, success_rate 894.45 with lr 0.0025, ent 0.01, update_epochs 20, clip 0.15, resumed from best.
+- Theory: High entropy (0.10) + resuming from latest led to OOB‑heavy policy and negative reward. Lower entropy and stronger clipping, resuming from best, should stabilize and recover performance.
+- Next: Resume from best; set ent_coef 0.02, learning_rate 0.0025, update_epochs 20, clip_coef 0.15; keep bptt 16 and topology (28/56, 4×8); anneal_lr true; total_timesteps 20e6.
+

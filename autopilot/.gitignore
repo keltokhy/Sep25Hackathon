@@ -3,6 +3,4 @@ models/
 __pycache__/
 .DS_Store
 
-# Track the runs directory itself but ignore its contents by default
-runs/*
-!runs/.gitkeep
+# Track runs and its contents

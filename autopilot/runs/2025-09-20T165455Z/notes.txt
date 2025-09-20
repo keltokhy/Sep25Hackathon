@@ -1,0 +1,24 @@
+Run 2025-09-20T165455Z — full baseline (28/56 vec, 4×8 env, bptt 16); resumed latest; update_epochs=6; anneal_lr=true; torch_deterministic=true.
+
+Summary
+- Steps: 31.22M, SPS: 128.1k
+- success_rate: 0.00, mean_reward: 0.663, collision_rate: 4.32e-4, episode_length: 57.53
+- CPU ~357% (under target for 28 workers); GPU ~0%
+- Derived batch: 4×8×56×16 = 28672 (minibatch = max_minibatch = 28672)
+
+Context vs recent runs
+- 2025-09-20T164700Z (lr 1.5e-3, ent 0.008, upd 3): success 1579.33, mean_reward 474.41, coll 5.63e-3, SPS 125k
+- 2025-09-20T163951Z (lr 1.8e-3, ent 0.01): success 1519.85, mean_reward 481.61, coll 4.92e-3, SPS 119k
+- 2025-09-20T163325Z (best.json, lr 2.0e-3, ent 0.01): success 1647.37, mean_reward 462.53, coll 5.00e-3, SPS 127k
+- Current run regressed sharply: success 0.00 and mean_reward near zero.
+
+Diagnosis
+- Reverted to baseline exploration (entropy_coef ≈ 0.12) and higher lr (≈3e-3) due to resuming from latest and not pinning lr/ent; policy stayed highly exploratory with heavy OOB (~0.95 in dashboard), yielding negligible progress.
+- CPU util remained ~357% despite 28/56 topology; throughput is fine (≈128k SPS) and consistent with prior runs; utilization panel likely reports process-local CPU not machine-wide.
+
+Theory
+- High entropy and lr destabilized policy; recent strong runs show lr ∈ [1.5e-3, 2.0e-3] and ent ≈ 0.01 with annealing and 4 PPO epochs are reliable. Warm-starting from best should recover quickly and improve quality.
+
+Next
+- Resume from best checkpoint; set lr 1.8e-3, ent 0.01, update_epochs 4, clip 0.20, muon optimizer; keep topology 28/56 and bptt 16; anneal lr; seed 42 for reproducibility.
+- Keep total_timesteps at 2e7 to validate recovery within the same runtime budget; monitor success_rate/mean_reward and collision_rate; verify clipfrac and KL move off ~0 (indicating meaningful updates).

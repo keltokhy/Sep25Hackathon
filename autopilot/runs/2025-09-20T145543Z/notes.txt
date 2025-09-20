@@ -1,0 +1,40 @@
+Run: 2025-09-20T145543Z
+Mode: full baseline; warm-started from latest
+
+Key metrics
+- success_rate: 0.000
+- mean_reward: 12.405
+- collision_rate: 0.00101
+- episode_length: 324.77
+- SPS: 142.2k; agent_steps: 11,038,720; epoch: 349
+
+Topology & batch
+- device: mps (GPU util ~0% per panel), CPU ~357%
+- vec: workers 28, envs 56 (divisible ✓)
+- env: num_envs 4, num_drones 8
+- bptt_horizon 16 → derived batch = 4×8×56×16 = 28,672 (minibatch=max=28,672) ✓
+
+Config deltas (this run)
+- learning_rate 0.002, ent_coef 0.08, update_epochs 2, gamma 0.99, gae_lambda 0.95, clip_coef 0.12, vf_coef 2.0, optimizer muon; total_timesteps 10M.
+
+Comparative context (recent runs)
+- 2025-09-20T143330Z (20M, lr 0.003, ent 0.10): mean_reward 15.00 (best), episode_length 43.5, collision_rate 0.00061, success_rate 0.0.
+- 2025-09-20T143904Z (10M, lr 0.003, ent 0.02): mean_reward 13.12, episode_length 379.68, collision_rate 0.00146, success_rate 0.0.
+- 2025-09-20T144334Z (20M, lr 0.003, ent 0.10): mean_reward 13.47, episode_length 101.11, collision_rate 0.00080, success_rate 0.0.
+- 2025-09-20T144826Z (30M, lr 0.003, ent 0.12): mean_reward 8.44, episode_length 491.05, collision_rate 0.00211, success_rate 0.0.
+
+Observation
+- Success remains at 0.0 across runs; reward moves with entropy and timesteps, but higher entropy (0.12) increased collisions and worsened reward, while very low entropy (0.02) lengthened episodes without producing successes.
+- Throughput looks healthy (SPS ~120–142k) with current topology; VRAM reported ~0% with MPS, suggesting the workload remains CPU-bound.
+
+Theory
+- The task likely has sparse/delayed rewards; with gamma 0.99 and only 2 PPO epochs, credit assignment may be too short-horizon for consistent successes. Moderately reducing exploration while increasing temporal credit assignment (higher gamma/GAE) and PPO update strength (more epochs) should improve policy quality and success without spiking collisions.
+
+Next step (staged in proposals/next_config.json)
+- Resume: continue from best checkpoint to leverage strongest prior policy.
+- Increase temporal credit: gamma → 0.997, gae_lambda → 0.97.
+- Stabilize/improve learning: update_epochs → 4; learning_rate → 0.0025; ent_coef → 0.06.
+- Keep topology and bptt at 16; total_timesteps → 20M; batch/minibatch/max stay 28,672 (derived).
+
+Success criteria for next run
+- Non-zero success_rate; higher mean_reward vs. this run; maintain or reduce collision_rate.

@@ -1,0 +1,45 @@
+{
+  "run_id": "2025-09-20T140103Z",
+  "timestamp": "2025-09-20T14:05:08Z",
+  "seed": 42,
+  "success_rate": 0.0,
+  "mean_reward": 2.6147827208042145,
+  "episode_length": 32.00810854775565,
+  "config_diff": "{\n  \"autopilot\": {\n    \"old\": null,\n    \"new\": {\n      \"resume_mode\": \"fresh\",\n      \"resume_from\": null,\n      \"save_strategy\": \"best\"\n    }\n  },\n  \"env\": {\n    \"old\": null,\n    \"new\": {\n      \"num_envs\": 4,\n      \"num_drones\": 8\n    }\n  },\n  \"env_name\": {\n    \"old\": null,\n    \"new\": \"puffer_drone_pp\"\n  },\n  \"train\": {\n    \"old\": null,\n    \"new\": {\n      \"device\": \"mps\",\n      \"total_timesteps\": 10000000,\n      \"bptt_horizon\": 16,\n      \"batch_size\": 28672,\n      \"minibatch_size\": 28672,\n      \"max_minibatch_size\": 28672,\n      \"learning_rate\": 0.003,\n      \"ent_coef\": 0.12,\n      \"seed\": 42,\n      \"checkpoint_interval\": 200,\n      \"update_epochs\": 1,\n      \"gae_lambda\": 0.95,\n      \"gamma\": 0.99,\n      \"clip_coef\": 0.2,\n      \"vf_clip_coef\": 1.0,\n      \"vf_coef\": 1.0,\n      \"max_grad_norm\": 1.0,\n      \"optimizer\": \"muon\",\n      \"anneal_lr\": true,\n      \"torch_deterministic\": true,\n      \"cpu_offload\": false,\n      \"precision\": \"float32\",\n      \"compile\": false,\n      \"compile_mode\": \"max-autotune-no-cudagraphs\",\n      \"compile_fullgraph\": true,\n      \"adam_beta1\": 0.95,\n      \"adam_beta2\": 0.999,\n      \"adam_eps\": 1e-12\n    }\n  },\n  \"vec\": {\n    \"old\": null,\n    \"new\": {\n      \"num_workers\": 28,\n      \"num_envs\": 56\n    }\n  }\n}",
+  "artifacts": [],
+  "notes": "auto-generated run summary",
+  "trainer_summary": {
+    "timestamp": "2025-09-20T14:03:18Z",
+    "run_id": "2025-09-20T140103Z",
+    "train": {
+      "seed": 42,
+      "learning_rate": 0.003,
+      "entropy_coef": 0.12,
+      "batch_size": 28672,
+      "minibatch_size": 28672,
+      "max_minibatch_size": 28672,
+      "bptt_horizon": 16,
+      "total_timesteps": 10000000
+    },
+    "env": {
+      "num_envs": 4,
+      "num_drones": 8
+    },
+    "vec": {
+      "num_envs": 56,
+      "num_workers": 28
+    },
+    "metrics": {
+      "success_rate": 0.0,
+      "mean_reward": 2.6147827208042145,
+      "episode_length": 32.00810854775565,
+      "collision_rate": 0.0005959122633742352,
+      "sps": 106443.89653598865,
+      "agent_steps": 11038720,
+      "epoch": 349
+    }
+  },
+  "resume_mode": "fresh",
+  "resume_from": null,
+  "save_strategy": "best"
+}

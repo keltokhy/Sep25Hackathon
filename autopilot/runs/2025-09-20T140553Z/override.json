@@ -1,0 +1,33 @@
+{
+  "env_name": "puffer_drone_pp",
+  "train": {
+    "device": "mps",
+    "total_timesteps": 120000000,
+    "bptt_horizon": 16,
+    "learning_rate": 0.003,
+    "ent_coef": 0.12,
+    "clip_coef": 0.2,
+    "vf_coef": 1.0,
+    "max_grad_norm": 1.0,
+    "checkpoint_interval": 200,
+    "batch_size": 28672,
+    "minibatch_size": 28672,
+    "max_minibatch_size": 28672,
+    "anneal_lr": true,
+    "torch_deterministic": true,
+    "update_epochs": 1
+  },
+  "env": {
+    "num_envs": 4,
+    "num_drones": 8
+  },
+  "vec": {
+    "num_workers": 28,
+    "num_envs": 56
+  },
+  "autopilot": {
+    "resume_mode": "fresh",
+    "resume_from": null,
+    "save_strategy": "best"
+  }
+}

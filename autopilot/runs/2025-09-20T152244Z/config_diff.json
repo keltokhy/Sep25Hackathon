@@ -1,0 +1,24 @@
+{
+  "load_model_path": {
+    "old": "/Users/khaled/GitHub/Sep25Hackathon-master/PufferLib/experiments/puffer_drone_pp_175838080962.pt",
+    "new": null
+  },
+  "train": {
+    "clip_coef": {
+      "old": 0.2,
+      "new": 0.15
+    },
+    "ent_coef": {
+      "old": 0.02,
+      "new": 0.01
+    },
+    "learning_rate": {
+      "old": 0.003,
+      "new": 0.0025
+    },
+    "update_epochs": {
+      "old": 16,
+      "new": 20
+    }
+  }
+}

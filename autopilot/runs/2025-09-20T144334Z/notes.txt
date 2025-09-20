@@ -1,0 +1,45 @@
+Run 2025-09-20T144334Z — full baseline; resume=best
+
+Summary
+- Steps: 20.9M; Epoch: 698; SPS: ~137.2K
+- success_rate: 0.000
+- mean_reward: 13.465
+- collision_rate: 0.00080
+- episode_length: ~101
+- approx_kl: ~0.000; clipfrac: 0.000; explained_var: ~0.917
+- Utilisation: CPU ~357% (≈3.6 cores), GPU 0%, DRAM ~33%, VRAM 0%
+
+Config (effective)
+- device: mps; optimizer: muon; lr: 3e-3; ent_coef: 0.10
+- update_epochs: 1; gamma: 0.99; gae_lambda: 0.95; clip_coef: 0.3; vf_coef: 2.0
+- Topology: vec 28/56; env 4×8; bptt 16
+- Derived batch: 4×8×56×16 = 28,672; minibatch = max_minibatch = 28,672
+- Divisibility: 56 % 28 == 0 ✓
+- Resume policy used: continue from best (orchestrator injected load path)
+
+Interpretation
+- Stability looks good (EV ~0.92, no spikes), but policy updates are tiny (approx_kl≈0, clipfrac≈0). That suggests under-updating with update_epochs=1 and relatively large batch.
+- Success remains 0 across recent runs despite decent mean_reward and very low collision_rate; likely sparse/long-horizon credit assignment.
+- CPU under-utilised relative to machine capacity; keeping topology steady to isolate learning changes first.
+
+Theory
+- Increase credit assignment and learning per batch should help the policy meaningfully move toward success without destabilising.
+- Slightly longer horizon discount (gamma) and higher GAE lambda improve return propagation; one extra PPO epoch increases update magnitude while keeping clipping guardrails.
+
+Next changes (staged in proposals/next_config.json)
+- train.update_epochs: 1 → 2
+- train.gamma: 0.99 → 0.995
+- train.gae_lambda: 0.95 → 0.97
+- train.total_timesteps: 20M → 30M (runtime still within budget)
+- Keep lr=3e-3 and ent_coef=0.10 constant to isolate the effect.
+- Keep topology constant; batch/minibatch derived = 28,672.
+- Resume: continue from latest; save_strategy=best
+
+Success criteria for next run
+- Non-zero clipfrac and modest approx_kl (~0.01–0.03) indicating meaningful policy updates.
+- Improved mean_reward and (ideally) first non-zero success_rate while keeping collision_rate ≤0.002.
+- SPS stable; CPU util not materially worse.
+
+If under-updating persists
+- Consider decreasing clip_coef to 0.2 or raising lr slightly (e.g., 3.2e-3) while watching KL.
+- If still no successes after ~30–40M steps, try bptt_horizon=32 (batch 57,344) and/or increase env.num_drones to push representation learning, with MPS watermark adjustment.

@@ -1,0 +1,39 @@
+Run 2025-09-20T161021Z — full baseline; lower LR test
+
+Config
+- Device/topology: train.device=mps; vec.num_workers=28; vec.num_envs=56 (divisible ✅); env.num_envs=4; env.num_drones=8; train.bptt_horizon=16
+- Derived batch: batch_size=minibatch_size=max_minibatch_size = 4×8×56×16 = 28,672 (matches trainer ✅)
+- Total timesteps: 20,000,000
+- Optimizer/schedule: (defaults); ent_coef=0.01; learning_rate=0.002 (tested change vs prior best 0.0025)
+
+Utilization
+- SPS: ~124.3k steps/s (agent_steps ≈ 20.93M in ~3m31s)
+- GPU (MPS) util ~0% per panel; CPU ~357% reported by panel (likely main-process only; workers operate separately). No throttling observed.
+
+Key metrics (end of run)
+- success_rate: 1226.13
+- mean_reward: 481.55
+- collision_rate: 0.00457
+- episode_length: 895.46
+
+Comparison to recent runs
+- 2025-09-20T160433Z (10M steps, lr=0.0025, ent=0.01): mean_reward 496.56 (+15.0), success_rate 1258.92 (+32.8), collision_rate 0.00502 (−0.00045 worse)
+- 2025-09-20T155229Z (20M steps, lr=0.0025, ent=0.02): mean_reward 479.79 (−1.76), success_rate 512.39 (much lower/likely metric mismatch), collision_rate 0.00346 (lower)
+- 2025-09-20T154105Z (20M steps, lr=0.003, ent=0.1): catastrophic; mean_reward −4.95; validates that high entropy is harmful.
+
+Diagnostics/observations
+- KL/clip panel: approx_kl ≈ 0.000; clipfrac ≈ 0.000; importance ≈ 1.000. Indicates very small policy updates per batch (under-updating), consistent with lower LR and possibly few update epochs.
+- Losses: policy_loss ~0.052; value_loss ~0.003; entropy displayed high but stable across end snapshots.
+- Throughput stable; no signs of CPU starvation; batch sizing aligned with topology.
+
+Theory
+- Dropping learning_rate from 0.0025 → 0.002 likely reduced policy movement (near-zero KL, zero clipping), yielding lower mean_reward despite longer training (20M vs 10M). The prior 10M run with lr=0.0025 produced the best reward so far. Slightly higher collision_rate there suggests more aggressive exploration; however, current run already has low ent=0.01, so keeping ent fixed is reasonable.
+
+Next step (proposal saved to proposals/next_config.json)
+- Revert lr to 0.0025 and enable LR annealing to allow larger early updates then decay for stability.
+- Modestly increase update_epochs to 2 to better utilize each batch given near-zero clipfrac (without overfitting).
+- Reduce total_timesteps to 10M to replicate the known-strong regime and speed iteration.
+- Warm-start from best checkpoint to preserve learning momentum.
+
+Hypothesis/expected outcome
+- mean_reward improves toward ≥496 with collision_rate ≤0.0045 (matching or beating the 10M lr=0.0025 run), with stable SPS and no increase in instability.

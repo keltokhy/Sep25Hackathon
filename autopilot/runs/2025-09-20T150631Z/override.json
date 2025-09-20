@@ -1,0 +1,13 @@
+{
+  "train": {
+    "learning_rate": 0.003,
+    "ent_coef": 0.04,
+    "update_epochs": 8,
+    "clip_coef": 0.2
+  },
+  "autopilot": {
+    "resume_mode": "continue",
+    "resume_from": "best",
+    "save_strategy": "best"
+  }
+}
