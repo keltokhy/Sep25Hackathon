@@ -517,6 +517,7 @@ void reset_agent(DronePP* env, Drone *agent, int idx) {
     agent->ring_idx = 0;
     agent->perfect_grip = false;
     agent->perfect_deliv = false;
+    agent->perfect_now = false;
     agent->has_delivered = false;
     agent->jitter = 100.0f;
     agent->box_physics_on = false;
@@ -626,6 +627,7 @@ void c_step(DronePP *env) {
         Drone *agent = &env->agents[i];
         env->rewards[i] = 0;
         env->terminals[i] = 0;
+        agent->perfect_now = false;
 
         float* atn = &env->actions[4*i];
         move_drone(agent, atn);
@@ -763,6 +765,7 @@ void c_step(DronePP *env) {
                         agent->has_delivered = true;
                         if (k < 1.01f && agent->perfect_grip  && env->box_k > 0.99f) {
                             agent->perfect_deliv = true;
+                            agent->perfect_now = true;
                             agent->color = (Color){0, 255, 0, 255}; // Green
                         }
                         reset_pp2(env, agent, i);
@@ -784,6 +787,7 @@ void c_step(DronePP *env) {
                 if (a->delivered) env->log.delivered += 1.0f;
                 if (a->perfect_grip && env->grip_k < 1.01f) env->log.perfect_grip += 1.0f;
                 if (a->perfect_deliv && env->grip_k < 1.01f && a->perfect_grip) env->log.perfect_deliv += 1.0f;
+                if (a->perfect_deliv && env->grip_k < 1.01f && a->perfect_grip && a->perfect_now && env->box_k > 0.99f) env->log.now += 1.0f;
                 if (a->approaching_drop) env->log.to_drop += 1.0f;
                 if (a->hovering_drop) env->log.ho_drop += 1.0f;
             }

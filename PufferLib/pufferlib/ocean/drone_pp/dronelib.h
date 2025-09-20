@@ -63,6 +63,7 @@ struct Log {
     float perfect_grip;
     float delivered;
     float perfect_deliv;
+    float perfect_now;
     float to_pickup;
     float ho_pickup;
     float de_pickup;
@@ -257,6 +258,7 @@ typedef struct {
     bool perfect_grip;
     bool delivered;
     bool perfect_deliv;
+    bool perfect_now;
     bool has_delivered;
     float grip_height;
     bool approaching_pickup;
