@@ -141,6 +141,10 @@ int main() {
     env->box_base_density = 50.0;
     env->box_k_growth = 0.02;
 
+    env->reward_hover = 0.25;
+    env->reward_grip = 0.5;
+    env->reward_deliv = 0.75;
+
     env->task = TASK_ORBIT;
     init(env);
 

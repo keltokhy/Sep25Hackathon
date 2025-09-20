@@ -27,6 +27,10 @@ static int my_init(Env *env, PyObject *args, PyObject *kwargs) {
     env->box_base_density = unpack(kwargs, "box_base_density");
     env->box_k_growth = unpack(kwargs, "box_k_growth");
 
+    env->reward_hover = unpack(kwargs, "reward_hover");
+    env->reward_grip = unpack(kwargs, "reward_grip");
+    env->reward_deliv = unpack(kwargs, "reward_deliv");
+
     init(env);
     return 0;
 }

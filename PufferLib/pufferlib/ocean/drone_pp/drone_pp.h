@@ -111,6 +111,10 @@ typedef struct {
     float box_k_max;
     float box_k_growth;
 
+    float reward_hover;
+    float reward_grip;
+    float reward_deliv;
+
     Client *client;
 } DronePP;
 
@@ -437,8 +441,8 @@ float compute_reward(DronePP* env, Drone *agent, bool collision) {
     float approach_reward = approach_weight * clampf(approach_dot / agent->params.max_vel, -0.5f, 0.5f);
 
     float hover_bonus = 0.0f; // todo add a K
-    if (dist < env->reward_dist * 0.2f && vel_magnitude < 0.2f) {
-        hover_bonus = 0.5f;
+    if (dist < env->reward_dist * 0.2f && vel_magnitude < 0.2f && agent->state.vel.z < 0.0f) {
+        hover_bonus = env->reward_hover;
     }
 
     float collision_penalty = 0.0f;
@@ -458,7 +462,7 @@ float compute_reward(DronePP* env, Drone *agent, bool collision) {
                         env->w_velocity * velocity_penalty +
                         env->w_stability * stability_reward +
                         env->w_approach * approach_reward +
-                        env->w_hover * hover_bonus +
+                        hover_bonus +
                         collision_penalty;
 
     total_reward = clampf(total_reward, -1.0f, 1.0f);
@@ -516,6 +520,7 @@ void reset_agent(DronePP* env, Drone *agent, int idx) {
     agent->score = 0.0f;
     agent->ring_idx = 0;
     agent->perfect_grip = false;
+    agent->perfect_deliveries = 0.0f;
     agent->perfect_deliv = false;
     agent->perfect_now = false;
     agent->has_delivered = false;
@@ -717,7 +722,7 @@ void c_step(DronePP *env) {
                             agent->color = (Color){100, 100, 255, 255}; // Light Blue
                         }
                         agent->gripping = true;
-                        reward += 1.0f;
+                        reward += env->reward_grip;
                         random_bump(agent);
                     } else if (dist_to_hidden > 0.4f || speed > 0.4f) {
                         agent->color = (Color){255, 100, 100, 255}; // Light Red
@@ -760,11 +765,12 @@ void c_step(DronePP *env) {
                         update_gripping_physics(agent);
                         agent->box_physics_on = false;
                         agent->hovering_drop = false;
-                        reward += 1.0f;
+                        reward += env->reward_deliv;
                         agent->delivered = true;
                         agent->has_delivered = true;
                         if (k < 1.01f && agent->perfect_grip  && env->box_k > 0.99f) {
                             agent->perfect_deliv = true;
+                            agent->perfect_deliveries += 1.0f;
                             agent->perfect_now = true;
                             agent->color = (Color){0, 255, 0, 255}; // Green
                         }
@@ -786,7 +792,7 @@ void c_step(DronePP *env) {
                 if (a->gripping) env->log.gripping += 1.0f;
                 if (a->delivered) env->log.delivered += 1.0f;
                 if (a->perfect_grip && env->grip_k < 1.01f) env->log.perfect_grip += 1.0f;
-                if (a->perfect_deliv && env->grip_k < 1.01f && a->perfect_grip) env->log.perfect_deliv += 1.0f;
+                if (a->perfect_deliv && env->grip_k < 1.01f && a->perfect_grip) env->log.perfect_deliv += agent->perfect_deliveries;
                 if (a->perfect_deliv && env->grip_k < 1.01f && a->perfect_grip && a->perfect_now && env->box_k > 0.99f) env->log.perfect_now += 1.0f;
                 if (a->approaching_drop) env->log.to_drop += 1.0f;
                 if (a->hovering_drop) env->log.ho_drop += 1.0f;

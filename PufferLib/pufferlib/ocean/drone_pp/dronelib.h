@@ -258,6 +258,7 @@ typedef struct {
     bool perfect_grip;
     bool delivered;
     bool perfect_deliv;
+    float perfect_deliveries;
     bool perfect_now;
     bool has_delivered;
     float grip_height;
