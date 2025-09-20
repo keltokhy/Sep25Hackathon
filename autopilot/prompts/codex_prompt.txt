@@ -28,9 +28,9 @@ Context:
 - Keep the JSON valid; write `{{}}` if you want the next run to reuse the baseline without overrides.
 
 Execution rules:
-- Step 1 is mandatory. Your first command must be `bash -lc 'timeout 900 ./{script}'` (or the equivalent via `bash -lc`).
+- Step 1 is mandatory. Launch {script} immediately (via `bash -lc` from repo root) and allow **at least 15 minutes** of timeout budget so the training can finish.
 - Do not replace, skip, or defer this command; wait until it completes and capture stdout/stderr.
-- If the command fails or times out, report the exit code and diagnose before changing configs.
+- If the command exits early or times out, report the exit code and diagnose before changing configs.
 
 Example override:
 ```
@@ -43,7 +43,7 @@ Example override:
 ```
 
 Steps:
-1. Execute `bash -lc 'timeout 900 ./{script}'` and wait for it to finish.
+1. Execute {script} (with ≥15‑minute timeout allowance) and wait for it to finish.
 2. Inspect the results (e.g., tail the fresh log under `autopilot/logs/` or read `$PUFFER_AUTOPILOT_SUMMARY` when it exists).
 3. Based on those results, update `autopilot/proposals/next_config.json` with overrides for the **next** run (or `{{}}` if no change).
 4. Create or overwrite {notes_path} with a concise status update (for example, `Notes: run completed`). Include brief diagnostics when relevant (CPU/GPU utilisation, SPS, vec/env divisibility, derived batch you used).

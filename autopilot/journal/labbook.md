@@ -45,3 +45,7 @@
 - 2025-09-20T10:32:44Z | run complete | Run 2025-09-20T102914Z success 0.00, mean_reward 5.46, collision 5.1e-4, SPS 17.5k | quick baseline vec 4/4, env 4x8, batch 2048; CPU ~95%, GPU ~0% | next: 2e6 steps, lr 5e-3, ent 0.12, update_epochs 2
 
 - 2025-09-20T10:36:16Z | timeout guardrail | Prompt/docs now require `timeout 900` wrapper around training script to avoid 2-min CLI limit | ready to rerun multi-iter loop | next: verify Codex obeys timeout
+- 2025-09-20T10:37:13Z | run complete | Run 2025-09-20T103243Z success 0.00, mean_reward 9.50, collision 6.1e-4, SPS 109k | CPU ~357%, GPU ~0% | next: ent 0.05, lr 2.5e-3, update_epochs 3, gamma 0.995, total_timesteps 15M
+- 2025-09-20T10:39:25Z | run complete | Run 2025-09-20T103243Z (iteration 2) | metrics captured | 
+
+- 2025-09-20T10:40:22Z | timeout policy tweak | Relaxed wording: agent must allow ≥15 min timeout when launching training script | ready to test loop again | next: rerun quick mode
