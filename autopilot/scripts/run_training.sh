@@ -24,6 +24,11 @@ echo "Using config ${CONFIG_PATH}"
 cd "${PUFFER_DIR}"
 source .venv/bin/activate
 
+# macOS performance env (override by exporting before calling script)
+export PYTORCH_MPS_HIGH_WATERMARK_RATIO=${PYTORCH_MPS_HIGH_WATERMARK_RATIO:-0.0}
+export OMP_NUM_THREADS=${OMP_NUM_THREADS:-28}
+export MKL_NUM_THREADS=${MKL_NUM_THREADS:-28}
+
 # macOS system bash is 3.2 (no mapfile); use portable array capture
 TRAIN_ARGS=( $(python3 "${SCRIPT_DIR}/render_cli_args.py" "${CONFIG_PATH}") )
 

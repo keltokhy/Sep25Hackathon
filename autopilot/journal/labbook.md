@@ -18,3 +18,4 @@
 - 2025-09-20T10:21:00Z | probe mp small | 2 workers, 2 vec envs (divisible), env.num_envs=1, num_drones=1 | succeeded; CPU ~10% overall (expected under‑utilization at this scale)
 - 2025-09-20T10:25:00Z | hypothesis | low CPU due to low worker/env count; prior “stuck” came from invalid divisibility and/or MPS cold compile | next: stepwise scale workers/envs keeping vec.num_envs % vec.num_workers == 0 and batch_size % (vec.num_envs/vec.num_workers) == 0
 - 2025-09-20T10:26:00Z | next steps | test 14 workers/28 envs then 28/56; maintain small train.batch-size initially; verify logs print within 60–90s; record SPS/CPU% per step | if idle persists, try CPU device to isolate MPS
+- 2025-09-20T10:40:00Z | peak search | probe #1 (14/28, e1,d16,b=7168) stable ~50% CPU | probe #2 (28/56, e1,d16,b=14336) ~100% CPU | probe #3 (28/56, e4,d8,b=28672) ~100% CPU; adopting #3 as full baseline

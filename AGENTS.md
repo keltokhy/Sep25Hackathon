@@ -24,6 +24,10 @@
 - The Mac Studio (M3 Ultra) can usually handle higher concurrency—bump `vec.num_workers`, `vec.num_envs`, and `env.num_envs` via `proposals/next_config.json` until the `train.log` utilisation panel shows sustained 90%+ CPU without throttling.
 - To push the GPU, raise `env.num_drones` or `train.batch_size` cautiously and set `PYTORCH_MPS_HIGH_WATERMARK_RATIO=0.0` before launching to let Metal use the full VRAM budget.
 - Keep `OMP_NUM_THREADS`/`MKL_NUM_THREADS` aligned with available cores (e.g., 24–32) so Python workers don’t starve; record any tuning in `journal/labbook.md` for reproducibility.
+ - For stability and throughput, set `train.batch_size = (env.num_envs × env.num_drones × vec.num_envs) × train.bptt_horizon`. This ensures segment count equals total agents and avoids tensor size errors.
+ - Known-good high‑utilization presets on M3 Ultra:
+   - Quick: `vec 4/4`, `env 4×8`, `batch 2048`, `bptt 16` (already in baseline_quick).
+   - Full: `vec 28/56`, `env 4×8`, `batch 28672`, `bptt 16` (in baseline_full).
 
 ## Coding Style
 - Follow PEP 8 (4-space indent, snake_case functions, CapWords classes).

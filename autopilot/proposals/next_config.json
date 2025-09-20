@@ -1,6 +1,1 @@
-{
-  "train": {
-    "learning_rate": 0.0035,
-    "ent_coef": 0.12
-  }
-}
+{}
