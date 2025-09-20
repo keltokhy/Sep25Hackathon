@@ -1,3 +1,6 @@
+Goal:
+- Drive the training toward better policy quality (higher `success_rate`, `mean_reward`, lower `collision_rate`) while keeping runs stable and reproducible.
+
 Context:
 - Baseline configs live in `autopilot/configs/` (quick vs. full).
 - `autopilot/proposals/next_config.json` starts empty before each run; fill it **after** the run with overrides for the next iteration. Touch only these keys and respect the safety ranges:
