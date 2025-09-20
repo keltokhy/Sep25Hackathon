@@ -1,0 +1,9 @@
+--- a/autopilot_mvp/config.json
++++ b/autopilot_mvp/config.json
+@@ -1,5 +1,5 @@
+ {
+-  "lr": 0.005,
++  "lr": 0.010,
+   "gamma": 0.95,
+   "entropy_coef": 0.0005
+ }

@@ -1,0 +1,107 @@
+- pp0 noble-water-28 n6g84fj7
+    - 0.21 (BIG) 75%
+    - 0.067 (SMALL) almost the smallest
+    - 0.12 (BIG) 75%
+    - 0.11 (SMALL) a bit small
+- pp1 snowy-deluge-41 34eijfxt
+    - 0.09 penalty_damping
+    - 0.11 reward_xy_dist
+    - 0.95 reward_hover_dist
+    - 0.03 reward_hover_alt
+    - 0.22 reward_hover
+    - 0.12 reward_maint_hover
+    - 0.7  reward_descent
+    - 0.07 penalty_lost_hover
+- pp1 BEST vs debug groups
+    - 0.065 !0.09  penalty_damping
+    - 0.09  !0.10  reward_xy_dist
+    - 0.88  !0.95  reward_hover_dist
+    - 0.031 !0.038 reward_hover_alt
+    - 0.22  !0.21  reward_hover
+    - 0.12  !0.11  reward_maint_hover
+    - 0.75  !0.73  reward_descent
+    - 0.075 !0.08  penalty_lost_hover
+- pp2 vibrant-puddle-49 cxucb9up
+    - alignment: 0.001
+    - dist_decay: 0.01
+    - max_rings: 10
+    - num_drones: 64
+    - num_envs: 16
+    - penalty_damping: 0.065
+    - penalty_lost_hover: 0.075
+    - reward_descent: 0.75
+    - reward_hover: 0.22
+    - reward_hover_alt: 0.031
+    - reward_hover_dist: 0.88
+    - reward_maint_hover: 0.12
+    - reward_max_dist: 45.72890260469788
+    - reward_min_dist: 6.64247315532945
+    - reward_xy_dist: 0.09
+- pp2 morning-sky-51 upwv10lp
+- pp4 elated-deluge-3 d2xy188y
+    - dist_decay: 0.08
+- pp4 stoic-pyramid-15 227npj3z
+    - omega_prox: 0.01
+    - stability_weight: 0.07
+- pp5 generous-salad-12 re23mzx8
+
+
+
+- pp8 volcanic-wind-36 
+- pp8 solar-morning-48 h1kb8n3r
+
+
+
+- pp11 devoted-deluge-4 y3di0de3
+    - dist_decay: 0.029999999999999992
+    - grip_k_decay: 0.07
+    - grip_k_max: 19
+    - grip_k_min: 1
+    - max_rings: 10
+    - num_drones: 64
+    - num_envs: 24
+    - pos_const: 0.2
+    - pos_penalty: 0.2
+    - reward_max_dist: 75
+    - reward_min_dist: 1.9999999999999998
+    - w_approach: 1.6999999999999997
+    - w_hover: 1.6
+    - w_position: 1
+    - w_stability: 1.7999999999999998
+    - w_velocity: 0.003999999999999976
+    - 
+    - adam_beta1: 0.9
+    - adam_beta2: 0.999
+    - adam_eps: 1e-08
+    - anneal_lr: "true"
+    - batch_size: auto
+    - bptt_horizon: 64
+    - checkpoint_interval: 200
+    - clip_coef: 0.2
+    - compile: false
+    - compile_fullgraph: true
+    - cpu_offload: false
+    - data_dir: experiments
+    - device: cuda
+    - ent_coef: 0.01000000000000001
+    - gae_lambda: 0.95
+    - gamma: 0.98
+    - learning_rate: 0.01000000000000001
+    - max_grad_norm: 1
+    - max_minibatch_size: 32768
+    - minibatch_size: 32768
+    - name: pufferai
+    - optimizer: muon
+    - precision: float32
+    - prio_alpha: 0.8499999999999999
+    - prio_beta0: 0.8499999999999999
+    - project: ablations
+    - seed: 42
+    - torch_deterministic: true
+    - total_timesteps: 1000000000
+    - update_epochs: 1
+    - use_rnn: true
+    - vf_clip_coef: 0.20000000000000012
+    - vf_coef: 2
+    - vtrace_c_clip: 1
+    - vtrace_rho_clip: 1

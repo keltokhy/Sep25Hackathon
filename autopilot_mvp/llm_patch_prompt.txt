@@ -1,0 +1,7 @@
+You are improving a single scalar metric printed by `python autopilot_mvp/train.py`.
+
+Output ONLY a valid unified diff against the repo root (no commentary).
+Keep the patch minimal; prefer editing `autopilot_mvp/config.json` (keys: lr, gamma, entropy_coef).
+If you edit code, keep changes tiny.
+
+Goal: Increase the score on the next run.
