@@ -52,7 +52,8 @@ JSON
 cd "${PUFFER_DIR}"
 source .venv/bin/activate
 
-mapfile -t TRAIN_ARGS < <(python3 "${SCRIPT_DIR}/render_cli_args.py" "${TMP_DIR}/config_${RUN_TAG}.json")
+# macOS system bash is 3.2 (no mapfile); use portable array capture
+TRAIN_ARGS=( $(python3 "${SCRIPT_DIR}/render_cli_args.py" "${TMP_DIR}/config_${RUN_TAG}.json") )
 
 echo "[peak_probe] writing summary to: ${SUMMARY_PATH}" >&2
 PUFFER_AUTOPILOT_SUMMARY="${SUMMARY_PATH}" \
@@ -76,4 +77,3 @@ PY
 else
   echo "No summary written. See log: ${LOG_PATH}" >&2
 fi
-

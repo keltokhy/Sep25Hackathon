@@ -24,7 +24,8 @@ echo "Using config ${CONFIG_PATH}"
 cd "${PUFFER_DIR}"
 source .venv/bin/activate
 
-mapfile -t TRAIN_ARGS < <(python3 "${SCRIPT_DIR}/render_cli_args.py" "${CONFIG_PATH}")
+# macOS system bash is 3.2 (no mapfile); use portable array capture
+TRAIN_ARGS=( $(python3 "${SCRIPT_DIR}/render_cli_args.py" "${CONFIG_PATH}") )
 
 python -m pufferlib.pufferl train puffer_drone_pp \
     "${TRAIN_ARGS[@]}" \
