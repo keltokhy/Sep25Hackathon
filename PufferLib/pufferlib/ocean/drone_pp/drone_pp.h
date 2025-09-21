@@ -770,9 +770,11 @@ void c_step(DronePP *env) {
                     // Only allow descent when laterally aligned with the box.
                     // This reduces floor interactions and OOB from drifting during descent.
                     float k_floor = fmaxf(k, 1.0f);
-                    // Relax XY alignment threshold slightly to allow descent
-                    // sooner and increase grip interactions (diagnostic_grip).
-                    if (xy_dist_to_box <= k_floor * 0.30f) {
+                    // Relax XY alignment threshold to match the grip gate
+                    // so descent can proceed whenever gripping could plausibly succeed.
+                    // Hypothesis: enabling earlier vertical motion converts hover/descent
+                    // time into actual grip attempts and first grips.
+                    if (xy_dist_to_box <= k_floor * 0.40f) {
                         // Even gentler descent to improve stability entering grip
                         agent->hidden_vel = (Vec3){0.0f, 0.0f, -0.06f};
                     } else {
@@ -858,8 +860,8 @@ void c_step(DronePP *env) {
                     // Only descend when laterally aligned with drop; otherwise hold altitude to correct drift
                     float k_floor = fmaxf(k, 1.0f);
                     // Relax XY alignment threshold for drop descent to mirror pickup
-                    // changes and promote successful deliveries once grips occur.
-                    if (xy_dist_to_drop <= k_floor * 0.30f) {
+                    // (match grip/drop gates) and promote successful deliveries once grips occur.
+                    if (xy_dist_to_drop <= k_floor * 0.40f) {
                         // Gentler drop descent for stability, mirroring pickup descent tuning
                         agent->hidden_vel = (Vec3){0.0f, 0.0f, -0.06f};
                     } else {
