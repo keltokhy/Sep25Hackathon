@@ -86,6 +86,22 @@ RECORDKEEPING
 - Use behavioral analysis to make intelligent decisions about experiment type and focus.
 - Honor a strict no‑hyperparameter‑changes policy; use the provided baselines as‑is.
 
+COMMIT DISCIPLINE (Atomic Per Iteration)
+- After the single training run and your analysis, make exactly one commit capturing:
+  • Any environment code edits (e.g., `PufferLib/pufferlib/ocean/drone_pp/drone_pp.h` and adjacent files).
+  • Run artifacts under `autopilot/runs/<run_id>/` (config.json, summary.json, trainer_summary.json, train.log, notes.txt).
+  • Journal updates: `autopilot/journal/labbook.md` and `autopilot/journal/notes.md` (curated).
+  • `autopilot/proposals/next_config.json` for the next run (usually `{}` or autopilot.* only).
+- Commit message format:
+  `env(drone_pp): <brief change>; expected effect | <run_id>`
+  Follow with short bullets:
+  - Problem observed: <key metrics>
+  - Change: <what/where in .h>
+  - Expected impact: <hypothesis>
+  - Outcome: <core metrics from trainer_summary>
+  - Next: <one action or `{}`>
+- Do not start another training inside the same iteration after committing. Edits are for the next iteration’s single run.
+
 ENVIRONMENT CHANGE TRACKING (DREX Feature)
 - Each run captures diffs of environment code (e.g., `env_uncommitted.diff`).
 - Summaries may include `environment_comparison` vs the previous run.
