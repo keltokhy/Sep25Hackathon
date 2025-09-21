@@ -845,17 +845,21 @@ void c_step(DronePP *env) {
                     // into occasional successful grips at k≈1.
                     // Relax floors modestly to convert frequent near‑misses
                     // into occasional successful grips at k≈1.
-                    float grip_xy_tol = fmaxf(0.90f, k * 0.28f);
-                    float grip_z_tol  = fmaxf(0.70f, k * 0.28f);
-                    // Accept slightly higher horizontal speed and vertical rate
-                    // to convert common near-misses into successful grips.
-                    float grip_v_tol  = fmaxf(1.40f, k * 0.35f);
-                    float grip_vz_tol = fmaxf(0.55f, k * 0.10f);
+                    // Iter24: further relax pickup acceptance envelopes at k≈1
+                    // to convert frequent near‑misses (ho/de_pickup high,
+                    // attempt_grip>0) into actual grips while monitoring OOB.
+                    // Keep k‑scaled terms for earlier, stricter phases.
+                    float grip_xy_tol = fmaxf(1.20f, k * 0.28f);
+                    float grip_z_tol  = fmaxf(0.90f, k * 0.28f);
+                    // Allow slightly higher horizontal speed and vertical rate
+                    // to accommodate descent jitter at acceptance time.
+                    float grip_v_tol  = fmaxf(1.60f, k * 0.35f);
+                    float grip_vz_tol = fmaxf(0.70f, k * 0.10f);
                     if (
                         xy_dist_to_box < grip_xy_tol &&
                         z_dist_above_box < grip_z_tol && z_dist_above_box > -0.40f &&
                         speed < grip_v_tol &&
-                        agent->state.vel.z > -grip_vz_tol && agent->state.vel.z <= 0.30f
+                        agent->state.vel.z > -grip_vz_tol && agent->state.vel.z <= 0.40f
                     ) {
                         // Mark a "perfect" grip when the agent meets a
                         // strict, k‑independent envelope. This avoids tying

@@ -198,6 +198,14 @@
 - 2025-09-21T20:22:41Z | run complete | Run 2025-09-21T201321Z (iteration 10) | metrics captured | 
 - 2025-09-21T20:27:20Z | run complete | Run 2025-09-21T202241Z (iteration 11) | trainer_summary: mean_reward≈-5.80 (Δ vs prev −23.94), ep_len≈550.80 (Δ +220.00), coll_rate≈0.043 (Δ −0.040), SPS≈1.80M, epoch=85; UI (final): perf≈0.283 (Δ −0.055), oob≈0.463 (Δ −0.215), perfect_grip=0.000 (↔), perfect_deliv=0.000 (↔); ho_pickup≈3.20 (Δ −3069), de_pickup≈3.17 (Δ −3051), to_drop≈2.87 (Δ −2945), ho_drop≈1.05 (Δ −767), attempt_grip≈0.001 (Δ −0.312), attempt_drop≈0.003 (Δ −4.558).
    Assessment: Stability improved materially (OOB↓, collisions↓, longer episodes), but phase/event counters and attempts collapsed relative to the prior run; no grips/deliveries. Hypothesis: pickup grip gate still too strict at k≈1.0 and near‑miss window too narrow, suppressing both attempts and successful grips.
+
+- 2025-09-21T22:33:13Z | run complete | Run 2025-09-21T223313Z (iteration 24) | trainer_summary: mean_reward≈37.73 (Δ vs prev 222334Z +1.39), sps≈1.75M, epoch=85; UI (final): oob≈0.724 (Δ +0.028), collision_rate≈0.081 (Δ +0.003), episode_length≈284.20; phases: to_pickup≈18.07k (Δ −1.78k), ho_pickup≈2.57k (Δ +0.46k), de_pickup≈2.52k (Δ +0.46k), to_drop≈2.45k (Δ +0.47k), ho_drop≈403 (Δ +35); attempts: attempt_grip≈0.426 (Δ +0.042), attempt_drop≈2.592 (Δ +0.227); perfect_grip=0.000, perfect_deliv=0.000.
+  Diagnosis: “Descending but can’t grip” persists. Hover and descent are strong (ho/de_pickup ↑), near‑misses occur (attempt_grip>0), but no grips convert at k≈1. OOB remains high (~72%) but below the 90% revert threshold; physics constants already at safe values.
+  Change (env/drone_pp.h): relax pickup acceptance floors further to convert near‑misses into successful grips at k≈1:
+    • grip_xy_tol floor 0.90→1.20; grip_z_tol floor 0.70→0.90
+    • speed floor 1.40→1.60; |vz| floor 0.55→0.70; upward cap 0.30→0.40
+    Rationale: high ho/de_pickup and attempt_grip indicate geometry alignment but strict envelopes still block conversion. Expect first non‑zero perfect_grip with minimal OOB impact; monitor collisions.
+  Next config: {autopilot.resume_mode="continue", resume_from="latest", save_strategy="best"}.
  
 - 2025-09-21T21:58:22Z | run complete | Run 2025-09-21T215341Z (iteration 20) | trainer_summary: sps≈1.68M, agent_steps≈276.0M, epoch=85; UI (final): oob≈0.647 (Δ vs 214439Z −0.021), collision_rate≈0.058 (Δ −0.003), perf≈0.272 (Δ −0.023), score≈35.96 (Δ −10.13); ho_pickup≈3295 (Δ +1051), de_pickup≈3261 (Δ +1056), to_pickup≈23080 (Δ +1382), to_drop≈3222 (Δ +1164), ho_drop≈323 (Δ +3.5); attempt_grip≈0.386 (Δ −0.004), attempt_drop≈2.085 (Δ −0.004); perfect_grip=0, perfect_deliv=0.
   Analysis: Approach/hover/descent and to_drop improved while stability nudged better; but grips/deliveries remain zero with attempts flat ⇒ “descending but can’t grip.” OOB is not primary. Next change (env/drone_pp.h): relax pickup acceptance floors (XY 0.90, Z 0.70, speed 1.00, |vz|≤0.45; z>−0.30), widen near‑miss window, and slightly relax strict “perfect” envelope to let first successes register. Expected: attempt_grip↑ and first perfect_grip>0; to_drop/ho_drop↗; OOB ≤0.70; collisions ≤0.08. Next overrides: {autopilot.resume=continue latest, save=best}.
@@ -270,3 +278,4 @@
    Expected: first non‑zero perfect_grip and possible perfect_deliv; attempts stable ±; OOB ≤0.60; collisions ≤0.08.
    Next config: {autopilot.resume_mode=continue, resume_from=latest, save_strategy=best}
 - 2025-09-21T22:23:34Z | run complete | Run 2025-09-21T221348Z (iteration 22) | metrics captured | 
+- 2025-09-21T22:33:13Z | run complete | Run 2025-09-21T222334Z (iteration 23) | metrics captured | 
