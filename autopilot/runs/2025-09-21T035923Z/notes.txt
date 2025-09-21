@@ -1,4 +1,4 @@
-Run: 2025-09-21T035923Z (iteration 6)
+  Run: 2025-09-21T035923Z (iteration 6)
 
 Problem observed (from train log + trainer_summary):
 - perfect_grip = 0.000; perfect_deliv = 0.000; end_to_end_success = 0.000

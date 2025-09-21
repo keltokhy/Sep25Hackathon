@@ -513,20 +513,23 @@ void reset_pp2(DronePP* env, Drone *agent, int idx) {
     agent->hover_timer = 0.0f;
     agent->target_pos = agent->box_pos;
     agent->hidden_pos = agent->target_pos;
-    // Raise initial hover target to provide more headroom above floor
-    // Rationale: High OOB near floor indicates insufficient margin; +0.9m reduces floor interactions
-    agent->hidden_pos.z += 0.9f;
+    // Set initial hover target modestly above the box to reduce
+    // long vertical transits before descent while keeping floor margin
+    // (aligns with drop hover ~+0.6m in later phases)
+    agent->hidden_pos.z += 0.6f;
     agent->hidden_vel = (Vec3){0.0f, 0.0f, 0.0f};
 
     // Spawn the drone near its assigned box to reduce early OOB
     // and encourage immediate hover/grip attempts (diagnostic_grip focus)
-    float r_xy = rndf(0.8f, 2.0f);
+    // Spawn closer laterally to the box to ease early hover acquisition
+    // and reduce OOB from large initial traversals
+    float r_xy = rndf(0.5f, 1.2f);
     float theta = rndf(0.0f, 2.0f * (float)M_PI);
     Vec3 spawn_pos = {
         agent->box_pos.x + r_xy * cosf(theta),
         agent->box_pos.y + r_xy * sinf(theta),
-        // Raise spawn altitude slightly to reduce early floor contacts
-        agent->box_pos.z + rndf(2.0f, 3.0f)
+        // Raise spawn altitude, but keep vertical distance to hover moderate
+        agent->box_pos.z + rndf(1.5f, 2.5f)
     };
     // Clamp within grid margins
     spawn_pos.x = clampf(spawn_pos.x, -GRID_X + 0.5f, GRID_X - 0.5f);
@@ -739,16 +742,17 @@ void c_step(DronePP *env) {
                     // Relax hover gate: admit earlier stabilization near the hidden point.
                     // Hypothesis (diagnostic_grip): strict hover gating blocks descent → no grips.
                     // Loosen distance/speed modestly; descent remains XY-gated.
-                    bool hover_ok_hidden = (dist_to_hidden < 1.8f && speed < 1.2f);
+                    // Make hover acquisition easier to register so descent gating can engage
+                    bool hover_ok_hidden = (dist_to_hidden < 2.4f && speed < 1.6f);
                     // New fallback: if laterally near the box and safely above it,
                     // allow hover acquisition even if not precisely at the hidden point.
                     // This increases ho/de_pickup and enables earlier descent,
                     // while descent itself remains XY-gated and gentle.
                     float k_floor = fmaxf(k, 1.0f);
                     bool hover_ok_xy = (
-                        xy_dist_to_box <= k_floor * 0.50f &&
-                        z_dist_above_box > 0.4f &&
-                        speed < 2.0f
+                        xy_dist_to_box <= k_floor * 0.75f &&
+                        z_dist_above_box > 0.3f &&
+                        speed < 2.5f
                     );
                     if (hover_ok_hidden || hover_ok_xy) {
                         agent->hovering_pickup = true;
