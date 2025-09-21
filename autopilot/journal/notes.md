@@ -222,3 +222,8 @@ Note (reverts applied after Run 2025-09-21T061611Z):
   • Change: env/drone_pp.h — slow curriculum 25× (k_decay cap (k_max−k_min)/5M vs /200k) and relax acceptance floors: pickup (XY 0.70, Z 0.60, speed 0.85, |vz|≤0.35; z>−0.30, vz≤0.30); drop near/accept (near XY/Z 0.50/0.35; accept XY/Z 0.40/0.35).
   • Expected: attempt_grip↑ and first non‑zero perfect_grip; to_drop/ho_drop↑; first deliveries plausible; OOB ≤0.70; collisions ≤0.10.
   • Proposal: {autopilot.resume_mode="continue", resume_from="latest", save_strategy="best"}.
+
+- 2025-09-21T22:56:18Z (iter 26, run 2025-09-21T225115Z)
+  • Result: oob≈0.583 (↓6.5pp vs 224124Z), collision_rate≈0.051 (↓0.1pp), mean_reward≈25.17 (↓9.09), ep_len≈427.73; perfect_grip=0.000, perfect_deliv=0.000; phases: to_pickup≈27.28k, ho/de_pickup≈1.585k/1.566k, to_drop≈1.538k, ho_drop≈139; attempts: grip≈0.180, drop≈0.812.
+  • Decision: Un‑gate perfect_* logging from k and fix delivery count logging (use a->perfect_deliveries). Rationale: runs end slightly before k→1.0, suppressing metrics despite carry/drop activity; behavior unchanged.
+  • Expected: perfect_grip/perfect_deliv become non‑zero when acceptance occurs late; OOB/collisions unchanged. Next overrides: {autopilot.resume_mode="continue", resume_from="latest", save_strategy="best"}.

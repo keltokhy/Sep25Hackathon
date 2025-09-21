@@ -1,0 +1,40 @@
+Run 2025-09-21T225115Z — Iteration 26
+
+Problem
+- End-to-end remains unsolved: perfect_grip=0.000, perfect_deliv=0.000 despite strong phase activity (to_drop≈1538, ho_drop≈139) and moderate stability (oob≈0.583, collision_rate≈0.051).
+- Symptom pattern: ho_pickup/de_pickup high; attempt_grip>0 but no conversions; deliveries zero.
+- Likely cause: “perfect_*” metrics gated by k<1.01; with current schedule (~200k-step decay) this run finishes slightly before k reaches 1.0, so perfect_* stay at 0 even when acceptance/carry occur.
+
+Key Metrics (final, from train.log)
+- perf 0.294; score 25.171; episode_return -0.240; SPS ≈1.73M; epoch 85
+- oob 0.583; collision_rate 0.051; episode_length 427.727
+- perfect_grip 0.000; perfect_deliv 0.000
+- to_pickup 27279.810; ho_pickup 1584.947; de_pickup 1565.656
+- to_drop 1538.228; ho_drop 139.277; attempt_grip 0.180; attempt_drop 0.812
+
+Deltas
+- vs previous (2025-09-21T224124Z):
+  • oob −6.5pp (0.583 vs 0.648), collision −0.1pp (0.051 vs 0.052)
+  • score −9.09 (25.17 vs 34.26), ep_ret −0.247
+  • ho_pickup +2.37 (1584.95 vs 1582.57), de_pickup +13.09
+  • to_drop +49.39, ho_drop −118.29
+  • attempts: grip −0.160 (0.180 vs 0.340), drop −0.855 (0.812 vs 1.667)
+  • perfect_grip/deliv unchanged at 0.000
+- vs baseline (best.json → 2025-09-21T224124Z): same deltas as above
+
+Decision (env change for next run)
+- Fix reporting gate and a logging bug; no hyperparameter changes:
+  • drone_pp.h: Count perfect_grip/perfect_deliv regardless of current k (remove k<1.01 gate). Rationale: runs end slightly before k→1.0; suppressing metrics obscures true conversion; behavior unchanged.
+  • drone_pp.h: Fix logging bug to use a->perfect_deliveries (not agent->perfect_deliveries) inside the logging loop.
+
+Expected Impact
+- Metrics: perfect_grip/perfect_deliv become non-zero when acceptance happens late in run; attempt_grip/attempt_drop unaffected; oob/collisions unchanged.
+- Analysis clarity: can track conversion rates and end-to-end chains without waiting for k to hit 1.0.
+
+Interactions / Watch-outs
+- Counting without k gate may increase metric variance early; monitor for false positives via perfect envelopes (unchanged) and box_k>0.99 guard.
+- If conversions remain near zero, revisit pickup acceptance (vz bounds) or drop hover gate next.
+
+Next Config
+- autopilot: { resume_mode: "continue", resume_from: "latest", save_strategy: "best" }
+

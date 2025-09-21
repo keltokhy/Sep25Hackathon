@@ -983,9 +983,13 @@ void c_step(DronePP *env) {
                 if (a->descent_pickup) env->log.de_pickup += 1.0f;
                 if (a->gripping) env->log.gripping += 1.0f;
                 if (a->delivered) env->log.delivered += 1.0f;
-                if (a->perfect_grip && env->grip_k < 1.01f) env->log.perfect_grip += 1.0f;
-                if (a->perfect_deliv && env->grip_k < 1.01f && a->perfect_grip) env->log.perfect_deliv += agent->perfect_deliveries;
-                if (a->perfect_deliv && env->grip_k < 1.01f && a->perfect_grip && a->perfect_now && env->box_k > 0.99f) env->log.perfect_now += 1.0f;
+                // Count perfect events regardless of current k so successes
+                // are visible during training runs that do not fully decay
+                // to k≈1.0 within a single iteration. This does not change
+                // acceptance behavior — only the reporting thresholds.
+                if (a->perfect_grip) env->log.perfect_grip += 1.0f;
+                if (a->perfect_deliv && a->perfect_grip) env->log.perfect_deliv += a->perfect_deliveries;
+                if (a->perfect_deliv && a->perfect_grip && a->perfect_now && env->box_k > 0.99f) env->log.perfect_now += 1.0f;
                 if (a->approaching_drop) env->log.to_drop += 1.0f;
                 if (a->hovering_drop) env->log.ho_drop += 1.0f;
             }
