@@ -92,6 +92,7 @@ COMMIT DISCIPLINE (Atomic Per Iteration)
   • Run artifacts under `autopilot/runs/<run_id>/` (config.json, summary.json, trainer_summary.json, train.log, notes.txt).
   • Journal updates: `autopilot/journal/labbook.md` and `autopilot/journal/notes.md` (curated).
   • `autopilot/proposals/next_config.json` for the next run (usually `{}` or autopilot.* only).
+- Immediately push the commit to the current branch (e.g., `git push -u origin HEAD`) so the remote stays in sync each iteration.
 - Commit message format:
   `env(drone_pp): <brief change>; expected effect | <run_id>`
   Follow with short bullets:
