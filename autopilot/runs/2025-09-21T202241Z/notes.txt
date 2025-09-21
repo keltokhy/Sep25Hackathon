@@ -1,0 +1,35 @@
+Run 2025-09-21T202241Z (iteration 11)
+
+Summary
+- Epoch 85, SPS ≈ 1.8M, agent_steps ≈ 276.0M
+- perf 0.283, mean_reward ≈ -5.80
+- oob 0.463 (improved), collision_rate 0.043 (improved), episode_length 550.80 (longer)
+- perfect_grip 0.000, perfect_deliv 0.000
+- ho_pickup ≈ 3.204, de_pickup ≈ 3.169
+- to_drop ≈ 2.872, ho_drop ≈ 1.047
+- attempt_grip ≈ 0.001, attempt_drop ≈ 0.003
+
+Deltas
+- vs previous (2025-09-21T201321Z):
+  • perf −0.055 (0.338 → 0.283); mean_reward −23.94 (18.14 → -5.80)
+  • oob −0.215 (0.678 → 0.463); collision_rate −0.040 (0.083 → 0.043)
+  • episode_length +220.0 (330.80 → 550.80)
+  • perfect_grip ↔ 0.000; perfect_deliv ↔ 0.000
+  • ho_pickup −3069; de_pickup −3051; to_drop −2945; ho_drop −767; attempt_grip −0.312; attempt_drop −4.558
+- vs baseline (best.json → 2025-09-21T201321Z): same as above this iteration
+
+Behavioral Analysis
+- Stability improved materially (lower OOB and collisions, longer episodes), but phase/event counters and attempts collapsed relative to the prior run; no grips/deliveries.
+- Likely cause: pickup grip gate still too strict at k≈1.0 and the near‑miss detection window too narrow, suppressing both attempts and successful grips.
+
+Change for Next Iteration (staged, env/drone_pp.h)
+- Widen near‑miss window (attempt_grip): near_xy floor 0.40, near_z floor 0.35 with z > −0.10.
+- Relax pickup grip gate floors: grip_xy ≥ 0.40, grip_z ≥ 0.35, speed < 0.50, |vz| ≤ 0.18 (still require near‑zero descent and slight contact allowance).
+- No physics helpers, spawns/curriculum unchanged.
+
+Expected Impact
+- attempt_grip increases noticeably; first non‑zero grips appear.
+- to_drop/ho_drop increase from carry phase; OOB stays ≤ 0.50; collisions ≤ 0.06.
+
+Next Config Proposal
+- { "autopilot": { "resume_mode": "continue", "resume_from": "latest", "save_strategy": "best" } }

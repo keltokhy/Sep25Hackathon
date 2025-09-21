@@ -796,10 +796,12 @@ void c_step(DronePP *env) {
                     // Near-miss diagnostics: count an attempted grip when the
                     // agent is close and descending but misses strict gates.
                     // This is logging-only; no reward change.
-                    float near_xy_tol = fmaxf(0.35f, k * 0.30f);
-                    float near_z_tol  = fmaxf(0.30f, k * 0.30f);
+                    // Slightly widen near-miss window to better reflect genuine attempts
+                    // seen in recent runs without affecting rewards.
+                    float near_xy_tol = fmaxf(0.40f, k * 0.30f);
+                    float near_z_tol  = fmaxf(0.35f, k * 0.30f);
                     bool near_xy = (xy_dist_to_box < near_xy_tol);
-                    bool near_z  = (z_dist_above_box < near_z_tol && z_dist_above_box > -0.05f);
+                    bool near_z  = (z_dist_above_box < near_z_tol && z_dist_above_box > -0.10f);
                     bool near_v  = (speed < fmaxf(0.6f, k * 0.6f));
                     bool desc_z  = (agent->state.vel.z <= 0.0f);
                     if (near_xy && near_z && near_v && desc_z) {
@@ -814,10 +816,10 @@ void c_step(DronePP *env) {
                     // Rationale: logs show ho/de_pickup high and attempt_grip>0
                     // but perfect_grip=0. Widen XY/Z and speed/vertical-velocity
                     // tolerances modestly to bootstrap carry without physics hacks.
-                    float grip_xy_tol = fmaxf(0.30f, k * 0.20f);
-                    float grip_z_tol  = fmaxf(0.25f, k * 0.20f);
-                    float grip_v_tol  = fmaxf(0.35f, k * 0.25f);
-                    float grip_vz_tol = fmaxf(0.12f, k * 0.08f);
+                    float grip_xy_tol = fmaxf(0.40f, k * 0.25f);
+                    float grip_z_tol  = fmaxf(0.35f, k * 0.25f);
+                    float grip_v_tol  = fmaxf(0.50f, k * 0.30f);
+                    float grip_vz_tol = fmaxf(0.18f, k * 0.10f);
                     if (
                         xy_dist_to_box < grip_xy_tol &&
                         z_dist_above_box < grip_z_tol && z_dist_above_box > -0.02f &&

@@ -151,3 +151,9 @@ Note (reverts applied after Run 2025-09-21T061611Z):
   • Change: Relax pickup grip gate with floors (XY/Z/speed/vel_z) to allow grips at k≈1; apply gripped mass/drag immediately upon grip; set `approaching_drop` during carry/drop and log `attempt_drop` near‑misses.
   • Expected: attempt_grip>0 and first grips; `to_drop`>0 with ho_drop↗; OOB ≤0.45; collisions 2–3%.
   • Next config: {autopilot.resume=continue latest, save=best}.
+ - 2025‑09‑21T20:27:20Z (iter 11, run 2025‑09‑21T202241Z)
+  • Result: OOB≈0.463 (Δ vs prev −0.215), collision_rate≈0.043 (Δ −0.040), ep_len≈550.80 (Δ +220.00); perf≈0.283 (Δ −0.055); mean_reward≈−5.80 (Δ −23.94); attempts/events collapsed (attempt_grip≈0.001, attempt_drop≈0.003; ho/de_pickup≈3.2/3.2; to_drop≈2.9; ho_drop≈1.0). Grips/deliveries remain 0.
+  • Diagnosis: Pickup gating still too strict at k≈1; near‑miss window too narrow → policy rarely registers attempts, preventing carry/drop.
+  • Change staged (env/drone_pp.h): widen near‑miss window and relax pickup grip floors further: near_xy 0.40, near_z 0.35 (allow z>−0.10), grip_xy≥0.40, grip_z≥0.35, speed<0.50, |vz|≤0.18. No physics helpers; spawn/curriculum unchanged.
+  • Expected: attempt_grip↑ and first non‑zero grips; to_drop/ho_drop↗; OOB stays ≤0.50; collisions ≤0.06.
+  • Next config: {autopilot.resume=continue latest, save=best}.
