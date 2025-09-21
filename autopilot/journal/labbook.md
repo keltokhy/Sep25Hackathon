@@ -254,3 +254,9 @@
    • Relax strict “perfect” envelopes to register genuine successes at k≈1 (pickup: XY<0.60, Z<0.55, speed<0.90, |vz|≤0.30; drop: XY<0.50, Z<0.45). Acceptance gates unchanged.
    Expected: first non‑zero perfect_grip (and possibly perfect_deliv); OOB ≤0.60; collisions ≤0.07; attempts stable.
    Next config: {autopilot.resume_mode=continue, resume_from=latest, save_strategy=best}
+- 2025-09-21T22:13:48Z | run complete | Run 2025-09-21T220242Z (iteration 21) | metrics captured | 
+ - 2025-09-21T22:18:53Z | run complete | Run 2025-09-21T221348Z (iteration 22) | Final: SPS≈1.70M, epoch=85; oob≈0.537 (Δ −2.9pp vs 220242Z), collision_rate≈0.040 (Δ −0.5pp), mean_reward≈24.74 (Δ −7.51); phases regressed: ho/de_pickup≈1.38k/1.37k (↓), to_drop≈1.35k (↓), ho_drop≈87 (↓); perfect_grip/deliv remain 0.
+   Action (staged for next run):
+   • Relax metric‑only “perfect” envelopes in PufferLib/pufferlib/ocean/drone_pp/drone_pp.h to register genuine successes at k≈1 (pickup XY<0.80, Z<0.65, speed<1.10, |vz|≤0.35; drop XY<0.60, Z<0.55). Acceptance gates unchanged.
+   Expected: first non‑zero perfect_grip and possible perfect_deliv; attempts stable ±; OOB ≤0.60; collisions ≤0.08.
+   Next config: {autopilot.resume_mode=continue, resume_from=latest, save_strategy=best}

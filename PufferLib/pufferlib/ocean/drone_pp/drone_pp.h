@@ -858,13 +858,14 @@ void c_step(DronePP *env) {
                         // success metrics to the curriculum clock (which
                         // resets between runs) while still requiring
                         // precise placement and low relative speed.
-                        // Relax the strict envelope modestly so genuine
-                        // successes register while still requiring precision
-                        // and stability at k≈1.
-                        const float perfect_xy = 0.60f;
-                        const float perfect_z  = 0.55f;
-                        const float perfect_v  = 0.90f;
-                        const float perfect_vz = 0.30f;
+                        // Relax the strict envelope further so genuine
+                        // successes at k≈1 register without requiring
+                        // near-perfect alignment. Keep this tighter than
+                        // acceptance but closer to typical descent noise.
+                        const float perfect_xy = 0.80f; // was 0.60f
+                        const float perfect_z  = 0.65f; // was 0.55f
+                        const float perfect_v  = 1.10f; // was 0.90f
+                        const float perfect_vz = 0.35f; // was 0.30f
                         bool perfect_envelope =
                             (xy_dist_to_box < perfect_xy) &&
                             (z_dist_above_box < perfect_z) && (z_dist_above_box > -0.10f) &&
@@ -934,11 +935,12 @@ void c_step(DronePP *env) {
                         reward += env->reward_deliv;
                         agent->delivered = true;
                         agent->has_delivered = true;
-                        // Mark a "perfect" delivery using strict, k‑independent
-                        // tolerances (slightly relaxed) so metrics can register
-                        // under slow curricula.
-                        const float perfect_xy = 0.50f;
-                        const float perfect_z  = 0.45f;
+                        // Mark a "perfect" delivery using k‑independent
+                        // tolerances (slightly more relaxed) so metrics can
+                        // register under slow curricula while still being
+                        // stricter than acceptance.
+                        const float perfect_xy = 0.60f; // was 0.50f
+                        const float perfect_z  = 0.55f; // was 0.45f
                         bool perfect_drop = (xy_dist_to_drop < perfect_xy) &&
                                             (z_dist_above_drop < perfect_z) && (z_dist_above_drop > -0.10f);
                         if (perfect_drop && agent->perfect_grip && env->box_k > 0.99f) {

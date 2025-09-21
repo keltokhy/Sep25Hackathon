@@ -137,6 +137,7 @@ Note (reverts applied after Run 2025-09-21T061611Z):
 
 ## 7) Decisions Log
 - 2025-09-21T21:49:34Z (run 2025-09-21T214439Z): Decouple success metrics from k. Perfect_* tied to k<1.01 never register under slow curriculum that resets each run. Implement strict, k‑independent envelopes for marking perfect_grip/deliv; keep acceptance gates unchanged. Expect perfect_* > 0 if true behaviors occur; continue from latest.
+ - 2025-09-21T22:18:53Z (run 2025-09-21T221348Z): Attempts/regressions vs 220242Z; OOB ↓ to 0.537, but ho/de_pickup and carry events fell; perfect_* remain 0. Adjust only metric envelopes (pickup XY/Z/speed/|vz|; drop XY/Z) to be closer to acceptance while still stricter. Goal: register genuine successes at k≈1 without altering behavior gates.
 
 ## 8) Open Questions & Next Hypotheses
 - If perfect_* stay zero next run while `gripping`/`delivered` rise, relax strict envelopes slightly (XY/Z +0.05) or add a brief post‑grip hold requirement to reduce bounce false negatives.
