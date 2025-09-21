@@ -580,6 +580,77 @@ def summarize(
     summary["save_strategy"] = ap.get("save_strategy", "best")
     write_summary(run_dir, summary)
 
+    # Compute deltas vs previous run and vs best.json (if available)
+    def _load_snapshot_from_summary(path: Path) -> Dict[str, Optional[float]]:
+        try:
+            data = json.loads(path.read_text())
+        except Exception:
+            return {}
+        keys = (
+            "grip_success",
+            "delivery_success",
+            "end_to_end_success",
+            "mean_reward",
+            "episode_length",
+        )
+        snap = {k: data.get(k) for k in keys}
+        ext = data.get("metrics_extended", {}) if isinstance(data.get("metrics_extended"), dict) else {}
+        snap.update({
+            "oob_rate": ext.get("oob_rate"),
+            "SPS": ext.get("SPS"),
+        })
+        return snap
+
+    def _delta(curr: Dict[str, Optional[float]], ref: Dict[str, Optional[float]]) -> Dict[str, Optional[float]]:
+        out: Dict[str, Optional[float]] = {}
+        for k, v in curr.items():
+            rv = ref.get(k) if ref else None
+            try:
+                out[k] = (v - rv) if (v is not None and isinstance(v, (int, float)) and isinstance(rv, (int, float))) else None
+            except Exception:
+                out[k] = None
+        return out
+
+    curr_snap = _load_snapshot_from_summary(run_dir / "summary.json")
+    # Previous run summary if available
+    prev_run_dir = None
+    runs = list_runs()
+    if len(runs) > 1:
+        # runs is sorted; pick the penultimate if current is last
+        prev_run_dir = runs[-2] if runs and runs[-1] == run_dir else runs[-1]
+    prev_snap = _load_snapshot_from_summary((prev_run_dir / "summary.json") if prev_run_dir else Path("/dev/null")) if prev_run_dir else {}
+
+    # Best snapshot from best.json (may have partial metrics)
+    best_path = AUTOPILOT_DIR / "runs" / "best.json"
+    best_snap: Dict[str, Optional[float]] = {}
+    best_run_id: Optional[str] = None
+    if best_path.exists():
+        try:
+            best = json.loads(best_path.read_text())
+            best_run_id = best.get("run_id")
+            best_snap = {
+                "end_to_end_success": best.get("end_to_end_success"),
+                "delivery_success": best.get("delivery_success"),
+                "grip_success": best.get("grip_success"),
+                "mean_reward": best.get("mean_reward"),
+            }
+        except Exception:
+            pass
+
+    deltas = {
+        "vs_previous": _delta(curr_snap, prev_snap) if prev_snap else {},
+        "vs_best": _delta(curr_snap, best_snap) if best_snap else {},
+        "baseline_run_id": best_run_id,
+        "previous_run_id": prev_run_dir.name if prev_run_dir else None,
+    }
+    # Update summary with deltas
+    try:
+        saved = json.loads((run_dir / "summary.json").read_text())
+        saved["deltas"] = deltas
+        write_summary(run_dir, saved)
+    except Exception:
+        pass
+
     # Print behavioral insights to console for immediate feedback
     if behavior["insights"]:
         print(f"\n🔍 DREX Behavioral Analysis for {run_dir.name}:")

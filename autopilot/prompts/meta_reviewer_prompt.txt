@@ -7,6 +7,8 @@ CONTEXT
 - Previous runs: Review last 5-10 runs in autopilot/runs/
 - Focus: Identify patterns, regressions, and root causes across iterations
 - Authority: You can modify ANY environment files to fix systemic issues
+ - Policy: Do not propose changes to `train.*`, `env.*`, or `vec.*` via overrides. Only environment code and `autopilot.*` (resume/save) are in scope.
+ - Logs: During training, follow `autopilot/logs/train_full_{run_id}.log`. After completion, use the mirrored `autopilot/runs/{run_id}/train.log`.
 
 ANALYSIS CHECKLIST
 

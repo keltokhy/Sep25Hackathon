@@ -46,16 +46,13 @@ SINGLE‑RUN PER ITERATION
 
 WORKFLOW (Numbered Core Loop)
 1) Execute training using the script (ALWAYS use this method):
-   - First calculate required batch_size from config files:
-     * Check vec.num_workers (usually 24) in baseline_full.json
-     * Check env.num_envs (usually 24) in baseline_full.json or drone_pp.ini
-     * Check env.num_drones (usually 64) in baseline_full.json or drone_pp.ini
-     * Check train.bptt_horizon (usually 64) in baseline_full.json
-     * Formula: batch_size ≥ num_workers × num_envs × num_drones × bptt_horizon
-   - Update baseline_full.json with calculated batch_size
-   - Then run: `bash -lc autopilot/scripts/run_training.sh`
-   - This script handles environment setup, activation, and proper configuration
-   - Monitor with: `tail -f autopilot/runs/latest/train.log` or check latest run directory
+   - Sanity‑check that batch sizes obey the rule
+     • batch_size = env.num_envs × env.num_drones × vec.num_envs × train.bptt_horizon
+     • minibatch_size = max_minibatch_size = batch_size
+     Do NOT edit baselines here. In this harness, EXACT_CONFIG=1 is set so the launcher passes the config through unchanged.
+   - Run: `bash -lc autopilot/scripts/run_training.sh`
+   - Monitoring during run: `tail -f autopilot/logs/train_full_{run_id}.log`
+   - After run completes, a copy is saved to `autopilot/runs/{run_id}/train.log` (kept out of git).
 2) Read the fresh run's `summary.json` for behavioral_analysis (note: this field is not printed in train.log "User Stats"). Use `trainer_summary.json` or `train.log` for raw metrics.
 3) Analyze: Compare metrics across the last 3–5 runs AND explicitly compute deltas (Δ) to: a) the immediately prior run and b) a named baseline run. Prefer conversion rates (grip/deliver/e2e) over raw returns. If grip_success seems high but attempts are low, ask why. Inspect score/metrics curves within the run for improvement-then-collapse patterns.
 4) Every 5th iteration: Launch meta-reviewer with `codex exec < autopilot/prompts/meta_reviewer_prompt.txt` for systemic analysis. Consider: are we solving root causes or just symptoms?

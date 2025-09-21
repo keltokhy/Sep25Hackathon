@@ -17,7 +17,7 @@
 
 ## Experiment Logging & Autopilot Workflow
 - `autopilot/journal/labbook.md` is the canonical audit log—record every meaningful action, hypothesis, and follow-up there immediately after the run; mirror key observations in `autopilot/journal/notes.md` when longer context helps.
-- The Codex agent must execute `autopilot/scripts/run_training.sh` immediately (from repo root via `bash -lc`) with a timeout budget of at least 15 minutes; monitor for missing logs and rerun if that step is skipped.
+- The Codex agent must execute `autopilot/scripts/run_training.sh` immediately (from repo root via `bash -lc`) with a timeout budget of at least 15 minutes. Monitor with `tail -f autopilot/logs/train_full_{run_id}.log`. After completion, the loop copies the log to `autopilot/runs/{run_id}/train.log` for reference (logs are not committed).
 - Before proposing overrides, scan recent entries in `autopilot/runs/` (summaries, notes, diffs) so adjustments reflect multi-run trends rather than single-episode noise.
 - Post-run, read `runs/<run_id>/trainer_summary.json` (or the mirrored `train.log`) and then stage the **next** overrides in `autopilot/proposals/next_config.json`. The loop clears this file before launch. Under the current policy, DREX honors only `autopilot.*` keys (`resume_mode`, `resume_from`, `save_strategy`) and ignores any hyperparameter overrides; write `{}` to keep the baseline. The training scripts consume the saved config directly, so every override takes effect on the very next launch.
  - Warm starts are supported. Use the autopilot-only fields in the override to control resume and artifact policy (these are handled by the orchestrator and are not passed to the trainer CLI):
@@ -40,7 +40,7 @@
 - `train.device` should typically stay on `mps`; switch to `cpu` only for diagnostics and log the slower runtime expectations.
 
 ## Performance Tuning
-- The Mac Studio (M3 Ultra) can usually handle higher concurrency—bump `vec.num_workers`, `vec.num_envs`, and `env.num_envs` via `proposals/next_config.json` until the `train.log` utilisation panel shows sustained 90%+ CPU without throttling.
+- The Mac Studio (M3 Ultra) can usually handle higher concurrency—this guidance is for manual, non‑autopilot experiments only. The autopilot adheres to the no‑hyperparameter‑changes policy and will not change `train.*`, `env.*`, or `vec.*` via proposals.
 - To push the GPU, raise `env.num_drones` or `train.batch_size` cautiously and set `PYTORCH_MPS_HIGH_WATERMARK_RATIO=0.0` before launching to let Metal use the full VRAM budget.
 - Keep `OMP_NUM_THREADS`/`MKL_NUM_THREADS` aligned with available cores (e.g., 24–32) so Python workers don’t starve; record any tuning in `journal/labbook.md` for reproducibility.
 - For stability and throughput, set `train.batch_size = (env.num_envs × env.num_drones × vec.num_envs) × train.bptt_horizon`. This ensures segment count equals total agents and avoids tensor size errors.
@@ -49,7 +49,7 @@
   - Full: `vec 28/56`, `env 4×8`, `batch 28672`, `bptt 64`, `total_timesteps 2e8` (heavy; align with Dan’s defaults).
 
 ## Atomic Commits & Notes Discipline
-- Treat each run and any proposal as an atomic commit: config, logs, summary, and labbook entry must land together. Use imperative messages (e.g., “tune lr to 3e-3; +1.2% SPS”).
+- Treat each run and any proposal as an atomic commit: config, summaries, and labbook/notes must land together (training logs are excluded). Use imperative messages (e.g., “env: relax hover gate; +Δ grip”).
 - Keep meticulous notes in `autopilot/journal/labbook.md`: actions, observations (SPS, CPU%), outcome, next step. This is the primary audit trail for the autopilot loop.
  - When warm-starting, record the resume policy (`fresh`/`continue`) and source (`latest`/`best`/path) in both the run `summary.json` and the labbook entry for traceability and reproducibility.
 

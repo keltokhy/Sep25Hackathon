@@ -1,6 +1,11 @@
 # Autopilot Notes (Curated)
 
-Purpose: concise long‑term memory that guides future iterations at a glance. Updated in place; not an append‑only log.
+Purpose: concise long‑term memory that guides future iterations at a glance. Updated in place; not an append‑only log. Prefer deltas vs previous and vs a named baseline.
+
+## 0) Goal Stack
+- North star: Robust pick‑and‑place (grip → carry → deliver) with stable OOB and collision rates.
+- Current subgoal: Improve end‑to‑end conversion by raising hover/descent reliability without increasing OOB.
+- Exit criteria for this subgoal: Δ (vs baseline) +5pp grip_success and +1pp delivery_success, with OOB not worse by >2pp.
 
 ## 1) Current Baseline (as of 2025‑09‑21)
 - Header version: `PufferLib/pufferlib/ocean/drone_pp/drone_pp.h` at commit `552502e` (2025‑09‑20). Matches upstream/box2.
@@ -8,7 +13,7 @@ Purpose: concise long‑term memory that guides future iterations at a glance. U
   • train: total_timesteps=200M; bptt_horizon=64; batch_size="auto"; minibatch_size=16384; max_minibatch_size=32768; lr≈0.00605; ent≈0.0712; clip≈0.6177; vf≈5.0; vf_clip≈1.2424; max_grad_norm≈3.05; gae_λ≈0.989; γ≈0.988; update_epochs=1; checkpoint_interval=200; anneal_lr=true; prio_alpha≈0.842; prio_beta0≈0.957.
   • env/vec: env.num_envs=24; env.num_drones=64; max_rings=10; vec.num_envs=24; vec.num_workers=24.
   • device: `mps` (local Mac). Upstream default is `cuda`.
-- Runner policy: EXACT_CONFIG=1 (no normalization). Single‑run per iteration; proposals typically empty.
+- Runner policy: EXACT_CONFIG=1 (no normalization). Single‑run per iteration; proposals typically empty and contain only `autopilot.*`.
 
 ## 2) Stable Learnings (keep under 10 bullets)
 - Environment logic changes tend to be more interpretable than hyperparameter adjustments; env modifications usually provide clearer cause-effect relationships.
@@ -54,7 +59,7 @@ Purpose: concise long‑term memory that guides future iterations at a glance. U
 - **Fix applied**: Gentler curriculum 10→5 over 500k steps, spawn radius 0.5-1.5
 - **Expected**: Reduced initial collisions, better space utilization, lower OOB
 
-## 6) Immediate Recommendations
+## 6) Immediate Recommendations (R&D only; not autopilot overrides)
 1. **Extend training to 1B+ timesteps** - Current 200M is far too short for this task complexity
 2. **Fix curriculum decay** - Stretch grip_k decay over 50M+ timesteps, not 200K
 3. **Remove velocity penalty** - It helped OOB but killed task learning
