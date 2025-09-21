@@ -2,6 +2,38 @@ OVERVIEW & GOALS
 - Use behavioral analysis to improve the drone pick‑and‑place task (grip → carry → deliver) by changing environment code, not hyperparameters.
 - Honor a strict no‑hyperparameter‑changes policy. Treat `autopilot/journal/notes.md` as long‑term memory and constraints.
 
+THE TASK
+The drone must:
+1. Take off and stabilize
+2. Locate and approach a DHL package (box)
+3. Hover above it, then descend carefully
+4. Grip the package when close enough
+5. Carry it to a designated drop zone
+6. Deliver by releasing at the right position
+
+Success requires completing the full chain: grip → carry → deliver.
+
+KEY METRICS GLOSSARY
+Performance Metrics:
+- `perfect_grip` / `grip_success`: Successfully gripped the box (0-1)
+- `perfect_deliv` / `delivery_success`: Successfully delivered to drop zone (0-1)
+- `perfect_now` / `end_to_end_success`: Complete success (grip AND deliver) (0-1)
+
+Behavioral Indicators:
+- `ho_pickup`: "Hovering for pickup" - drone hovering above box before descent (0-1)
+- `de_pickup`: "Descending for pickup" - drone descending toward box (0-1)
+- `to_pickup`: "Toward pickup" - drone moving toward box position (0-1)
+- `ho_drop`: "Hovering for drop" - drone hovering above drop zone (0-1)
+- `to_drop`: "Toward drop" - drone carrying box toward drop zone (0-1)
+- `attempt_grip`: Number of grip attempts (even failed ones)
+- `attempt_drop`: Number of drop attempts
+
+Failure Modes:
+- `oob`: Out of bounds rate - drone left allowed area (0-1)
+- `collision_rate`: Hit obstacles or floor (0-1)
+- `episode_return`: Total reward across episode (higher is better)
+- `episode_length`: Timesteps before termination (max better unless OOB)
+
 CONTEXT
 - Iteration: {iteration}
 - Run ID: {run_id}
@@ -28,12 +60,26 @@ WORKFLOW (Numbered Core Loop)
 6) Configure the next run using only `autopilot.*` overrides (or `{}`) in `autopilot/proposals/next_config.json`.
 7) Record actions/observations/outcomes/next steps in labbook and notes; repeat.
 
-DECISION FRAMEWORK
-- Read behavioral_analysis first. Use it to choose an environment‑focused response:
-  • diagnostic_grip: Agents aren't attempting/achieving grip → try different approaches each iteration if no progress: relax grip gates OR modify grip rewards OR change box physics OR add exploration bonuses
-  • improve_carrying: Grip works but drops/fails delivery → tune carry stability (mass, drag, grip decay), adjust delivery success gating.
-  • fix_stability/high_collisions: Crashes/OOB high → adjust physics constants, collision penalties, spawn spacing, jitter handling.
-  • optimize_performance (only after success thresholds met): Improve throughput/observability, not hparams; add logging, keep environment stable.
+DECISION FRAMEWORK (Diagnose by metrics)
+- Read behavioral_analysis first. Use metrics to choose an environment‑focused response:
+
+  • diagnostic_grip (when perfect_grip = 0):
+    - If ho_pickup < 0.1: Drone can't reach hover position → relax hover gates or adjust spawn
+    - If ho_pickup > 0.1 but de_pickup < 0.1: Hover works but won't descend → check descent gates
+    - If de_pickup > 0.1 but perfect_grip = 0: Descending but can't grip → relax grip conditions
+    Try different approaches each iteration: gates OR rewards OR physics OR exploration
+
+  • improve_carrying (when perfect_grip > 0 but perfect_deliv = 0):
+    - Check to_drop: If low, navigation issue → adjust carry rewards
+    - Check ho_drop: If low, can't stabilize at drop → tune drop hover gates
+    - Tune carry stability (mass, drag, grip decay)
+
+  • fix_stability (when oob > 0.5 or collision_rate > 0.1):
+    - High OOB often means spawn too close to boundaries or descent too aggressive
+    - Adjust physics constants, spawn margins, descent speeds
+
+  • optimize_performance (only after perfect_grip > 0.1):
+    - Improve throughput/observability, add logging, keep environment stable
 
 CREATIVE ESCALATION (When progress stalls)
 - Iteration 1-2: Focus on PRIORITY 1 (.ini tweaks) and PRIORITY 2 (drone_pp.h gates/logic)
@@ -93,9 +139,10 @@ SUCCESS METRICS (Define thresholds)
   • end_to_end_success shows an upward trend across 2–3 consecutive runs.
   • OOB/crash resets ≤ 10% of steps; collision‑induced terminations ≤ 5% episodes.
 - Intermediate milestones (reassess approach if not met):
-  • By iteration 3: Any non-zero grip attempts (even failed)
-  • By iteration 5: At least 1% grip success
-  • By iteration 7: At least 10% grip success
+  • By iteration 3: ho_pickup > 0.05 (some hovering behavior)
+  • By iteration 5: de_pickup > 0.05 (attempting descent)
+  • By iteration 7: perfect_grip > 0.01 (at least 1% grip success)
+  • By iteration 10: perfect_grip > 0.10 (10% grip success)
   If milestones missed, switch to different approach dimension
 - Stop environment debugging when thresholds are met and metrics are stable; shift to performance/observability improvements only (no hparam tuning).
 

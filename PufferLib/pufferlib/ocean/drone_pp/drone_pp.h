@@ -786,14 +786,18 @@ void c_step(DronePP *env) {
                     if (DEBUG > 0) printf("    speed = %.3f\n", speed);
                     if (DEBUG > 0) printf("    agent->state.vel.z = %.3f\n", agent->state.vel.z);
                     if (
-                        // Relax grip gates further to register more legitimate attempts
-                        xy_dist_to_box < k * 0.30f &&
-                        z_dist_above_box < k * 0.30f && z_dist_above_box > 0.0f &&
-                        speed < k * 0.30f &&
+                        // Further relax grip gates to convert descent attempts
+                        // into actual grips. The goal is to secure first non‑zero
+                        // grips under diagnostic_grip without raising collisions.
+                        xy_dist_to_box < k * 0.40f &&
+                        z_dist_above_box < k * 0.40f && z_dist_above_box > 0.0f &&
+                        // Permit moderate approach speeds; enforce a minimum allowance
+                        // so typical descent velocities are not rejected by a too‑small k.
+                        speed < fmaxf(0.8f, k * 0.40f) &&
                         // Loosen vertical descent gate at low k to admit reasonable
                         // approach speeds (diagnostic_grip). Cap strictness so
-                        // vel.z > -0.15 m/s at minimum; scale with k otherwise.
-                        agent->state.vel.z > -fmaxf(0.15f, 0.06f * k) && agent->state.vel.z < 0.0f
+                        // vel.z > -0.20 m/s at minimum; scale with k otherwise.
+                        agent->state.vel.z > -fmaxf(0.20f, 0.08f * k) && agent->state.vel.z < 0.0f
                     ) {
                         if (k < 1.01 && env->box_k > 0.99f) {
                             agent->perfect_grip = true;
@@ -809,6 +813,11 @@ void c_step(DronePP *env) {
                             z_dist_above_box > 0.05f && z_dist_above_box < 0.6f &&
                             speed < 1.0f) {
                             env->log.attempt_grip += 1.0f;
+                            // Provide a small shaping bonus for credible grip attempts
+                            // to increase learning signal without rewarding noise.
+                            // Uses existing hover reward to avoid introducing new knobs.
+                            // Expectation: attempt_grip↑, first non‑zero grips, to_drop>0.
+                            reward += env->reward_hover * 0.25f;
                         }
                     }
                 }
