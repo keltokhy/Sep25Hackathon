@@ -734,7 +734,18 @@ void c_step(DronePP *env) {
                     // Relax hover gate: admit earlier stabilization near the hidden point.
                     // Hypothesis (diagnostic_grip): strict hover gating blocks descent → no grips.
                     // Loosen distance/speed modestly; descent remains XY-gated.
-                    if (dist_to_hidden < 1.8f && speed < 1.2f) {
+                    bool hover_ok_hidden = (dist_to_hidden < 1.8f && speed < 1.2f);
+                    // New fallback: if laterally near the box and safely above it,
+                    // allow hover acquisition even if not precisely at the hidden point.
+                    // This increases ho/de_pickup and enables earlier descent,
+                    // while descent itself remains XY-gated and gentle.
+                    float k_floor = fmaxf(k, 1.0f);
+                    bool hover_ok_xy = (
+                        xy_dist_to_box <= k_floor * 0.50f &&
+                        z_dist_above_box > 0.4f &&
+                        speed < 2.0f
+                    );
+                    if (hover_ok_hidden || hover_ok_xy) {
                         agent->hovering_pickup = true;
                         agent->color = (Color){255, 255, 255, 255}; // White
                     } else {
