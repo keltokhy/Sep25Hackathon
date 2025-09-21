@@ -1,9 +1,9 @@
 {
-  "run_id": "2025-09-21T055652Z",
-  "model_path": "/Users/khaled/GitHub/Sep25Hackathon-master/PufferLib/experiments/puffer_drone_pp_175843425485.pt",
+  "run_id": "2025-09-21T060555Z",
+  "model_path": "/Users/khaled/GitHub/Sep25Hackathon-master/PufferLib/experiments/puffer_drone_pp_175843477232.pt",
   "end_to_end_success": null,
   "delivery_success": null,
   "grip_success": null,
-  "mean_reward": 5.7300020058949785,
-  "timestamp": "2025-09-21T06:05:55Z"
+  "mean_reward": 5.551427483558655,
+  "timestamp": "2025-09-21T06:16:11Z"
 }

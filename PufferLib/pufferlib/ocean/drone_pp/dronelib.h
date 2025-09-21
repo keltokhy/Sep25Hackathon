@@ -25,9 +25,9 @@
 #define BASE_IZZ 0.02f       // kgm^2
 #define BASE_ARM_LEN 0.1f    // m
 #define BASE_K_THRUST 3e-5f  // thrust coefficient
-#define BASE_K_ANG_DAMP 0.35f // angular damping coefficient (stability bump)
+#define BASE_K_ANG_DAMP 0.20f // angular damping coefficient (revert stability bump)
 #define BASE_K_DRAG 1e-6f    // drag (torque) coefficient
-#define BASE_B_DRAG 0.50f    // linear drag coefficient (reduce drift further)
+#define BASE_B_DRAG 0.10f    // linear drag coefficient (revert heavy drag)
 #define BASE_GRAVITY 9.81f   // m/s^2
 #define BASE_MAX_RPM 750.0f  // rad/s
 #define BASE_MAX_VEL 50.0f   // m/s
@@ -381,50 +381,12 @@ void compute_derivatives(State* state, Params* params, float* actions, StateDeri
     F_aero.y = -params->b_drag * state->vel.y;
     F_aero.z = -params->b_drag * state->vel.z;
 
-    // Soft boundary forces (stability aid)
-    // Apply gentle repulsive forces near the arena walls and floor/ceiling to
-    // reduce early out-of-bounds terminations while policy is untrained.
-    // Tuned to be much smaller than thrust/gravity so normal flight remains unchanged.
-    // Stronger, earlier soft-boundary forces to reduce OOB resets
-    const float wall_band = 3.0f;   // start pushing back within ~3m of XY walls
-    const float wall_k = 18.0f;     // stronger horizontal repulsion
-    const float floor_band = 2.0f;  // start pushing up within ~2m of the floor
-    const float floor_k = 20.0f;    // stronger vertical push to avoid floor strikes
-    const float ceil_band = 2.0f;   // gentle ceiling push sooner
-    const float ceil_k = 12.0f;
-
-    Vec3 F_soft = {0.0f, 0.0f, 0.0f};
-    // +X wall
-    if (state->pos.x > GRID_X - wall_band) {
-        F_soft.x -= wall_k * (state->pos.x - (GRID_X - wall_band));
-    }
-    // -X wall
-    if (state->pos.x < -GRID_X + wall_band) {
-        F_soft.x += wall_k * ((-GRID_X + wall_band) - state->pos.x);
-    }
-    // +Y wall
-    if (state->pos.y > GRID_Y - wall_band) {
-        F_soft.y -= wall_k * (state->pos.y - (GRID_Y - wall_band));
-    }
-    // -Y wall
-    if (state->pos.y < -GRID_Y + wall_band) {
-        F_soft.y += wall_k * ((-GRID_Y + wall_band) - state->pos.y);
-    }
-    // Floor (z = -GRID_Z)
-    if (state->pos.z < -GRID_Z + floor_band) {
-        F_soft.z += floor_k * ((-GRID_Z + floor_band) - state->pos.z);
-    }
-    // Ceiling (z = +GRID_Z)
-    if (state->pos.z > GRID_Z - ceil_band) {
-        F_soft.z -= ceil_k * (state->pos.z - (GRID_Z - ceil_band));
-    }
-
-    // Gentle centralizing field (XY only)
-    // Adds a weak spring-like pull toward the arena center to curb
-    // early boundary exits while policy is untrained. Vertical dynamics
-    // are untouched. Tuned well below thrust/gravity magnitudes.
-    const float center_k = 0.08f; // N/m -> ~2.4N at edges (|x|,|y|≈30)
-    Vec3 F_center = { -center_k * state->pos.x, -center_k * state->pos.y, 0.0f };
+    // Remove soft boundary forces and centralizing field.
+    // Rationale: With OOB > 0.95, prior stabilizers (soft walls/center pull)
+    // are likely fighting control and increasing boundary incidents.
+    // Keep dynamics clean; let policy learn without hidden forces.
+    Vec3 F_soft = (Vec3){0.0f, 0.0f, 0.0f};
+    Vec3 F_center = (Vec3){0.0f, 0.0f, 0.0f};
 
     // velocity rates, a = F/m
     Vec3 v_dot;

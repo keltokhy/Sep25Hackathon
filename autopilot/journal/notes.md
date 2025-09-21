@@ -37,6 +37,13 @@ Purpose: concise long‑term memory that guides future iterations at a glance. U
  - New: Require XY alignment before descent (pickup/drop); hold altitude until `xy_dist <= 0.20·max(k,1)`. Add near‑miss counters (`attempt_grip`, `attempt_drop`). Hypothesis: OOB↓ by preventing drift‑descent; ho/de_pickup↑; first non‑zero gripping.
  - Relax pickup hover gate further: admit hovering when `dist_to_hidden < 1.8` and `speed < 1.2` (was 1.0/0.8). Rationale: agents struggle to satisfy hover gate at typical spawn offsets; descent remains XY‑gated and gentle (−0.06 m/s). Expect ho/de_pickup↑ and attempt_grip↑ without increasing collisions.
 - New: Relax grip vertical descent gate — require `vel.z > -max(0.15, 0.06·k)` (still `< 0`) during pickup grip. Rationale: at k≈1 the −0.06 m/s cap is too strict and blocks legitimate grips; allowing moderate descent should yield first non‑zero grips and `to_drop > 0` without increasing collisions.
+
+Note (reverts applied after Run 2025-09-21T061611Z):
+- Physics damping test (REVERTED): Increasing BASE_B_DRAG/BASE_K_ANG_DAMP degraded behavior (OOB≈0.95). Reverted to BASE_B_DRAG≈0.10 and BASE_K_ANG_DAMP≈0.20 per failsafe. Avoid reintroducing unless strong evidence.
+- Soft boundary fields (REVERTED): Removed soft walls/ceil/floor and XY centralizing field; they likely fought control and increased OOB.
+
+## 5) Decisions Log
+- 2025-09-21T06:21:38Z (Run 2025-09-21T061611Z): OOB 0.953 primary issue. Reverted physics helpers in `dronelib.h` (BASE_B_DRAG 0.10, BASE_K_ANG_DAMP 0.20; removed soft walls + centralizing). Expected: OOB↓; ho/de_pickup stable or ↑; collisions ~2.2%. Keep global-step curriculum; no hyperparameter edits.
  - Physics damping test: Increase BASE_B_DRAG (0.1→0.2) and BASE_K_ANG_DAMP (0.2→0.3) to reduce drift/overshoot during hover and descent. Hypothesis: OOB↓; ho/de_pickup↑; attempt_grip↑; first grips emerge without raising collisions. If ineffective, consider action clamping next (keep observation space stable).
  - Soft boundary fields (current): Add gentle repulsive forces near XY walls and floor/ceiling in `dronelib.h` to prevent immediate OOB resets while untrained. Hypothesis: oob↓↓, episode_length↑, ho/de_pickup↑; keep collisions stable. Escalate by tuning constants only if OOB remains >0.5 after this change.
 

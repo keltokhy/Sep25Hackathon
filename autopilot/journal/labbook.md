@@ -6,6 +6,8 @@
 
 - 2025-09-21T06:11:29Z | run complete | Run 2025-09-21T060555Z (iteration 3) | trainer_summary: mean_reward≈5.55, episode_len≈49.0, coll_rate≈0.022, SPS≈1.35M; UI: perfect_grip≈0.15, perfect_deliv=0.00, to_drop≈1.58k, ho_drop≈27, attempt_drop≈0.002, oob≈0.954 | Change for next run: switch curriculum to global step and set grip_k_decay≈8.5e-5 (drone_pp.h/.c). Expected: ho_drop↑ and first deliveries as k→1; OOB stable or ↓. Next: if ho_drop still low, tune drop descent XY/z gates; if OOB>0.9, strengthen floor soft-field.
 
+- 2025-09-21T06:21:38Z | run complete | Run 2025-09-21T061611Z (iteration 4) | UI panel: oob≈0.953, collision_rate≈0.022, episode_return≈0.066, perfect_grip≈0.12, perfect_deliv=0.00; ho/de_pickup≫0; ho_drop≈34; attempt_grip≈0.015; attempt_drop≈0.003; SPS≈1.4M | Revert harmful physics helpers in dronelib.h: set BASE_B_DRAG 0.10 (was 0.50), BASE_K_ANG_DAMP 0.20 (was 0.35); remove soft walls and centralizing field from dynamics. Hypothesis: OOB↓ (primary), hover/descent stability improves without fighting forces; collisions stay ~2.2%; grip signals preserved; deliveries remain gated by grip. Next: if OOB still >0.9, inspect spawn bounds vs GRID_* and descent z-floor; otherwise revisit drop gates.
+
 - 2025-09-20T23:30:27Z | train quick baseline | no grip; ho_pickup=0, perfect_* = 0; oob~0.95; sps~17k | patched env to target hidden_pos for hover then box_pos for descent; rebuilt bindings | rerun fresh; expect ho_pickup>0 and first grips
 - 2025-09-20T23:30:55Z | run complete | Run 2025-09-20T232651Z (iteration 1) | metrics captured | 
 - 2025-09-20T23:34:31Z | run complete | Run 2025-09-20T233055Z (iteration 2) | metrics captured | 
@@ -115,3 +117,4 @@
 - 2025-09-21T05:53:16Z | run complete | Run 2025-09-21T054645Z (iteration 1) | SPS≈1.37M; CPU≈340%; collision_rate≈0.022; episode_len≈48.9; UI: perfect_grip≈0.12, perfect_deliv=0.0, ho_drop low (~31), oob≈0.954 | relax drop hover/success gates in `drone_pp.h` (XY<0.75·k & z>0.3, speed<2.5 for hover; success XY/z<0.30·k_floor). Expect ho_drop↑ and first deliveries next; keep hparams unchanged; next_config `{}`
 - 2025-09-21T05:56:52Z | run complete | Run 2025-09-21T054645Z (iteration 1) | metrics captured | 
 - 2025-09-21T06:05:55Z | run complete | Run 2025-09-21T055652Z (iteration 2) | metrics captured | 
+- 2025-09-21T06:16:11Z | run complete | Run 2025-09-21T060555Z (iteration 3) | metrics captured | 

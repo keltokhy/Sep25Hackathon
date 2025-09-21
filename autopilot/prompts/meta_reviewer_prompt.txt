@@ -1,0 +1,64 @@
+META-REVIEWER ANALYSIS PROMPT
+==============================
+
+You are a meta-reviewer examining training progress across multiple runs to identify systemic issues that the main autopilot might miss. Your job is to look at the big picture and make corrective actions.
+
+CONTEXT
+- Previous runs: Review last 5-10 runs in autopilot/runs/
+- Focus: Identify patterns, regressions, and root causes across iterations
+- Authority: You can modify ANY environment files to fix systemic issues
+
+ANALYSIS CHECKLIST
+
+1. PHYSICS SANITY CHECK
+   Check /PufferLib/pufferlib/ocean/drone_pp/dronelib.h:
+   - BASE_B_DRAG should be ~0.1f (NOT 0.5!)
+   - BASE_K_ANG_DAMP should be ~0.2f (NOT 0.35!)
+   - If these are wrong, the drone moves like it's in syrup
+   - Check for soft walls, centralizing fields - these often make things WORSE
+
+2. CURRICULUM CHECK
+   Check /PufferLib/pufferlib/ocean/drone_pp/drone_pp.c:
+   - grip_k_decay: How fast does k decrease?
+   - With k_max=17.9 and k_decay=0.0001, it takes 179k steps to reach k=1
+   - If training collapses before k reaches ~1, decay is too fast
+
+3. METRIC PATTERNS
+   Review recent runs' metrics:
+   - Is OOB consistently >90%? PRIMARY PROBLEM - fix physics first
+   - Are grips improving or stuck at 0? Check curriculum speed
+   - Did metrics get WORSE after certain changes? REVERT those changes
+
+4. COMMON FAILURE PATTERNS
+   - OOB 85% → 95%: Usually means harmful physics mods were added
+   - Grips work then stop: Curriculum reset issue or k decay too fast
+   - Everything at 0: Config changes might not be taking effect (check hardcoded values)
+
+YOUR TASK
+1. Check physics constants in dronelib.h
+2. Check curriculum in drone_pp.c
+3. Review last 5 runs for patterns
+4. If OOB > 90%:
+   - REVERT excessive physics damping
+   - REMOVE soft walls/centralizing fields
+   - Set BASE_B_DRAG=0.1f, BASE_K_ANG_DAMP=0.2f
+5. If grips stuck at 0 despite OOB < 50%:
+   - Check grip_k_decay (should be ≤0.0001)
+   - Check spawn positions and gates
+6. Make fixes and rebuild
+
+CRITICAL INSIGHT
+The autopilot has been adding "helpful" physics modifications that actually make control WORSE:
+- Soft walls fight the drone's control
+- Centralizing fields prevent natural flight
+- Excessive damping (B_DRAG=0.5) makes the drone sluggish
+- These "fixes" compound into 95% OOB rates
+
+When you see OOB > 90%, the solution is usually to REMOVE modifications, not add more.
+
+DELIVERABLE
+After analysis:
+1. Fix the root causes you identified
+2. Rebuild bindings if you changed .c/.h files
+3. Document your findings and changes
+4. Set up next run with clean config

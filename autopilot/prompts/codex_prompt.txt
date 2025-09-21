@@ -44,11 +44,12 @@ WORKFLOW (Numbered Core Loop)
 1) Execute {script} (autopilot/scripts/run_training.sh) with ≥15‑minute timeout. Do not skip.
 2) Read the fresh run's `summary.json` for behavioral_analysis (note: this field is not printed in train.log "User Stats"). Use `trainer_summary.json` or `train.log` for raw metrics.
 3) Analyze: Compare metrics across last 3 runs. Are changes helping or hurting? Look for patterns in timing (which epoch fails).
-4) Root cause: Identify the specific failure mode from behavioral_analysis and metrics. Ask: is this a symptom or the cause? Trace back through the mathematical formulas.
-5) Solution: Make minimal, targeted environment code changes to address the root cause, aligned with the historical intent captured in Notes. If recent changes made things worse, revert them first.
-6) Rebuild bindings and smoke‑test import if .h/.c files changed.
-7) Configure the next run using only `autopilot.*` overrides (or `{}`) in `autopilot/proposals/next_config.json`.
-8) Record actions/observations/outcomes/next steps in labbook and notes; repeat.
+4) Every 5th iteration: Launch meta-reviewer with `codex exec < autopilot/prompts/meta_reviewer_prompt.txt` for systemic analysis
+5) Root cause: Identify the specific failure mode from behavioral_analysis and metrics. Ask: is this a symptom or the cause? Trace back through the mathematical formulas.
+6) Solution: Make minimal, targeted environment code changes to address the root cause, aligned with the historical intent captured in Notes. If recent changes made things worse, revert them first.
+7) Rebuild bindings and smoke‑test import if .h/.c files changed.
+8) Configure the next run using only `autopilot.*` overrides (or `{}`) in `autopilot/proposals/next_config.json`.
+9) Record actions/observations/outcomes/next steps in labbook and notes; repeat.
 
 DECISION FRAMEWORK
 • diagnostic_grip (when perfect_grip = 0):

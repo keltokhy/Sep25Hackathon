@@ -1,0 +1,18 @@
+CRITICAL PHYSICS ISSUE DETECTED!
+================================
+BASE_B_DRAG = 0.5 (5x too high! Should be 0.1)
+BASE_K_ANG_DAMP = 0.35 (75% too high! Should be 0.2)
+
+These excessive damping values make the drone move like it's in syrup!
+This is why OOB is stuck at 95% - the drone can't fly properly!
+
+URGENT ACTION REQUIRED:
+1. Edit /PufferLib/pufferlib/ocean/drone_pp/dronelib.h
+2. Change BASE_B_DRAG back to 0.1f
+3. Change BASE_K_ANG_DAMP back to 0.2f
+4. Remove any soft walls/centralizing fields
+5. Rebuild bindings
+
+Meta-Review Generated: 2025-09-21 02:17:10.380117
+Issues: ['No grips achieved in last 5 runs', 'Grip success stagnant - no learning happening']
+Recommendations: ['Check if config changes are actually taking effect']

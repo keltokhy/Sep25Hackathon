@@ -1,0 +1,26 @@
+Run 2025-09-21T061611Z (iteration 4)
+
+Problem
+- OOB ≈ 0.953 (primary issue). Collisions ≈ 0.022. perfect_grip ≈ 0.12; perfect_deliv = 0.00.
+- ho/de_pickup are high, suggesting approach/hover phases occur, but environment physics likely fighting control near boundaries.
+
+Root Cause Hypothesis
+- Recent physics "helpers" increased damping and added soft walls + a centralizing field:
+  • BASE_B_DRAG=0.50 (was ~0.10), BASE_K_ANG_DAMP=0.35 (was ~0.20).
+  • Soft boundary and centralizing forces in dronelib.h.
+- These interventions likely produce sluggish, contradictory dynamics that increase boundary interactions and prevent stable control, driving OOB up.
+
+Change (for next run)
+- Revert harmful physics helpers in PufferLib/pufferlib/ocean/drone_pp/dronelib.h:
+  • BASE_B_DRAG 0.10 (from 0.50)
+  • BASE_K_ANG_DAMP 0.20 (from 0.35)
+  • Remove soft walls/ceil/floor and XY centralizing field (set F_soft/F_center to 0; stop adding these forces).
+
+Expected Impact
+- OOB ↓ materially (primary goal). Hover/descent stabilization should improve without fighting forces.
+- Collision rate stays ~2.2% (no aggressive accelerations added).
+- Attempt/ho/de_pickup remain healthy; grip/delivery gates unchanged, so delivery remains gated by grip success.
+
+References
+- Creative Escalation REVERT checklist: drag≈0.1, ang_damp≈0.2; remove soft walls/centralizing.
+- Notes.md: mark damping/soft-boundary tests as REVERTED.
