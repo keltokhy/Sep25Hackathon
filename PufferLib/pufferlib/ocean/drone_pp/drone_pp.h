@@ -485,12 +485,12 @@ float compute_reward(DronePP* env, Drone *agent, bool collision) {
     // Mild boundary proximity penalty (XY only) to reduce OOB without adding
     // soft walls or centralizing forces. Penalize only when an agent roams
     // outside the inner 80% of the arena, scaling up to the hard boundary.
-    // This preserves clean physics while discouraging far‑field runaways
-    // observed in recent runs (OOB ≈ 0.82–0.84).
+    // Revert to earlier, gentler shaping after regression (OOB ≈ 0.92):
+    // avoid over-penalizing wide exploration early in training.
     float frac_x = fabsf(agent->state.pos.x) / GRID_X;
     float frac_y = fabsf(agent->state.pos.y) / GRID_Y;
-    float over_x = fmaxf(0.0f, frac_x - 0.8f) / 0.2f;
-    float over_y = fmaxf(0.0f, frac_y - 0.8f) / 0.2f;
+    float over_x = fmaxf(0.0f, frac_x - 0.80f) / 0.20f;
+    float over_y = fmaxf(0.0f, frac_y - 0.80f) / 0.20f;
     float boundary_prox = fminf(1.0f, fmaxf(over_x, over_y));
     // Small fixed weight so no config change needed
     total_reward -= 0.15f * boundary_prox;
