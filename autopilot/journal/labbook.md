@@ -89,3 +89,5 @@
 - 2025-09-21T03:59:23Z | run complete | Run 2025-09-21T034634Z (iteration 5) | metrics captured | 
 - 2025-09-21T04:07:51Z | run complete | Run 2025-09-21T035923Z (iteration 6) perfect_grip=0, perfect_deliv=0, oob≈0.953, ho/de_pickup≈0.004→0.010 | strengthen soft boundaries; raise linear drag; rebuilt bindings | next: expect oob↓, ho/de_pickup↑, first grips
 - 2025-09-21T04:08:51Z | run complete | Run 2025-09-21T035923Z (iteration 6) | metrics captured | 
+- 2025-09-21T04:24:31Z | run complete | Run 2025-09-21T040851Z (iteration 7) | metrics captured | 
+- 2025-09-21T04:46:34Z | run baseline_full | launched autopilot/scripts/run_training.sh → run 2025-09-21T043409Z; device=mps | User Stats: perfect_grip=0.0, perfect_deliv=0.0; ho/de_pickup≈0.009; to_drop=0.0; oob≈0.953; collision_rate≈0.005; episode_len≈50 | add early action governor (scale actions when k>1) to reduce OOB and aid hover; expect ho/de_pickup↑ and first grips

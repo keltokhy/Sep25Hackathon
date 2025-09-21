@@ -1,0 +1,7 @@
+Problem: diagnostic_grip persists with extreme OOB.
+- From train.log (final panel): perfect_grip=0.0, perfect_deliv=0.0
+- ho_pickup≈0.009, de_pickup≈0.009; to_drop=0.0, ho_drop=0.0
+- oob≈0.953, collision_rate≈0.005, episode_length≈50
+Change (next iteration plan): add early action governor (scale actions when k>1) to curb untrained saturation and reduce OOB; no hparam changes.
+Expected: OOB↓, ho/de_pickup↑; first grip attempts register (attempt_grip↑); perfect_grip may become >0.
+References: Notes → Header evolution and Decisions; avoid penalty re-introduction; continue with physics-side mitigations.

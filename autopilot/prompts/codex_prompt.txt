@@ -63,7 +63,7 @@ CREATIVE ESCALATION (When progress stalls)
 - After several iterations with minimal improvement, try orthogonal approaches:
   • Reward shaping: Modify reward weights in .ini first, then computation in .h
   • Physics tuning: Adjust box mass, drone thrust, gravity constants
-  • Curriculum control: Make k decay configurable via .ini or implement adaptive difficulty
+  • Curriculum control: Make k decay configurable via .ini (check if k calculation in .h could read from config)
   • Anti-collapse mechanisms: Add exploration bonuses or success-gated progression
   • Spawn strategy: Alter initial positions/orientations fundamentally
 
@@ -89,6 +89,7 @@ ENVIRONMENT DEBUGGING CHECKLIST
    PRIORITY 1 (Try first - no rebuild needed):
    • `drone_pp.ini` - You can ADD ANY parameters here (rewards, k_decay, k_start, etc.)
      Then read them in drone_pp.h: env->k_decay_rate = get_config_float("k_decay_rate", 0.1)
+     Check if difficulty/curriculum parameters exist or could be externalized here
 
    PRIORITY 2 (Most impactful - requires rebuild):
    • `drone_pp.h` - Main logic, state machines, reward computation, physics

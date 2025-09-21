@@ -677,7 +677,26 @@ void c_step(DronePP *env) {
         agent->perfect_now = false;
 
         float* atn = &env->actions[4*i];
-        move_drone(agent, atn);
+        // Early-stage stability governor: scale raw actions when the
+        // curriculum difficulty k is high to reduce untrained saturation
+        // that leads to immediate OOB. Scales to 1.0 as k→1 so mature
+        // behavior is unaffected. This targets diagnostic_grip with
+        // extreme OOB by allowing agents to reach hover more often.
+        float atn_scaled[4];
+        float k_cur = env->grip_k;
+        float scale = 1.0f;
+        if (k_cur > 1.0f) {
+            // Linearly reduce towards 0.35 at high k; clamp to [0.35, 1.0]
+            // Example: k≈18 → scale≈0.46; k≤1 → 1.0
+            scale = 1.0f - 0.03f * (k_cur - 1.0f);
+            if (scale < 0.35f) scale = 0.35f;
+            if (scale > 1.0f) scale = 1.0f;
+        }
+        atn_scaled[0] = atn[0] * scale;
+        atn_scaled[1] = atn[1] * scale;
+        atn_scaled[2] = atn[2] * scale;
+        atn_scaled[3] = atn[3] * scale;
+        move_drone(agent, atn_scaled);
 
         bool out_of_bounds = agent->state.pos.x < -GRID_X || agent->state.pos.x > GRID_X ||
                              agent->state.pos.y < -GRID_Y || agent->state.pos.y > GRID_Y ||

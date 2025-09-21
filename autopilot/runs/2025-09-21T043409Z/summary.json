@@ -1,0 +1,37 @@
+{
+  "run_id": "2025-09-21T043409Z",
+  "timestamp": "2025-09-21T04:46:31Z",
+  "seed": 42,
+  "grip_success": null,
+  "delivery_success": null,
+  "end_to_end_success": null,
+  "mean_reward": null,
+  "episode_length": null,
+  "metrics_extended": {
+    "collision_rate": null,
+    "oob_rate": null,
+    "SPS": null
+  },
+  "behavioral_analysis": {
+    "insights": [
+      "High OOB; can\u2019t reach hover reliably (ho_pickup\u22480.009).",
+      "No grips or deliveries; stuck in diagnostic_grip."
+    ],
+    "severity": "critical",
+    "next_focus": "diagnostic_grip",
+    "grip_efficiency": 0,
+    "metrics_summary": {
+      "grip_success": "0.0%",
+      "delivery_success": "0.0%",
+      "collision_rate": "~0.5%"
+    }
+  },
+  "environment_changes": false,
+  "environment_comparison": {
+    "has_changes": false,
+    "description": "",
+    "files_changed": []
+  },
+  "modified_files": "",
+  "notes": "auto-generated run summary"
+}
