@@ -347,7 +347,19 @@ def run_training(script: Path, run_dir: Path) -> Path:
     except ValueError:
         rel_notes = notes_file
 
-    prompt = _format_prompt(prompt_template, script=str(rel_script), notes_path=str(rel_notes))
+    # Load iteration and run_id context for prompt formatting
+    try:
+        run_meta = json.loads((run_dir / "run.json").read_text())
+        iteration_num = run_meta.get("metadata", {}).get("iteration")
+    except Exception:
+        iteration_num = None
+    prompt = _format_prompt(
+        prompt_template,
+        script=str(rel_script),
+        notes_path=str(rel_notes),
+        iteration=str(iteration_num) if iteration_num is not None else "?",
+        run_id=run_dir.name,
+    )
 
     env = os.environ.copy()
     summary_file = run_dir / "trainer_summary.json"

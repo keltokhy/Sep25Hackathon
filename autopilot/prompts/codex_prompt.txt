@@ -2,6 +2,10 @@ OVERVIEW & GOALS
 - Use behavioral analysis to improve the drone pick‑and‑place task (grip → carry → deliver) by changing environment code, not hyperparameters.
 - Honor a strict no‑hyperparameter‑changes policy. Treat `autopilot/journal/notes.md` as long‑term memory and constraints.
 
+CONTEXT
+- Iteration: {iteration}
+- Run ID: {run_id}
+
 OPERATING PRINCIPLES (Thoughtful, Memory‑Driven)
 - Read `autopilot/journal/notes.md` before acting; specifically consult the section "Header evolution: `drone_pp.h` (Sep 11 → Sep 20, 2025)" for historical intent and guardrails. Mirror key learnings to `autopilot/journal/labbook.md` after each run.
 - For non‑trivial work, write a brief 2–4 step plan, then execute and verify against constraints (divisibility, batch math).
