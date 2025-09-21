@@ -1,60 +1,112 @@
 {
   "run_id": "2025-09-21T215341Z",
-  "iteration": 20,
-  "baseline_run_id": "2025-09-21T214439Z",
-  "previous_run_id": "2025-09-21T214439Z",
-  "config_pointers": {
-    "config": "autopilot/runs/2025-09-21T215341Z/config.json",
-    "trainer_summary": "autopilot/runs/2025-09-21T215341Z/trainer_summary.json",
-    "override": "autopilot/runs/2025-09-21T215341Z/override.json"
+  "timestamp": "2025-09-21T22:02:42Z",
+  "seed": 42,
+  "grip_success": null,
+  "delivery_success": null,
+  "end_to_end_success": null,
+  "mean_reward": 35.96080080668131,
+  "episode_length": 362.2763264973958,
+  "metrics_extended": {
+    "grip_attempts": null,
+    "delivery_attempts": null,
+    "gripping_events": null,
+    "delivered_events": null,
+    "grip_conv_rate": null,
+    "deliv_conv_rate": null,
+    "e2e_conv_rate": null,
+    "hover_efficiency": null,
+    "collision_rate": 0.05773175802702705,
+    "oob_rate": null,
+    "SPS": null,
+    "performance_env": null,
+    "performance_learn": null,
+    "policy_loss": null,
+    "value_loss": null,
+    "entropy": null,
+    "approx_kl": null,
+    "clipfrac": null,
+    "explained_variance": null,
+    "importance": null
   },
-  "metrics_final": {
-    "perf": 0.272,
-    "score": 35.961,
-    "oob": 0.647,
-    "collision_rate": 0.058,
-    "episode_return": 0.014,
-    "episode_length": 362.276,
-    "sps": 1682804.339,
-    "epoch": 85,
-    "perfect_grip": 0.000,
-    "perfect_deliv": 0.000,
-    "to_pickup": 23079.878,
-    "ho_pickup": 3294.949,
-    "de_pickup": 3261.132,
-    "to_drop": 3221.771,
-    "ho_drop": 323.479,
-    "attempt_grip": 0.386,
-    "attempt_drop": 2.085
-  },
-  "deltas": {
-    "vs_previous": {
-      "oob": -0.021,
-      "collision_rate": -0.003,
-      "perf": -0.023,
-      "score": -10.128,
-      "ho_pickup": 1051.427,
-      "de_pickup": 1055.574,
-      "to_pickup": 1381.645,
-      "to_drop": 1163.589,
-      "ho_drop": 3.517,
-      "attempt_grip": -0.004,
-      "attempt_drop": -0.004,
-      "perfect_grip": 0.0,
-      "perfect_deliv": 0.0
-    },
-    "vs_baseline": {
-      "note": "Using best.json (2025-09-21T214439Z) as baseline pointer for this window"
+  "behavioral_analysis": {
+    "insights": [
+      "\ud83d\udea8 Drone not attempting to grip objects at all"
+    ],
+    "severity": "critical",
+    "next_focus": "diagnostic_grip",
+    "grip_efficiency": 0,
+    "metrics_summary": {
+      "grip_success": "0.0%",
+      "delivery_success": "0.0%",
+      "end_to_end": "0.0%",
+      "collision_rate": "5.8%"
     }
   },
-  "behavioral_analysis": "Hover and descent quality clearly improved (ho/de_pickup and to_drop up), while OOB and collisions trended slightly down. However, perfect_grip and perfect_deliv remain at 0 and grip attempts are essentially flat vs prior. Diagnosis: agent descends toward the box but fails acceptance checks, so carry never reliably starts. Root cause is overly strict pickup acceptance/\"perfect\" envelope under current k regime. Solution staged for next run: relax pickup floors (XY/Z/speed/|vz|) and slightly relax the strict perfect envelope to allow the first successful grips to register without physics helpers.",
-  "systems_touched_next": [
-    "gates: pickup grip acceptance floors",
-    "metrics: perfect_grip envelope"
-  ],
-  "resume_policy": {
-    "mode": "continue",
-    "from": "latest",
-    "save": "best"
+  "environment_changes": false,
+  "environment_comparison": {
+    "has_changes": false,
+    "description": "",
+    "files_changed": []
+  },
+  "base_commit": "33d9daa1cab06da791eaee0a83dcd467dda104ad",
+  "modified_files": "",
+  "artifacts": [],
+  "notes": "auto-generated run summary",
+  "trainer_summary": {
+    "timestamp": "2025-09-21T21:58:22Z",
+    "run_id": "2025-09-21T215341Z",
+    "train": {
+      "seed": 42,
+      "learning_rate": 0.006047018496816363,
+      "entropy_coef": 0.07123566778619919,
+      "batch_size": 2359296,
+      "minibatch_size": 2359296,
+      "max_minibatch_size": 2359296,
+      "bptt_horizon": 64,
+      "total_timesteps": 200000000
+    },
+    "env": {
+      "num_envs": 24,
+      "num_drones": 64
+    },
+    "vec": {
+      "num_envs": 24,
+      "num_workers": 24
+    },
+    "metrics": {
+      "success_rate": 0.0,
+      "mean_reward": 35.96080080668131,
+      "episode_length": 362.2763264973958,
+      "collision_rate": 0.05773175802702705,
+      "sps": 1682804.338559141,
+      "agent_steps": 276037632,
+      "epoch": 85
+    }
+  },
+  "resume_mode": "continue",
+  "resume_from": "latest",
+  "save_strategy": "best",
+  "deltas": {
+    "vs_previous": {
+      "grip_success": null,
+      "delivery_success": null,
+      "end_to_end_success": null,
+      "mean_reward": -4.376403570175171,
+      "episode_length": 50.5686194101969,
+      "oob_rate": null,
+      "SPS": null
+    },
+    "vs_baseline": {
+      "grip_success": null,
+      "delivery_success": null,
+      "end_to_end_success": null,
+      "mean_reward": null,
+      "episode_length": null,
+      "oob_rate": null,
+      "SPS": null
+    },
+    "baseline_run_id": "2025-09-21T180522Z",
+    "previous_run_id": "2025-09-21T214439Z"
   }
 }

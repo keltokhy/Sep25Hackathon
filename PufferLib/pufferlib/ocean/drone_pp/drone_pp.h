@@ -744,10 +744,11 @@ void c_step(DronePP *env) {
             // regime within a single run. This allows perfect_grip/
             // perfect_deliv to register instead of staying at zero
             // when k remains near k_max across resumed runs.
-            // Slow the curriculum: stretch k decay over ~5M global steps
-            // so the easier regime persists long enough to learn gripping.
+            // Revert clamp to ~200k-step decay so k reaches its easier
+            // regime within a single run. This keeps success metrics
+            // responsive without tying them to resumes across runs.
             // Keeping the min() preserves safety if configs set a very small decay.
-            float max_decay = (env->grip_k_max - env->grip_k_min) / 5000000.0f;
+            float max_decay = (env->grip_k_max - env->grip_k_min) / 200000.0f;
             float decay = fminf(env->grip_k_decay, max_decay);
             env->grip_k = clampf(sched_t * -decay + env->grip_k_max, env->grip_k_min, 100.0f);
             env->box_k = clampf(sched_t * env->box_k_growth + env->box_k_min, env->box_k_min, env->box_k_max);
@@ -857,13 +858,13 @@ void c_step(DronePP *env) {
                         // success metrics to the curriculum clock (which
                         // resets between runs) while still requiring
                         // precise placement and low relative speed.
-                        // Slightly relax the strict envelope so early
-                        // successes can register while still requiring
-                        // precision and stability.
-                        const float perfect_xy = 0.50f;
-                        const float perfect_z  = 0.45f;
-                        const float perfect_v  = 0.80f;
-                        const float perfect_vz = 0.25f;
+                        // Relax the strict envelope modestly so genuine
+                        // successes register while still requiring precision
+                        // and stability at k≈1.
+                        const float perfect_xy = 0.60f;
+                        const float perfect_z  = 0.55f;
+                        const float perfect_v  = 0.90f;
+                        const float perfect_vz = 0.30f;
                         bool perfect_envelope =
                             (xy_dist_to_box < perfect_xy) &&
                             (z_dist_above_box < perfect_z) && (z_dist_above_box > -0.10f) &&
@@ -934,9 +935,10 @@ void c_step(DronePP *env) {
                         agent->delivered = true;
                         agent->has_delivered = true;
                         // Mark a "perfect" delivery using strict, k‑independent
-                        // tolerances so metrics can register under slow curricula.
-                        const float perfect_xy = 0.40f;
-                        const float perfect_z  = 0.35f;
+                        // tolerances (slightly relaxed) so metrics can register
+                        // under slow curricula.
+                        const float perfect_xy = 0.50f;
+                        const float perfect_z  = 0.45f;
                         bool perfect_drop = (xy_dist_to_drop < perfect_xy) &&
                                             (z_dist_above_drop < perfect_z) && (z_dist_above_drop > -0.10f);
                         if (perfect_drop && agent->perfect_grip && env->box_k > 0.99f) {

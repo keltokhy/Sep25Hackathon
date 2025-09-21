@@ -1,0 +1,9 @@
+{
+  "run_id": "2025-09-21T220242Z",
+  "timestamp": "2025-09-21T22:12:46Z",
+  "mean_reward": 32.25,
+  "episode_length": 53365.603,
+  "grip_success": 0.0,
+  "delivery_success": 0.0,
+  "end_to_end_success": 0.0
+}

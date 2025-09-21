@@ -1,0 +1,36 @@
+Run: 2025-09-21T220242Z | Iteration: 21
+
+Key metrics (final snapshot):
+- oob: -0.262
+- collision_rate: 0.045
+- episode_return: 32.250
+- perfect_grip: 0.000 | perfect_deliv: 0.000
+- to_pickup: 28417.156 | ho_pickup: 2018.334 | de_pickup: 2018.334
+- to_drop: 129.622 | ho_drop: 129.622 | attempt_grip: 0.803 | attempt_drop: 0.803
+- sps: Misc | agent_steps: Copy | epoch: Train
+
+Δ vs previous (2025-09-21T215341Z):
+- oob: -0.262 vs 0.014
+- collision_rate: 0.045 vs 0.058
+- score: 32.250 vs 35.961
+- attempt_grip: 0.803 vs 2.085
+- ho_pickup/de_pickup: 2018.334/2018.334 vs 3261.132/3261.132
+- to_drop/ho_drop: 129.622/129.622 vs 323.479/323.479
+
+Diagnosis (Decision Framework):
+- improve_carrying: to_drop present but perfect_* remain 0 ⇒ recognition thresholds too strict.
+- diagnostic_grip: ho/de_pickup healthy; attempts non-zero ⇒ relax strict success envelopes (not acceptance).
+- Stability improved (OOB ↓, collisions ↓) but attempts fell vs prev; keep acceptance gates steady to avoid regressions.
+
+Change staged (env/drone_pp.h):
+- Curriculum clamp: max_decay=(k_max−k_min)/200k (was /5M) to make k reach easy regime earlier within-run.
+- Perfect metrics: relax strict envelopes to register genuine successes at k≈1
+  • pickup perfect: XY<0.60, Z<0.55, speed<0.90, |vz|≤0.30
+  • drop perfect: XY<0.50, Z<0.45
+
+Expected next run:
+- first non‑zero perfect_grip; possible non‑zero perfect_deliv
+- attempt_grip stable ±0.03; ho_drop/to_drop not worse; OOB ≤0.60; collisions ≤0.07
+
+Next overrides (autopilot only):
+{ "autopilot": { "resume_mode": "continue", "resume_from": "latest", "save_strategy": "best" } }

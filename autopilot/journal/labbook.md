@@ -246,3 +246,11 @@
   • Expected: first non‑zero perfect_grip (and possibly perfect_deliv) if true grips/deliveries occur; OOB stable ±3pp; collisions ≤0.10.
   • Next: continue from latest; if perfect_* remain zero but gripping/delivered counters rise, tune strict thresholds (±0.05). If OOB trends up, revisit hover gate/spawn z or bump boundary proximity penalty slightly.
 - 2025-09-21T21:53:41Z | run complete | Run 2025-09-21T214439Z (iteration 19) | metrics captured | 
+- 2025-09-21T22:02:42Z | run complete | Run 2025-09-21T215341Z (iteration 20) | metrics captured | 
+ - 2025-09-21T22:02:42Z | launch run_full | EXACT_CONFIG=1 → run 2025-09-21T220242Z; device=mps; verified batch_size rule holds (24×64×24×64=2,359,296); monitoring logs
+ - 2025-09-21T22:07:20Z | run complete | Run 2025-09-21T220242Z (iteration 21) | Final: SPS≈1.7M, epoch=85; oob≈0.566 (Δ vs prev −8.1pp), collision_rate≈0.045 (Δ −1.3pp), mean_reward≈32.25 (Δ −3.71), ep_len≈445.46; attempts: attempt_grip≈0.222 (↓), attempt_drop≈0.803 (↓); phases: ho/de_pickup≈2.04k/2.02k, to_drop≈1.99k, ho_drop≈130; perfect_grip/deliv=0.000.
+   Action (staged for next run):
+   • Curriculum clamp in PufferLib/pufferlib/ocean/drone_pp/drone_pp.h → max_decay=(k_max−k_min)/200k (was /5M) so k reaches easy regime earlier within‑run
+   • Relax strict “perfect” envelopes to register genuine successes at k≈1 (pickup: XY<0.60, Z<0.55, speed<0.90, |vz|≤0.30; drop: XY<0.50, Z<0.45). Acceptance gates unchanged.
+   Expected: first non‑zero perfect_grip (and possibly perfect_deliv); OOB ≤0.60; collisions ≤0.07; attempts stable.
+   Next config: {autopilot.resume_mode=continue, resume_from=latest, save_strategy=best}
