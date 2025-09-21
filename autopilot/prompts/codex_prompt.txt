@@ -218,7 +218,7 @@ RECORDKEEPING
 
 GEMINI DIGEST (Large-Context Summary)
 - Optionally generate an executive digest of Notes+Labbook using the Gemini CLI (≈1M token context) to maintain long-horizon memory:
-  • `cat autopilot/journal/notes.md autopilot/journal/labbook.md | gemini -y -p "Summarize notes+labbook into 200–250 words with sections: Executive Summary; Key Trends and Deltas; Interaction Effects; Risks; Next Actions." --session-summary autopilot/logs/gemini_session_{run_id}.json > autopilot/logs/gemini_summary_{run_id}.md`
+  • `cat autopilot/journal/notes.md autopilot/journal/labbook.md | gemini -y -p "Summarize notes+labbook into 200–250 words with sections: Executive Summary; Key Trends and Deltas; Interaction Effects; Risks; Next Actions." --session-summary autopilot/runs/{run_id}/gemini_session.json > autopilot/runs/{run_id}/gemini_summary.md`
 - Skim the digest for consistency before proposing the next override.
 
 COMMIT DISCIPLINE (MANDATORY)
