@@ -501,7 +501,9 @@ void reset_pp2(DronePP* env, Drone *agent, int idx) {
     // Keep box/drop spawns farther from hard XY boundaries to reduce early OOB.
     // Slightly increase margin based on observed high OOB rates so random
     // wandering is less likely to cross boundaries before stabilization.
-    float edge_margin = 12.0f;
+    // Keep pickup/drop sites well away from hard XY boundaries to reduce
+    // boundary exits from early random policy behavior.
+    float edge_margin = 16.0f;
     agent->box_pos = (Vec3){
         rndf(-MARGIN_X + edge_margin, MARGIN_X - edge_margin),
         rndf(-MARGIN_Y + edge_margin, MARGIN_Y - edge_margin),
@@ -536,7 +538,9 @@ void reset_pp2(DronePP* env, Drone *agent, int idx) {
     // encourage immediate hover/grip attempts (diagnostic_grip focus).
     // Use a tighter lateral radius based on prior runs to further
     // reduce large initial traversals that often lead to OOB.
-    float r_xy = rndf(0.4f, 1.0f);
+    // Spawn closer laterally to the box to shorten the initial traverse
+    // and reduce XY drift before stabilization.
+    float r_xy = rndf(0.3f, 0.8f);
     float theta = rndf(0.0f, 2.0f * (float)M_PI);
     Vec3 spawn_pos = {
         agent->box_pos.x + r_xy * cosf(theta),
