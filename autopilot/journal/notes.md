@@ -39,7 +39,8 @@ Purpose: concise long‑term memory that guides future iterations at a glance. U
 - New: Relax grip vertical descent gate — require `vel.z > -max(0.15, 0.06·k)` (still `< 0`) during pickup grip. Rationale: at k≈1 the −0.06 m/s cap is too strict and blocks legitimate grips; allowing moderate descent should yield first non‑zero grips and `to_drop > 0` without increasing collisions.
 
 ## 5) Decisions Log
-- 2025-09-21T085023Z: Relax drop success gates to match pickup (XY,Z ≤ 0.40·k). Rationale: to_drop and ho_drop are non‑trivial but perfect_deliv is low; carry is noisier than pickup. Expect delivery_success↑ and OOB↔/↓ without impacting collisions.
+ - 2025-09-21T085023Z: Relax drop success gates to match pickup (XY,Z ≤ 0.40·k). Rationale: to_drop and ho_drop are non‑trivial but perfect_deliv is low; carry is noisier than pickup. Expect delivery_success↑ and OOB↔/↓ without impacting collisions.
+ - 2025-09-21T091542Z: Remove post‑grip random_bump and widen spawn edge_margin 8→12. Rationale: reduce boundary exits and carry instability triggered immediately after gripping; expect OOB↓ (primary), to_drop/ho_drop↑, attempt_drop↑; collisions stable.
 \- 2025-09-21T090309Z: Tighten XY gating and cap k in phase gates (pickup/drop). Applied k_eff=min(k,2.0) in hover/descent/grip/drop checks; require stronger XY alignment before descent (≤0.20·k_eff, cap 0.8m); revert hover_ok_hidden to 1.8m/1.2m; clamp hover_ok_xy to ≤min(0.35·k_eff, 1.5m); similarly cap drop hover/descent; spawn: edge_margin 8m, r_xy 0.4–1.0m. Rationale: early high‑k phases allowed far‑field descent/hover, driving OOB. Expect OOB↓, ho/de_pickup↑, attempt_grip↔/↑, to_drop/ho_drop↑; collisions stable.
 
 Note (reverts applied after Run 2025-09-21T061611Z):

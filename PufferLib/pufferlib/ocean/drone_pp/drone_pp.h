@@ -501,7 +501,7 @@ void reset_pp2(DronePP* env, Drone *agent, int idx) {
     // Keep box/drop spawns farther from hard XY boundaries to reduce early OOB.
     // Slightly increase margin based on observed high OOB rates so random
     // wandering is less likely to cross boundaries before stabilization.
-    float edge_margin = 8.0f;
+    float edge_margin = 12.0f;
     agent->box_pos = (Vec3){
         rndf(-MARGIN_X + edge_margin, MARGIN_X - edge_margin),
         rndf(-MARGIN_Y + edge_margin, MARGIN_Y - edge_margin),
@@ -847,7 +847,10 @@ void c_step(DronePP *env) {
                         // lowering OOB and improving approach to the drop zone.
                         update_gripping_physics(agent);
                         reward += env->reward_grip;
-                        random_bump(agent);
+                        // Remove post-grip disturbance to reduce OOB and
+                        // stabilize the carry phase. Prior runs showed
+                        // upward and angular kicks here often caused drift
+                        // and boundary exits before reaching drop hover.
                     } else if (dist_to_hidden > 0.4f || speed > 0.4f) {
                         agent->color = (Color){255, 100, 100, 255}; // Light Red
                         // Near-miss diagnostic: count plausible grip attempts that miss strict gates
