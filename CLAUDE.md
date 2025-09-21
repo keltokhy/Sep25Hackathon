@@ -20,11 +20,29 @@ uv run python setup.py build_ext --inplace --force
 
 ## Core Commands
 
-**Training:**
+**Training (Manual):**
 ```bash
-uv run puffer train puffer_drone_pp                    # Basic training
-uv run puffer train puffer_drone_pp --wandb           # With WandB logging
-uv run puffer train puffer_drone_pp --neptune         # With Neptune logging
+# From PufferLib directory with venv activated
+cd PufferLib
+source .venv/bin/activate
+python -m pufferlib.pufferl train puffer_drone_pp     # Basic training
+python -m pufferlib.pufferl train puffer_drone_pp --wandb    # With WandB
+python -m pufferlib.pufferl train puffer_drone_pp --neptune  # With Neptune
+
+# Or with uv (if properly configured)
+uv run puffer train puffer_drone_pp
+```
+
+**Training (Autopilot):**
+```bash
+# The autopilot system runs training automatically via:
+bash -lc autopilot/scripts/run_training.sh
+
+# This script:
+# 1. Activates PufferLib/.venv/bin/activate
+# 2. Sets performance env vars (PYTORCH_MPS_HIGH_WATERMARK_RATIO=0.0, etc)
+# 3. Uses config from autopilot/configs/baseline_full.json
+# 4. Runs: python -m pufferlib.pufferl train puffer_drone_pp [config args]
 ```
 
 **Evaluation:**
