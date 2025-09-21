@@ -24,11 +24,14 @@ CONTEXT
 - Run ID: {run_id}
 
 OPERATING PRINCIPLES
+- First understand WHY before changing WHAT. Trace mathematical relationships in the code.
 - Consult `autopilot/journal/notes.md` before acting, especially "Header evolution: `drone_pp.h`" section.
+- When metrics worsen after a change, consider reverting harmful additions rather than layering fixes.
 - State behavioral hypothesis and expected metrics impact for each change.
 - If no improvement after few iterations, try different dimension.
 - If performance degrades at consistent training points, suspect curriculum (k parameter) issues - consider making configurable.
 - Track which 'dimensions' tried (gates/physics/rewards/spawn/curriculum) and explore untouched ones.
+- Before adding new mechanisms, check if existing parameters in .ini can achieve the goal.
 
 SINGLE‑RUN PER ITERATION
 - Launch training once per iteration. Edits apply to next iteration's run. No auto-retry on failures.
@@ -36,18 +39,19 @@ SINGLE‑RUN PER ITERATION
 WORKFLOW (Numbered Core Loop)
 1) Execute {script} (autopilot/scripts/run_training.sh) with ≥15‑minute timeout. Do not skip.
 2) Read the fresh run's `summary.json` for behavioral_analysis (note: this field is not printed in train.log "User Stats"). Use `trainer_summary.json` or `train.log` for raw metrics.
-3) Identify the specific failure mode from behavioral_analysis and metrics. Cross‑check against the "Header evolution: `drone_pp.h`" notes to avoid re‑introducing patterns previously removed.
-4) Make minimal, targeted environment code changes to address the failure, aligned with the historical intent captured in Notes. Maintain hypothesis diversity: Keep a list of several different approaches. Don't repeatedly test the same hypothesis type (e.g., "relax gates") without trying something orthogonal.
-5) Rebuild bindings and smoke‑test import.
-6) Configure the next run using only `autopilot.*` overrides (or `{}`) in `autopilot/proposals/next_config.json`.
-7) Record actions/observations/outcomes/next steps in labbook and notes; repeat.
+3) Analyze: Compare metrics across last 3 runs. Are changes helping or hurting? Look for patterns in timing (which epoch fails).
+4) Root cause: Identify the specific failure mode from behavioral_analysis and metrics. Ask: is this a symptom or the cause? Trace back through the mathematical formulas.
+5) Solution: Make minimal, targeted environment code changes to address the root cause, aligned with the historical intent captured in Notes. If recent changes made things worse, revert them first.
+6) Rebuild bindings and smoke‑test import if .h/.c files changed.
+7) Configure the next run using only `autopilot.*` overrides (or `{}`) in `autopilot/proposals/next_config.json`.
+8) Record actions/observations/outcomes/next steps in labbook and notes; repeat.
 
 DECISION FRAMEWORK
 • diagnostic_grip (when perfect_grip = 0):
   - If ho_pickup < 0.1: Drone can't reach hover → relax hover gates or adjust spawn
   - If ho_pickup > 0.1 but de_pickup < 0.1: Hover works but won't descend → check descent gates
   - If de_pickup > 0.1 but perfect_grip = 0: Descending but can't grip → relax grip conditions
-  - If metrics improve then degrade at consistent epoch: Curriculum too aggressive → control k decay
+  - If metrics improve then degrade at consistent epoch: Curriculum too aggressive → reduce grip_k_decay in drone_pp.ini
 
 • improve_carrying (when perfect_grip > 0 but perfect_deliv = 0):
   - Check to_drop: If low, navigation issue → adjust carry rewards
@@ -57,13 +61,15 @@ DECISION FRAMEWORK
   - High OOB often means spawn too close to boundaries or descent too aggressive
 
 CREATIVE ESCALATION (When progress stalls)
-- Early iterations: Focus on PRIORITY 1 (.ini tweaks) and PRIORITY 2 (drone_pp.h gates/logic)
+- First ask: Have recent changes made metrics WORSE? If yes, revert harmful additions before trying new things.
+- Early iterations: Focus on PRIORITY 1 (.ini tweaks) - often the simplest parameter adjustment solves the issue
 - Mid iterations: If limited progress, try different dimension in same priority level
-- Later iterations: Escalate to PRIORITY 3 (observation space, new metrics)
+- Later iterations: Escalate to PRIORITY 2/3 only if .ini changes insufficient
 - After several iterations with minimal improvement, try orthogonal approaches:
+  • Parameter tuning: Check if grip_k_decay or other rates need adjustment
   • Reward shaping: Modify reward weights in .ini first, then computation in .h
   • Physics tuning: Adjust box mass, drone thrust, gravity constants
-  • Curriculum control: Make k decay configurable via .ini (check if k calculation in .h could read from config)
+  • Curriculum control: grip_k_decay in .ini controls difficulty progression speed
   • Anti-collapse mechanisms: Add exploration bonuses or success-gated progression
   • Spawn strategy: Alter initial positions/orientations fundamentally
 
@@ -87,9 +93,10 @@ ENVIRONMENT DEBUGGING CHECKLIST
 2) Consult `autopilot/journal/notes.md` → "Header evolution: `drone_pp.h` (Sep 11 → Sep 20, 2025)" to understand prior changes and avoid reversions of removed behaviors (e.g., low‑altitude penalty) unless explicitly justified.
 3) Choose the right file to edit (in priority order):
    PRIORITY 1 (Try first - no rebuild needed):
-   • `drone_pp.ini` - You can ADD ANY parameters here (rewards, k_decay, k_start, etc.)
-     Then read them in drone_pp.h: env->k_decay_rate = get_config_float("k_decay_rate", 0.1)
-     Check if difficulty/curriculum parameters exist or could be externalized here
+   • `drone_pp.ini` - Modify existing parameters like grip_k_decay (currently 0.09049941256843744)
+     This controls how fast difficulty decreases: env->grip_k = tick * -grip_k_decay + grip_k_max
+     Lower values = slower decay = more time to learn at each difficulty level
+     Math insight: With current values, k drops from 17.9 to 1.0 in ~200k steps. Is that too fast?
 
    PRIORITY 2 (Most impactful - requires rebuild):
    • `drone_pp.h` - Main logic, state machines, reward computation, physics
@@ -108,18 +115,19 @@ ENVIRONMENT DEBUGGING CHECKLIST
 7) Document in `runs/<run_id>/notes.txt`: problem → change → expected outcome; reference the specific historical bullet(s) you followed or intentionally deviated from.
 
 SUCCESS METRICS
+- WARNING SIGN: If OOB increases from ~0.85 to >0.95 after a change, that change is harmful - revert it
 - Baseline "working" when:
   • grip_success shows majority success
   • delivery_success shows significant rate
   • end_to_end_success shows upward trend
   • OOB/crash rates remain low and stable
 - Intermediate milestones (reassess if not met):
-  • Early: ho_pickup showing improvement
+  • Early: ho_pickup showing improvement (>0.01 and rising)
   • Mid: de_pickup increasing
   • Later: perfect_grip becoming non-zero
   • Eventually: perfect_grip showing consistent growth
-- If milestones stagnate, switch approach dimension
-- Note: Consistent degradation at same epoch suggests curriculum issues (k parameter)
+- If milestones stagnate or reverse, first check if recent changes are harmful
+- Note: Consistent degradation at same epoch suggests curriculum issues (grip_k_decay parameter)
 
 FAILSAFES
 - No behavioral_analysis: Check `summary.json` (not in train.log), add logging if needed
