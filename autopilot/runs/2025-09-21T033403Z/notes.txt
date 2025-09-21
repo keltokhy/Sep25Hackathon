@@ -1,0 +1,33 @@
+Run: 2025-09-21T033403Z
+Iteration: 4
+Mode: full (EXACT_CONFIG=1)
+
+Problem observed (diagnose by metrics):
+- perfect_grip = 0.000; perfect_deliv = 0.000; end_to_end_success = 0.000
+- ho_pickup ≈ 0.07–0.10; de_pickup ≈ 0.07–0.10 → hovering/descending only occasionally
+- to_drop = 0.000; ho_drop = 0.000 → no carrying
+- oob ≈ 0.85 (very high); collision_rate ≈ 0.006 (low)
+- episode_length ≈ 150; SPS ≈ 1.62M; CPU ~335%; GPU ~0%
+- trainer_summary: success_rate 0.0; epoch 85; agent_steps ≈ 276M
+
+Behavioral analysis:
+- This is diagnostic_grip: agent reaches pickup area rarely; grips never register.
+- High OOB suggests instability and lateral drift, likely preventing sustained hover/descent near box before gates tighten (k decays quickly to ~1).
+- Gates were already relaxed in previous iterations; spawn near box is on; reward shaping favors hidden hover point.
+
+Change (environment code, physics):
+- Increase linear drag and angular damping to stabilize hover/descent:
+  • dronelib.h: BASE_K_ANG_DAMP 0.2 → 0.3
+  • dronelib.h: BASE_B_DRAG 0.1 → 0.2
+  Rationale: reduce drift and overshoot so agents stay within bounds and satisfy hover/descent gates more often without changing reward/gates again.
+
+Expected impact (next run):
+- oob ↓ (stability improves; fewer boundary/floor terminations)
+- ho_pickup ↑ and de_pickup ↑ (can hold position above box; more controlled descent)
+- attempt_grip ↑; first non‑zero perfect_grip possible; to_drop > 0 begins
+- collision_rate remains low; SPS unaffected
+
+References to history/guardrails:
+- Avoid re‑introducing low‑altitude penalties; address stability via physics damping instead of more gate changes (Notes.md Header evolution + hypotheses diversity).
+
+Next: {}

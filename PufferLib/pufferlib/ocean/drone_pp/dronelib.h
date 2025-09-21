@@ -25,9 +25,9 @@
 #define BASE_IZZ 0.02f       // kgm^2
 #define BASE_ARM_LEN 0.1f    // m
 #define BASE_K_THRUST 3e-5f  // thrust coefficient
-#define BASE_K_ANG_DAMP 0.2f // angular damping coefficient
+#define BASE_K_ANG_DAMP 0.3f // angular damping coefficient (stability bump)
 #define BASE_K_DRAG 1e-6f    // drag (torque) coefficient
-#define BASE_B_DRAG 0.1f     // linear drag coefficient
+#define BASE_B_DRAG 0.2f     // linear drag coefficient (reduce drift)
 #define BASE_GRAVITY 9.81f   // m/s^2
 #define BASE_MAX_RPM 750.0f  // rad/s
 #define BASE_MAX_VEL 50.0f   // m/s

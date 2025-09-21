@@ -3,48 +3,28 @@ OVERVIEW & GOALS
 - Honor a strict no‑hyperparameter‑changes policy. Treat `autopilot/journal/notes.md` as long‑term memory and constraints.
 
 THE TASK
-The drone must:
-1. Take off and stabilize
-2. Locate and approach a DHL package (box)
-3. Hover above it, then descend carefully
-4. Grip the package when close enough
-5. Carry it to a designated drop zone
-6. Deliver by releasing at the right position
+Drone must: take off → approach box → hover → descend → grip → carry to drop zone → deliver.
+Success requires completing the full chain.
 
-Success requires completing the full chain: grip → carry → deliver.
-
-KEY METRICS GLOSSARY
-Performance Metrics:
-- `perfect_grip` / `grip_success`: Successfully gripped the box (0-1)
-- `perfect_deliv` / `delivery_success`: Successfully delivered to drop zone (0-1)
-- `perfect_now` / `end_to_end_success`: Complete success (grip AND deliver) (0-1)
-
-Behavioral Indicators:
-- `ho_pickup`: "Hovering for pickup" - drone hovering above box before descent (0-1)
-- `de_pickup`: "Descending for pickup" - drone descending toward box (0-1)
-- `to_pickup`: "Toward pickup" - drone moving toward box position (0-1)
-- `ho_drop`: "Hovering for drop" - drone hovering above drop zone (0-1)
-- `to_drop`: "Toward drop" - drone carrying box toward drop zone (0-1)
-- `attempt_grip`: Number of grip attempts (even failed ones)
-- `attempt_drop`: Number of drop attempts
-
-Failure Modes:
-- `oob`: Out of bounds rate - drone left allowed area (0-1)
-- `collision_rate`: Hit obstacles or floor (0-1)
-- `episode_return`: Total reward across episode (higher is better)
-- `episode_length`: Timesteps before termination (max better unless OOB)
+KEY METRICS
+- `perfect_grip`: Successfully gripped box (0-1)
+- `perfect_deliv`: Successfully delivered (0-1)
+- `ho_pickup`: Hovering for pickup (0-1)
+- `de_pickup`: Descending for pickup (0-1)
+- `to_drop`: Carrying toward drop zone (0-1)
+- `oob`: Out of bounds rate (0-1)
+- `episode_return`: Total reward (higher better)
 
 CONTEXT
 - Iteration: {iteration}
 - Run ID: {run_id}
 
-OPERATING PRINCIPLES (Thoughtful, Memory‑Driven)
-- Read `autopilot/journal/notes.md` before acting; specifically consult the section "Header evolution: `drone_pp.h` (Sep 11 → Sep 20, 2025)" for historical intent and guardrails. Mirror key learnings to `autopilot/journal/labbook.md` after each run.
-- For non‑trivial work, write a brief 2–4 step plan, then execute and verify against constraints (divisibility, batch math).
-- Always state the behavioral hypothesis you are testing and the expected effect on grip/hover/carry/deliver metrics.
-- If guidance conflicts, prefer the latest committed environment code and the Notes file.
- - Be introspective: do not make assumptions—check yourself. Verify claims against the current code, config, and logs before acting; re‑read constraints after changes. If a hypothesis shows no measurable improvement after a few iterations, consider exploring a different dimension of the problem space—sometimes a fresh angle reveals overlooked opportunities.
-- Track patterns: If performance consistently degrades at similar points in training, suspect training dynamics not environment. The k parameter (difficulty) decay might be too aggressive - consider making it configurable in .ini files or implementing success-gated progression. Track which 'dimensions' you've tried (gates/physics/rewards/spawn/curriculum) and systematically explore untouched dimensions before revisiting old ones.
+OPERATING PRINCIPLES
+- Consult `autopilot/journal/notes.md` before acting, especially "Header evolution: `drone_pp.h`" section.
+- State behavioral hypothesis and expected metrics impact for each change.
+- If no improvement after few iterations, try different dimension.
+- If performance degrades at consistent training points, suspect curriculum (k parameter) issues - consider making configurable.
+- Track which 'dimensions' tried (gates/physics/rewards/spawn/curriculum) and explore untouched ones.
 
 SINGLE‑RUN PER ITERATION (Strict)
 - Launch training exactly once at the start of the iteration, then do analysis and documentation only. Do not relaunch training again within the same iteration.
