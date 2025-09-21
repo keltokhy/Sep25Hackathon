@@ -1,0 +1,33 @@
+Run 2025-09-21T192339Z — Iteration 5
+
+Problem
+- OOB still extremely high (~0.954). Hovering for pickup barely registers (ho_pickup≈0.004→0.028 mid-run), zero grips/deliveries. Score improved vs prior, collisions ~0.5%.
+
+Observations (Δ vs 2025-09-21T191359Z / baseline 2025-09-21T180522Z)
+- mean_reward: 23.98 (+7.51 / n.a.)
+- episode_length: 49.00 (+6.61 / n.a.)
+- oob: ~0.954 (≈ +0.0pp / n.a.)
+- ho_pickup: 0.004 (↑ from 0.000 / n.a.) | de_pickup: 0.004 (↑ from 0.000 / n.a.)
+- perfect_grip: 0.000 | perfect_deliv: 0.000 | attempt_grip: 0.000 | attempt_drop: 0.000
+- sps: ~1.79M (↑)
+
+Root Cause Hypothesis
+- Primary failure remains boundary fly-offs before reaching stable hover. Policy often moves toward pickup (to_pickup≈3.0k) but fails to stabilize near the hidden hover waypoint; hover gate likely too strict early, providing no shaped signal to stabilize → continued drift and OOB resets.
+
+Environment Change (staged for next iteration)
+- drone_pp.h (Phase 1 pickup hover gate): relax thresholds to allow early stabilizations to register.
+  • dist_to_hidden: 0.8 (was 0.4)
+  • speed: 0.6 (was 0.4)
+  Rationale: increase ho_pickup so the policy gets positive shaping at the hover waypoint; expect more descent attempts without adding physics hacks.
+
+Expected Impact
+- ho_pickup: +0.01–0.03 absolute; de_pickup begins to rise.
+- OOB: modest ↓ (secondary) as agents spend more time near boxes instead of drifting.
+- Collisions: ~0.5% (stable).
+
+Interaction Effects to Watch
+- Faster progression into descent may increase floor contacts; monitor min_z resets vs true OOB.
+- If OOB remains >0.90 after this, revisit boundary proximity shaping or action ramp strength (avoid physics helpers).
+
+Next Step
+- Resume from latest; keep hparams fixed. If ho/de_pickup rise but grips stay zero, next relax descent/grip gates (k-scaled) minimally.

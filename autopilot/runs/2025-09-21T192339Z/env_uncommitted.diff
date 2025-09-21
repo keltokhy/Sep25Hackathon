@@ -1,0 +1,66 @@
+diff --git a/PufferLib/pufferlib/ocean/drone_pp/drone_pp.h b/PufferLib/pufferlib/ocean/drone_pp/drone_pp.h
+index afe1355..bd0943e 100644
+--- a/PufferLib/pufferlib/ocean/drone_pp/drone_pp.h
++++ b/PufferLib/pufferlib/ocean/drone_pp/drone_pp.h
+@@ -574,10 +574,10 @@ void reset_agent(DronePP* env, Drone *agent, int idx) {
+     agent->color = (Color){255, 0, 0, 255};
+ 
+     if (env->task == TASK_PP2) {
+-        // Spawn drones away from hard XY boundaries and above the floor for stability
+-        // Increase margin to keep initial flight more central while policy stabilizes
++        // Spawn drones away from hard XY boundaries and a bit higher off the floor
++        // for stability. Keep centralization but avoid overcrowding on the floor.
+         float edge_margin = 17.0f;
+-        float z_min = -GRID_Z + 2.5f;
++        float z_min = -GRID_Z + 3.5f;
+         float z_max = GRID_Z - 1.0f;
+         agent->state.pos = (Vec3){
+             rndf(-MARGIN_X + edge_margin, MARGIN_X - edge_margin),
+@@ -688,28 +688,13 @@ void c_step(DronePP *env) {
+         agent->perfect_now = false;
+ 
+         float* atn = &env->actions[4*i];
+-        // Gentle early action scaling to curb saturation and OOB
+-        // Ramp from 0.7 → 1.0 over ~100k global steps
+-        float act_scale = 0.7f + 0.3f * fminf(1.0f, (float)env->global_tick / 100000.0f);
+-        atn[0] *= act_scale;
+-        atn[1] *= act_scale;
+-        atn[2] *= act_scale;
+-        atn[3] *= act_scale;
+-
+-        // Boundary-aware action softening (XY only): when close to hard walls,
+-        // softly scale down actions to reduce fly-offs without adding external forces.
+-        // Starts at 90% of GRID and scales to ~50% at the boundary.
+-        float bx = fabsf(env->agents[i].state.pos.x) / GRID_X;
+-        float by = fabsf(env->agents[i].state.pos.y) / GRID_Y;
+-        float b = fmaxf(bx, by);
+-        if (b > 0.90f) {
+-            float t = fminf(1.0f, (b - 0.90f) / 0.10f); // 0 at 90%, 1 at 100%
+-            float soft = 1.0f - 0.5f * t;               // 1.0 → 0.5
+-            atn[0] *= soft;
+-            atn[1] *= soft;
+-            atn[2] *= soft;
+-            atn[3] *= soft;
+-        }
++            // Gentle early action scaling to curb saturation and OOB.
++            // Slower ramp: 0.5 → 1.0 over ~400k global steps.
++            float act_scale = 0.5f + 0.5f * fminf(1.0f, (float)env->global_tick / 400000.0f);
++            atn[0] *= act_scale;
++            atn[1] *= act_scale;
++            atn[2] *= act_scale;
++            atn[3] *= act_scale;
+         move_drone(agent, atn);
+ 
+         bool out_of_bounds = agent->state.pos.x < -GRID_X || agent->state.pos.x > GRID_X ||
+@@ -892,9 +877,9 @@ void c_step(DronePP *env) {
+         env->rewards[i] += reward;
+         agent->episode_return += reward;
+ 
+-        float min_z = -GRID_Z + 0.2f;
++        float min_z = -GRID_Z + 1.0f;
+         if (agent->gripping) {
+-            min_z += 0.1;
++            min_z += 0.3f;
+         }
+ 
+         if (out_of_bounds || agent->state.pos.z < min_z) {
