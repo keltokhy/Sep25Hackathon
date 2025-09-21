@@ -136,7 +136,10 @@ int main() {
 
     env->grip_k_min = 1.0;
     env->grip_k_max = 17.887758597919266;
-    env->grip_k_decay = 0.005;  // Reduced from 0.09 - gives much more time to learn at each difficulty level
+    // Curriculum: decay k from ~17.9 → 1.0 over ~200k global steps.
+    // Using global_tick (monotonic) prevents resets each horizon.
+    //  (17.9 - 1.0) / 200_000 ≈ 8.45e-5
+    env->grip_k_decay = 8.5e-5f;
 
     env->box_base_density = 50.0;
     env->box_k_growth = 0.02;

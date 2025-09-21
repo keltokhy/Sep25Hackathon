@@ -1,0 +1,29 @@
+Run 2025-09-21T060555Z (iteration 3)
+
+Problem
+- improve_carrying: perfect_grip > 0 but perfect_deliv = 0
+- OOB very high (~0.954); collisions ~0.022; episode_len ~49
+- Drop approach weak: to_drop ~1.58k vs ho_drop ~27; attempt_drop ~0.002
+
+Observations (from UI + trainer_summary)
+- perfect_grip ≈ 0.151; perfect_deliv = 0.000
+- ho/de_pickup high; to_drop present but ho_drop scarce
+- SPS ≈ 1.35M; CPU ≈ 340%; GPU (mps) idle
+
+Root cause hypothesis
+- Curriculum (k) tied to env->tick resets each horizon; k never decays consistently, making “perfect_*” phases misaligned and drop gates inconsistent across time. Prior widening of drop gates did not help; ho_drop fell slightly.
+- High OOB persists despite soft walls/centralizing force; frequent resets likely preempt drop hover attempts.
+
+Change (for next run)
+- Switch curriculum scheduling to a monotonic global step counter (no horizon resets) and set grip_k_decay ≈ 8.5e-5 so k drops from ~17.9→1.0 over ~200k steps.
+  Files: PufferLib/pufferlib/ocean/drone_pp/drone_pp.h, drone_pp.c
+  - Add env->global_tick; use it for grip_k/box_k schedules.
+  - Set grip_k_decay = 8.5e-5f (was 0.005 hardcoded).
+
+Expected impact
+- Stabilize phase gating over training: ho/de_pickup remain high; to_drop rises; ho_drop increases; first deliveries appear as k approaches ~1.
+- OOB should not worsen; monitor if softer curriculum (later strictness) reduces boundary hits.
+
+Next
+- If ho_drop remains low with perfect_grip > 0, tune drop descent XY gate and z window; if OOB stays >0.9, strengthen floor soft-field or raise min_z while gripping.
+

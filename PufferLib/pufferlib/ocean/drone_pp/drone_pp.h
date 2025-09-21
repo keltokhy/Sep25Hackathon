@@ -73,7 +73,10 @@ typedef struct {
     float dist;
 
     Log log;
+    // Episode-local tick (resets each horizon for rollouts)
     int tick;
+    // Monotonic global step counter for curriculum scheduling (never resets)
+    unsigned long long global_tick;
     int report_interval;
     bool render;
 
@@ -127,6 +130,7 @@ void init(DronePP *env) {
     env->ring_buffer = calloc(env->max_rings, sizeof(Ring));
     env->log = (Log){0};
     env->tick = 0;
+    env->global_tick = 0ULL;
 }
 
 void add_log(DronePP *env, int idx, bool oob) {
@@ -669,6 +673,10 @@ void c_reset(DronePP *env) {
 
 void c_step(DronePP *env) {
     env->tick = (env->tick + 1) % HORIZON;
+    // Keep a monotonic global step for curriculum variables (k) so
+    // difficulty ramps consistently across rollouts instead of resetting
+    // every horizon.
+    env->global_tick += 1ULL;
     //env->log.dist = 0.0f;
     //env->log.dist100 = 0.0f;
     for (int i = 0; i < env->num_agents; i++) {
@@ -717,8 +725,10 @@ void c_step(DronePP *env) {
             }
             agent->approaching_pickup = true;
             float speed = norm3(agent->state.vel);
-            env->grip_k = clampf(env->tick * -env->grip_k_decay + env->grip_k_max, env->grip_k_min, 100.0f);
-            env->box_k = clampf(env->tick * env->box_k_growth + env->box_k_min, env->box_k_min, env->box_k_max);
+            // Use global_tick to schedule curriculum so k evolves smoothly across training
+            float sched_t = (float)env->global_tick;
+            env->grip_k = clampf(sched_t * -env->grip_k_decay + env->grip_k_max, env->grip_k_min, 100.0f);
+            env->box_k = clampf(sched_t * env->box_k_growth + env->box_k_min, env->box_k_min, env->box_k_max);
             agent->box_mass = env->box_k * agent->box_base_mass;
             float k = env->grip_k;
             if (DEBUG > 0) printf("  PP2\n");
