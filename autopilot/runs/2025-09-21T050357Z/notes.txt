@@ -1,0 +1,27 @@
+Problem observed (behavioral + metrics):
+- Iteration 1 | Run 2025-09-21T050357Z (baseline_full, EXACT_CONFIG=1).
+- Extreme OOB ≈ 0.953; collision_rate ≈ 0.005; episode_length ≈ 50.
+- Funnel: to_pickup ≈ 3.1k; ho_pickup ≈ 0.01; de_pickup ≈ 0.01; perfect_grip = 0; to_drop = 0; ho_drop = 0; perfect_deliv = 0.
+- Diagnosis: diagnostic_grip + fix_stability. Agents approach but rarely stabilize over the box; episodes end prematurely due to OOB/floor.
+
+Change made (environment-only, no hparam changes):
+- Physics stability in `PufferLib/pufferlib/ocean/drone_pp/dronelib.h`:
+  • BASE_B_DRAG 0.35 → 0.50 (more linear damping; less drift/overshoot).
+  • BASE_K_ANG_DAMP 0.30 → 0.35 (more angular damping; steadier attitude).
+  • Soft boundary forces: widen/strengthen to further reduce early OOB
+    - wall_band 3.0, wall_k 18; floor_band 2.0, floor_k 20; ceil_band 2.0, ceil_k 12.
+- Spawn stability in `PufferLib/pufferlib/ocean/drone_pp/drone_pp.h`:
+  • Raise pickup spawn altitude to box_z + [2.0..3.0] (was +[1.5..2.5]) to avoid early floor strikes.
+
+Historical context (Notes → Header evolution):
+- Keeps hover→descent→grip gates as currently relaxed; does not re‑introduce low‑altitude penalties.
+- Follows the “soft boundary fields” escalation path when OOB > 0.5 after initial soft walls.
+- Avoids repeating the last change (action governor); choosing orthogonal dimension (physics/boundaries).
+
+Expected outcome (next iteration):
+- OOB ↓↓, episode_length ↑; ho_pickup & de_pickup ↑ (agents survive to hover/gate conditions).
+- attempt_grip ↑ and first non‑zero grips possible; collision_rate stable.
+- If OOB remains > 0.5: consider adding a gentle centralizing field toward arena center (keep thrust-dominant), else revisit descent/hover gates.
+
+Proposals for next run:
+- autopilot/proposals/next_config.json = {} (no hyperparameter changes).

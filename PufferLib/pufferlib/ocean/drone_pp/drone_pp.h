@@ -528,8 +528,9 @@ void reset_pp2(DronePP* env, Drone *agent, int idx) {
     Vec3 spawn_pos = {
         agent->box_pos.x + r_xy * cosf(theta),
         agent->box_pos.y + r_xy * sinf(theta),
-        // Raise spawn altitude, but keep vertical distance to hover moderate
-        agent->box_pos.z + rndf(1.5f, 2.5f)
+        // Raise spawn altitude a bit more to avoid early floor strikes,
+        // while keeping vertical distance to hover moderate
+        agent->box_pos.z + rndf(2.0f, 3.0f)
     };
     // Clamp within grid margins
     spawn_pos.x = clampf(spawn_pos.x, -GRID_X + 0.5f, GRID_X - 0.5f);
