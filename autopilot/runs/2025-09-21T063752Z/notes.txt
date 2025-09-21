@@ -1,0 +1,22 @@
+Run 2025-09-21T063752Z
+
+Problem
+- OOB extremely high (~0.953); episodes end ~50 steps; zero deliveries; some grips emerge.
+
+Change
+- In PufferLib/pufferlib/ocean/drone_pp/drone_pp.h (reset_pp2):
+  - Raise box/drop z from -GRID_Z+0.5 to -GRID_Z+1.5 to reduce floor strikes.
+  - Increase initial hover target offset above box from +0.6 m to +0.8 m.
+
+Rationale
+- Floor contacts dominate OOB. Raising pickup/drop planes modestly increases clearance without altering core phase logic (hover → descend → grip) or adding soft-floor forces.
+
+Expected Impact
+- OOB decreases (primary). ho/de_pickup stable or increase. Collisions remain ~2.2%. Grips persist or improve; delivery remains gated by drop-phase hover/descend.
+
+Observed
+- Trainer summary: mean_reward≈5.69, episode_len≈50.0, coll_rate≈0.0217, SPS≈1.65M. UI: oob≈0.953, perfect_grip≈0.13, perfect_deliv=0.00, to_drop≈1.67k, ho_drop≈35.
+
+Next
+- Keep proposals `{}` (no hyperparameter overrides). If OOB remains >0.9 next run, tighten lateral spawn band further before reintroducing any physics helpers.
+

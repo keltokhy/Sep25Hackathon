@@ -498,12 +498,15 @@ void reset_pp2(DronePP* env, Drone *agent, int idx) {
     agent->box_pos = (Vec3){
         rndf(-MARGIN_X + edge_margin, MARGIN_X - edge_margin),
         rndf(-MARGIN_Y + edge_margin, MARGIN_Y - edge_margin),
-        -GRID_Z + 0.5f
+        // Raise box a bit off the floor to reduce early floor strikes
+        // and lower OOB terminations while preserving pickup geometry.
+        -GRID_Z + 1.5f
     };
     agent->drop_pos = (Vec3){
         rndf(-MARGIN_X + edge_margin, MARGIN_X - edge_margin),
         rndf(-MARGIN_Y + edge_margin, MARGIN_Y - edge_margin),
-        -GRID_Z + 0.5f
+        // Mirror the raised pickup height at the drop zone
+        -GRID_Z + 1.5f
     };
     agent->gripping = false;
     agent->delivered = false;
@@ -517,10 +520,9 @@ void reset_pp2(DronePP* env, Drone *agent, int idx) {
     agent->hover_timer = 0.0f;
     agent->target_pos = agent->box_pos;
     agent->hidden_pos = agent->target_pos;
-    // Set initial hover target modestly above the box to reduce
-    // long vertical transits before descent while keeping floor margin
-    // (aligns with drop hover ~+0.6m in later phases)
-    agent->hidden_pos.z += 0.6f;
+    // Set initial hover target modestly above the (now slightly higher) box
+    // to keep early descent gentle while further reducing floor contact risk.
+    agent->hidden_pos.z += 0.8f;
     agent->hidden_vel = (Vec3){0.0f, 0.0f, 0.0f};
 
     // Spawn the drone near its assigned box to reduce early OOB
