@@ -838,6 +838,11 @@ void c_step(DronePP *env) {
                             agent->color = (Color){100, 100, 255, 255}; // Light Blue
                         }
                         agent->gripping = true;
+                        // Immediately update physics to account for the gripped box.
+                        // Hypothesis: enabling carry mass/inertia as soon as the grip
+                        // occurs reduces overshoot and drift during the carry phase,
+                        // lowering OOB and improving approach to the drop zone.
+                        update_gripping_physics(agent);
                         reward += env->reward_grip;
                         random_bump(agent);
                     } else if (dist_to_hidden > 0.4f || speed > 0.4f) {
