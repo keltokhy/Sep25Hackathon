@@ -1,0 +1,22 @@
+Run 2025-09-21T095422Z (iteration 6)
+
+Problem
+- OOB remains high (≈0.81 final snapshot) despite prior spawn/gate fixes; collisions low (~2.77%). Delivery still sparse.
+
+Observations
+- Trainer summary: success_rate≈6.22, mean_reward≈28.27, episode_len≈196.30, coll_rate≈0.0277, SPS≈1.95M, epoch=85.
+- UI (final panel): oob≈0.810; perfect_grip≈624; perfect_deliv≈6.22; to_pickup≈12.45k; ho_pickup≈12.45k; de_pickup≈12.39k; to_drop≈465; ho_drop≈103; attempt_grip≈2.31; attempt_drop≈0.016.
+- Pattern: approach and descent gates fire (to/ho/de_pickup ≫), some grips occur, but many episodes drift to XY boundaries during approach/carry and terminate OOB.
+
+Root cause
+- Far‑field XY drift is insufficiently discouraged. The boundary‑proximity penalty added last iteration starts too late (≥80% of GRID) and with weak weight (−0.15), so it fails to counteract exploratory thrust before agents get near hard limits.
+
+Change (for next run)
+- env/drone_pp.h: in compute_reward(), start boundary penalty at ≥60% of GRID (was 80%) and increase weight to −0.20. Physics untouched; no soft walls/centralizing fields.
+
+Expected impact
+- Primary: OOB↓, longer episodes. Secondary: ho/de_pickup ↔/↑, to_drop/ho_drop ↑ as fewer runs die at the edges. Collisions remain ~2–3%.
+
+Notes
+- Curriculum already clamped via global_tick and decay cap; gates use k_floor=min_thresh, so strictness at k≈1 should be stable.
+- Keep spawn near box (edge_margin=16m; r_xy=0.3–0.8m) and base MAX_VEL=20 m/s for now to isolate boundary shaping effect.

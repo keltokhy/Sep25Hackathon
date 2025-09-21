@@ -48,7 +48,7 @@
     "pos_penalty": 0.03827543428980447,
     "grip_k_min": 1.0,
     "grip_k_max": 17.887758597919266,
-    "grip_k_decay": 0.09049941256843744,
+    "grip_k_decay": 0.02,
     "box_base_density": 50.0,
     "box_k_growth": 0.02,
     "reward_hover": 0.25,

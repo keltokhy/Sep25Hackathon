@@ -1,0 +1,10 @@
+{
+  "run_id": "2025-09-21T095422Z",
+  "created_at": "2025-09-21T09:54:22Z",
+  "metadata": {
+    "mode": "full",
+    "config_template": "configs/baseline_full.json",
+    "iteration": 6,
+    "parent_run": "2025-09-21T094027Z"
+  }
+}

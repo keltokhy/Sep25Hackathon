@@ -46,7 +46,15 @@ Purpose: concise long‑term memory that guides future iterations at a glance. U
 - Score pattern: 3.3→177.7→34.9 (collapse after epoch 60)
 - Suggests overfitting or destabilization from velocity penalties
 
-## 5) Immediate Recommendations
+## 5) OOB Fix: Edge Margin Overcentralization (2025-09-21)
+- **Problem**: OOB regressed to 96.8% after edge_margin curriculum change
+- **Root cause**: Edge margin 22→14 over 200k steps caused extreme centralization
+  - At start: boxes spawn in (-7,7) range only (vs arena ±30)
+  - Drones spawn 0.2-0.6 units from box = overcrowding in center
+- **Fix applied**: Gentler curriculum 10→5 over 500k steps, spawn radius 0.5-1.5
+- **Expected**: Reduced initial collisions, better space utilization, lower OOB
+
+## 6) Immediate Recommendations
 1. **Extend training to 1B+ timesteps** - Current 200M is far too short for this task complexity
 2. **Fix curriculum decay** - Stretch grip_k decay over 50M+ timesteps, not 200K
 3. **Remove velocity penalty** - It helped OOB but killed task learning
@@ -102,4 +110,5 @@ Note (reverts applied after Run 2025-09-21T061611Z):
  - 2025-09-21 (Run 2025-09-21T094027Z): OOB still high (≈0.82–0.84 across last 4 runs) with low deliveries; earlier epochs briefly better then regress by epoch 85. Decision: add mild XY boundary‑proximity penalty in `compute_reward` (0 when |x|,|y| ≤ 0.8·GRID; scales to −0.15 at boundary). Rationale: discourage far‑field runaways without re‑adding soft walls or centralizing forces. Expected: OOB↓ (primary), longer episodes, ho/de_pickup↔/↑, to_drop/ho_drop↑; collisions stable. Proposals `{}`.
 
 - 2025-09-21T10:02:46Z | run complete | Run 2025-09-21T095422Z (iteration 6) | Decision: earlier, stronger XY boundary penalty in env/drone_pp.h (start at 0.6·GRID; weight −0.20). Expected: OOB↓, episode_len↑, to_drop/ho_drop↑; collisions stable.
- - 2025-09-21T17:26:34Z | run complete | Run 2025-09-21T171823Z (iteration 1) | Decision: revert boundary proximity shaping to gentler version (start at 0.8·GRID; weight −0.15) after regression (oob≈0.921, perfect_grip=0). Keep spawn/physics/curriculum unchanged. Expect OOB↓, ho/de_pickup↔/↑, first non‑zero grips; collisions stable.
+- 2025-09-21T17:26:34Z | run complete | Run 2025-09-21T171823Z (iteration 1) | Decision: revert boundary proximity shaping to gentler version (start at 0.8·GRID; weight −0.15) after regression (oob≈0.921, perfect_grip=0). Keep spawn/physics/curriculum unchanged. Expect OOB↓, ho/de_pickup↔/↑, first non‑zero grips; collisions stable.
+ - 2025-09-21T18:04:10Z | env change staged | Reduce BASE_MAX_VEL 20→12 m/s in `dronelib.h` to curb far‑field runaways causing OOB≈0.97 in Run 2025-09-21T175631Z. Rationale: lower per‑step displacement without adding drag/soft walls; preserves control authority. Expected: OOB↓ (primary), episode_len↑, ho/de_pickup↔/↑; collisions stable. Proposals `{}`.

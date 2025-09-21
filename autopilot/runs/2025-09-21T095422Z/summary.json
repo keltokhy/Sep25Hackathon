@@ -1,12 +1,12 @@
 {
-  "run_id": "2025-09-21T043409Z",
-  "timestamp": "2025-09-21T04:47:17Z",
+  "run_id": "2025-09-21T095422Z",
+  "timestamp": "2025-09-21T10:07:12Z",
   "seed": 42,
   "grip_success": null,
   "delivery_success": null,
   "end_to_end_success": null,
-  "mean_reward": null,
-  "episode_length": null,
+  "mean_reward": 28.267964164415996,
+  "episode_length": 196.3016856511434,
   "metrics_extended": {
     "grip_attempts": null,
     "delivery_attempts": null,
@@ -16,7 +16,7 @@
     "deliv_conv_rate": null,
     "e2e_conv_rate": null,
     "hover_efficiency": null,
-    "collision_rate": null,
+    "collision_rate": 0.02766444708686322,
     "oob_rate": null,
     "SPS": null,
     "performance_env": null,
@@ -40,7 +40,7 @@
       "grip_success": "0.0%",
       "delivery_success": "0.0%",
       "end_to_end": "0.0%",
-      "collision_rate": "0.0%"
+      "collision_rate": "2.8%"
     }
   },
   "environment_changes": false,
@@ -49,10 +49,41 @@
     "description": "",
     "files_changed": []
   },
-  "base_commit": "78303bd28b3805335f4217e4c64a5fd26cc347f2",
+  "base_commit": "7454bcb36f74d99a80e3ba954a27dcabaa6cd3ee",
   "modified_files": "",
   "artifacts": [],
   "notes": "auto-generated run summary",
+  "trainer_summary": {
+    "timestamp": "2025-09-21T10:02:46Z",
+    "run_id": "2025-09-21T095422Z",
+    "train": {
+      "seed": 42,
+      "learning_rate": 0.006047018496816363,
+      "entropy_coef": 0.07123566778619919,
+      "batch_size": "auto",
+      "minibatch_size": 16384,
+      "max_minibatch_size": 32768,
+      "bptt_horizon": 64,
+      "total_timesteps": 200000000
+    },
+    "env": {
+      "num_envs": 24,
+      "num_drones": 64
+    },
+    "vec": {
+      "num_envs": 24,
+      "num_workers": 24
+    },
+    "metrics": {
+      "success_rate": 6.215700676043828,
+      "mean_reward": 28.267964164415996,
+      "episode_length": 196.3016856511434,
+      "collision_rate": 0.02766444708686322,
+      "sps": 1948857.4275139095,
+      "agent_steps": 276037632,
+      "epoch": 85
+    }
+  },
   "resume_mode": "fresh",
   "resume_from": null,
   "save_strategy": "best"
