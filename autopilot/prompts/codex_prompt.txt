@@ -217,8 +217,31 @@ RECORDKEEPING
 - The harness pre-fills `runs/<run_id>/notes.txt` with a comparison + interaction template; complete it after each run.
 
 GEMINI DIGEST (Large-Context Summary)
-- Optionally generate an executive digest of Notes+Labbook using the Gemini CLI (≈1M token context) to maintain long-horizon memory:
-  • `cat autopilot/journal/notes.md autopilot/journal/labbook.md | gemini -y -p "Summarize notes+labbook into 200–250 words with sections: Executive Summary; Key Trends and Deltas; Interaction Effects; Risks; Next Actions." --session-summary autopilot/runs/{run_id}/gemini_session.json > autopilot/runs/{run_id}/gemini_summary.md`
+- Optionally generate an executive digest using the Gemini CLI (≈1M token context) to synthesize across run artifacts, journal, diffs, and relevant code.
+- Recommended headless command (writes results into the run folder):
+  • `{
+      printf '=== RUN METADATA (run.json) ===\n'; cat autopilot/runs/{run_id}/run.json 2>/dev/null;
+      printf '\n=== SUMMARY (summary.json) ===\n'; cat autopilot/runs/{run_id}/summary.json 2>/dev/null;
+      printf '\n=== TRAINER SUMMARY (trainer_summary.json) ===\n'; cat autopilot/runs/{run_id}/trainer_summary.json 2>/dev/null;
+      printf '\n=== CONFIG (config.json) ===\n'; cat autopilot/runs/{run_id}/config.json 2>/dev/null;
+      printf '\n=== OVERRIDE (override.json) ===\n'; cat autopilot/runs/{run_id}/override.json 2>/dev/null;
+      printf '\n=== BASELINE POINTERS (baseline.json, best.json) ===\n'; cat autopilot/runs/baseline.json 2>/dev/null; echo; cat autopilot/runs/best.json 2>/dev/null;
+      printf '\n=== RUN NOTES (notes.txt) ===\n'; cat autopilot/runs/{run_id}/notes.txt 2>/dev/null;
+      printf '\n=== LABBOOK (last 400 lines) ===\n'; tail -n 400 autopilot/journal/labbook.md 2>/dev/null;
+      printf '\n=== NOTES.MD (long-term) ===\n'; cat autopilot/journal/notes.md 2>/dev/null;
+      printf '\n=== ENVIRONMENT DIFFS ===\n'; cat autopilot/runs/{run_id}/env_uncommitted.diff 2>/dev/null; echo; cat autopilot/runs/{run_id}/env_staged.diff 2>/dev/null;
+      printf '\n=== TRAIN LOG (tail 3000) ===\n'; tail -n 3000 autopilot/runs/{run_id}/train.log 2>/dev/null;
+      printf '\n=== CODE SNAPSHOTS (drone_pp.h/.c, dronelib.h, binding.c; head 500 lines each) ===\n';
+      for f in \
+        PufferLib/pufferlib/ocean/drone_pp/drone_pp.h \
+        PufferLib/pufferlib/ocean/drone_pp/drone_pp.c \
+        PufferLib/pufferlib/ocean/drone_pp/dronelib.h \
+        PufferLib/pufferlib/ocean/drone_pp/binding.c; do \
+        test -f "$f" && { echo "\n--- $f (head) ---"; sed -n '1,500p' "$f"; }; \
+      done; \
+    } | gemini -y -p "Summarize this training iteration in ≤300 words with sections: Executive Summary; Key Trends and Deltas (cite run_ids); Environment Changes & Interaction Effects; Risks / Open Questions; Next Actions (3 bullets). Use concrete deltas vs previous/baseline when available." \
+      --session-summary autopilot/runs/{run_id}/gemini_session.json \
+      > autopilot/runs/{run_id}/gemini_summary.md`
 - Skim the digest for consistency before proposing the next override.
 
 COMMIT DISCIPLINE (MANDATORY)

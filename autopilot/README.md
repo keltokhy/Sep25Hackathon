@@ -78,6 +78,7 @@ Comparisons, notes template, and digests:
 - To pin a specific baseline, create `autopilot/runs/baseline.json` with at least `{ "run_id": "<run_id>" }`.
 - The orchestrator pre-fills `runs/<run_id>/notes.txt` with a structured template (snapshot, comparisons, interaction effects, decision, next override). Fill it after each run.
  - For a large-context digest (Gemini CLI), save per-run: `autopilot/runs/<run_id>/gemini_summary.md` and `gemini_session.json`.
+   Recommended command includes summary, trainer_summary, config/override, notes, labbook, diffs, train log (tail), and code snapshots (drone_pp.h/.c, dronelib.h, binding.c).
 
 Troubleshooting tips:
 - If the trainer “sticks” after a brief CPU spike, check divisibility (`vec.num_envs % vec.num_workers`) and the batch rule above.
