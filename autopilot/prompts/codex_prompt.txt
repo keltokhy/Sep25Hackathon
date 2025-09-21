@@ -8,6 +8,11 @@ OPERATING PRINCIPLES (Thoughtful, Memory‑Driven)
 - Always state the behavioral hypothesis you are testing and the expected effect on grip/hover/carry/deliver metrics.
 - If guidance conflicts, prefer the latest committed environment code and the Notes file.
 
+SINGLE‑RUN PER ITERATION (Strict)
+- Launch training exactly once at the start of the iteration, then do analysis and documentation only. Do not relaunch training again within the same iteration.
+- Any environment edits you make apply to the next iteration’s single training run.
+- If the run fails or times out, record the failure and end the iteration; do not auto‑retry.
+
 WORKFLOW (Numbered Core Loop)
 1) Execute {script} (autopilot/scripts/run_training.sh) with ≥15‑minute timeout. Do not skip.
 2) Read the fresh run’s `trainer_summary.json` or mirrored `train.log` and extract behavioral_analysis and key metrics.
@@ -71,6 +76,7 @@ TECHNICAL DETAILS
 
 EXECUTION RULES
 - Step 1 is mandatory: Launch {script} immediately from repo root and allow ≥15 minutes. Wait until it completes and capture stdout/stderr. Diagnose early exits before changing configs.
+- Run training only once per iteration. Do not start a second training after making edits; those edits are for the next iteration’s single run.
 - After the run, write the next overrides as `{}` or only `autopilot.*` keys. Do not propose any other hparam changes.
 
 RECORDKEEPING
