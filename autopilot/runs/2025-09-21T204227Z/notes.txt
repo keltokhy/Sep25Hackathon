@@ -1,0 +1,29 @@
+Run: 2025-09-21T204227Z (iteration 13)
+
+Summary
+- Perf: 0.301
+- Score: 16.516
+- OOB: 0.485 | Collision rate: 0.038
+- Episode length: 527.81 | Return: -0.543
+- perfect_grip: 0.000 | perfect_deliv: 0.000
+- Attempts: attempt_grip 0.043 | attempt_drop 0.129
+- Phases: to_pickup 33700.867 | ho_pickup 319.379 | de_pickup 315.556 | to_drop 298.312 | ho_drop 22.239
+
+Deltas
+- vs previous (2025-09-21T203215Z): OOB -0.238, collisions -0.060, ep_len +242.85; perf -0.023, score -15.161; attempts/event metrics regressed (attempt_grip -0.336; to_drop -2347.39; ho_drop -397.39). perfect_grip/deliv unchanged (0).
+- vs baseline (best.json → 2025-09-21T203215Z): same as above.
+
+Diagnosis
+- Stability improved (OOB↓, collisions↓, longer episodes), but fewer descents/attempts and still no grips/deliveries. Root cause remains pickup conversion too strict; hover gate may be overly tight given current policy noise.
+
+Change (for NEXT iteration)
+- env/drone_pp.h:
+  • Hover gate: dist<1.0 (was 0.8), speed<0.8 (was 0.6).
+  • Pickup grip gate: z floor −0.10 (was −0.06), vz ≤ 0.12 (was ≤ 0.08), grip_z_tol floor 0.40 (was 0.35).
+- Systems touched: gates (hover, pickup), rewards/physics unchanged; curriculum unchanged (slow k‑decay preserved).
+
+Expected Impact
+- ho_pickup↑, attempt_grip↑, first non‑zero grips; OOB ≤0.55; collisions ≤0.06. Watch for floor taps after looser z; verify carry/to_drop rebounds.
+
+Next Overrides
+- autopilot/proposals/next_config.json: {"autopilot": {"resume_mode": "continue", "resume_from": "latest", "save_strategy": "best"}}

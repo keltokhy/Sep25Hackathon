@@ -771,8 +771,9 @@ void c_step(DronePP *env) {
                     // and speed tolerance to let early policies register hovering
                     // before learning precise stabilization. This should raise
                     // ho_pickup without adding physics hacks.
-                    const float hover_dist_tol = 0.8f;  // was 0.4f
-                    const float hover_speed_tol = 0.6f; // was 0.4f
+                    // Slightly widen hover tolerance to increase Phase-1 detections
+                    const float hover_dist_tol = 1.0f;  // was 0.8f
+                    const float hover_speed_tol = 0.8f; // was 0.6f
                     if (dist_to_hidden < hover_dist_tol && speed < hover_speed_tol) {
                         agent->hovering_pickup = true;
                         agent->color = (Color){255, 255, 255, 255}; // White
@@ -817,14 +818,14 @@ void c_step(DronePP *env) {
                     // but perfect_grip=0. Widen XY/Z and speed/vertical-velocity
                     // tolerances modestly to bootstrap carry without physics hacks.
                     float grip_xy_tol = fmaxf(0.40f, k * 0.25f);
-                    float grip_z_tol  = fmaxf(0.35f, k * 0.25f);
+                    float grip_z_tol  = fmaxf(0.40f, k * 0.25f);
                     float grip_v_tol  = fmaxf(0.55f, k * 0.35f);
                     float grip_vz_tol = fmaxf(0.22f, k * 0.10f);
                     if (
                         xy_dist_to_box < grip_xy_tol &&
-                        z_dist_above_box < grip_z_tol && z_dist_above_box > -0.06f &&
+                        z_dist_above_box < grip_z_tol && z_dist_above_box > -0.10f &&
                         speed < grip_v_tol &&
-                        agent->state.vel.z > -grip_vz_tol && agent->state.vel.z <= 0.08f
+                        agent->state.vel.z > -grip_vz_tol && agent->state.vel.z <= 0.12f
                     ) {
                         if (k < 1.01 && env->box_k > 0.99f) {
                             agent->perfect_grip = true;

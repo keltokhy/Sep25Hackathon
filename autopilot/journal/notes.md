@@ -163,3 +163,10 @@ Note (reverts applied after Run 2025-09-21T061611Z):
    • Change: Relax pickup grip acceptance (z > −0.06; speed<max(0.55, 0.35·k); |vz|≤0.22, vz≤0.08). Relax drop release (XY/Z < max(0.30, 0.25·k), z>−0.10). No physics helpers.
    • Expected: attempt_grip↗ and first grips; delivery attempts↗; early deliveries possible; OOB ≤0.78; collisions ≤0.12.
    • Next config: {autopilot.resume=continue latest, save=best}.
+
+- 2025‑09‑21T20:47:51Z (iter 13, run 2025‑09‑21T204227Z)
+  • Result: OOB≈0.485 (Δ vs 203215Z −0.238), collision_rate≈0.038 (Δ −0.060), ep_len≈527.81 (Δ +242.85); perf≈0.301 (Δ −0.023); perfect_grip/deliv=0; attempts/events regressed vs 203215Z (attempt_grip≈0.043, to_drop≈298, ho_drop≈22).
+  • Hypothesis: pickup conversion still too strict; ho gate a bit tight when policy noisy → fewer descents and near‑misses.
+  • Change: Widen hover gate (dist<1.0, speed<0.8). Relax pickup grip acceptance slightly (z floor −0.10 from −0.06; vz≤0.12 from 0.08; grip_z_tol floor 0.40). No physics/reward changes.
+  • Expected: ho_pickup↑, attempt_grip↑, first non‑zero grips; OOB ≤0.55; collisions ≤0.06.
+  • Next: continue from latest; reassess attempt→grip conversion; if attempts rise without grips, relax vz window further or add small attempt reward.
