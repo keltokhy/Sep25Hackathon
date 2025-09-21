@@ -727,6 +727,11 @@ void c_step(DronePP *env) {
 
                 // Phase 1 Box Hover
                 if (!agent->hovering_pickup) {
+                    // Align reward shaping with hover guidance: during pickup approach,
+                    // shape toward the hidden hover point rather than the box center.
+                    // Rationale: encourages stabilizing above the box before descent,
+                    // which should reduce early floor/OOB and raise ho/de_pickup.
+                    agent->target_pos = agent->hidden_pos;
                     if (DEBUG > 0) printf("  Phase1\n");
                     if (DEBUG > 0) printf("    dist_to_hidden = %.3f\n", dist_to_hidden);
                     if (DEBUG > 0) printf("    xy_dist_to_box = %.3f\n", xy_dist_to_box);
@@ -758,6 +763,10 @@ void c_step(DronePP *env) {
                 // Phase 2 Box Descent
                 else {
                     agent->descent_pickup = true;
+                    // Keep reward shaping focused on the (moving) hidden point while
+                    // descending. The hidden point drops gently when XY-aligned,
+                    // pulling the agent down in a controlled manner.
+                    agent->target_pos = agent->hidden_pos;
                     // Only allow descent when laterally aligned with the box.
                     // This reduces floor interactions and OOB from drifting during descent.
                     float k_floor = fmaxf(k, 1.0f);
