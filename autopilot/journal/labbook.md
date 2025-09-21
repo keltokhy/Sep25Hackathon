@@ -85,3 +85,4 @@
 - 2025-09-21T03:42:49Z | run baseline_full + physics damping | ho/de_pickup≈0.07–0.10; perfect_grip=0; to_drop=0; oob≈0.85; sps≈1.62M | apply physics tweak in dronelib.h (B_DRAG 0.1→0.2; K_ANG_DAMP 0.2→0.3); rebuilt; smoke‑import OK | next: {}
 - 2025-09-21T03:46:34Z | run complete | Run 2025-09-21T033403Z (iteration 4) | metrics captured | 
 - 2025-09-21T03:59:23Z | run complete | Run 2025-09-21T034634Z (iteration 5) | metrics captured | 
+- 2025-09-21T04:07:51Z | run complete | Run 2025-09-21T035923Z (iteration 6) perfect_grip=0, perfect_deliv=0, oob≈0.953, ho/de_pickup≈0.004→0.010 | strengthen soft boundaries; raise linear drag; rebuilt bindings | next: expect oob↓, ho/de_pickup↑, first grips

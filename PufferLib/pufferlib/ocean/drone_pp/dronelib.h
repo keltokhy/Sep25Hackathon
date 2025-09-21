@@ -27,7 +27,7 @@
 #define BASE_K_THRUST 3e-5f  // thrust coefficient
 #define BASE_K_ANG_DAMP 0.3f // angular damping coefficient (stability bump)
 #define BASE_K_DRAG 1e-6f    // drag (torque) coefficient
-#define BASE_B_DRAG 0.2f     // linear drag coefficient (reduce drift)
+#define BASE_B_DRAG 0.35f    // linear drag coefficient (reduce drift further)
 #define BASE_GRAVITY 9.81f   // m/s^2
 #define BASE_MAX_RPM 750.0f  // rad/s
 #define BASE_MAX_VEL 50.0f   // m/s
@@ -385,12 +385,13 @@ void compute_derivatives(State* state, Params* params, float* actions, StateDeri
     // Apply gentle repulsive forces near the arena walls and floor/ceiling to
     // reduce early out-of-bounds terminations while policy is untrained.
     // Tuned to be much smaller than thrust/gravity so normal flight remains unchanged.
-    const float wall_band = 1.0f;   // start pushing back within 1m of XY walls
-    const float wall_k = 2.0f;      // N per meter into the band
-    const float floor_band = 0.8f;  // start pushing up within 0.8m of the floor
-    const float floor_k = 8.0f;     // stronger vertical push to avoid floor strikes
-    const float ceil_band = 0.8f;   // gentle ceiling push
-    const float ceil_k = 4.0f;
+    // Stronger, earlier soft-boundary forces to reduce OOB resets
+    const float wall_band = 2.0f;   // start pushing back within 2m of XY walls
+    const float wall_k = 12.0f;     // stronger horizontal repulsion
+    const float floor_band = 1.2f;  // start pushing up within 1.2m of the floor
+    const float floor_k = 12.0f;    // stronger vertical push to avoid floor strikes
+    const float ceil_band = 1.2f;   // gentle ceiling push sooner
+    const float ceil_k = 8.0f;
 
     Vec3 F_soft = {0.0f, 0.0f, 0.0f};
     // +X wall
