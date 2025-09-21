@@ -713,12 +713,16 @@ void c_step(DronePP *env) {
         agent->perfect_now = false;
 
         float* atn = &env->actions[4*i];
-        // Revert early action governor (harmful): pass raw actions through.
-        // Rationale: recent runs show OOB rising to ~0.95 after adding
-        // a strong scaling governor, preventing agents from stabilizing
-        // or reaching hover. Restoring direct control should improve
-        // hover acquisition (ho/de_pickup) without further interference.
-        move_drone(agent, atn);
+        // Gentle action ramp: scale actions during early training to curb
+        // untrained saturation without removing control authority. Scale
+        // increases from 0.7 → 1.0 over the first ~100k global steps.
+        float atn_scaled[4];
+        float scale = 0.7f + 0.3f * fminf(1.0f, (float)env->global_tick / 100000.0f);
+        atn_scaled[0] = atn[0] * scale;
+        atn_scaled[1] = atn[1] * scale;
+        atn_scaled[2] = atn[2] * scale;
+        atn_scaled[3] = atn[3] * scale;
+        move_drone(agent, atn_scaled);
 
         bool out_of_bounds = agent->state.pos.x < -GRID_X || agent->state.pos.x > GRID_X ||
                              agent->state.pos.y < -GRID_Y || agent->state.pos.y > GRID_Y ||

@@ -1,0 +1,46 @@
+Run: 2025-09-21T181559Z (iteration 3)
+
+Key rates
+- grip_success: 0.000
+- delivery_success: 0.000
+- end_to_end_success: 0.000
+
+Attempts/events
+- attempt_grip: 0.012
+- attempt_drop: 0.0
+- to_pickup: 2110.318
+- ho_pickup: 1089.417
+- de_pickup: 1059.441
+- to_drop: 0.512
+- ho_drop: 0.001
+
+Stability
+- oob: 0.968
+- collision_rate: 0.035
+
+Throughput
+- sps: 1736492.1000797744
+
+Δ vs previous (2025-09-21T180522Z)
+- Δ oob: -0.001
+- Δ attempt_grip: +0.002
+- Δ attempt_drop: +0.000
+- Δ to_drop: +0.062
+- Δ ho_drop: -0.001
+- Δ episode_return: -0.006
+- Δ collision_rate: -0.001
+
+Δ vs baseline (2025-09-21T180522Z)
+- Same as previous (baseline pinned)
+
+Suspected cause
+- OOB remains the primary blocker: early action saturation with full-range motor commands leads to rapid boundary exits before hover can stabilize.
+
+Change staged for next run
+- Add gentle action scaling ramp (0.7→1.0 over first ~100k global steps) applied uniformly to motor commands before integration.
+
+Expected impact
+- OOB ↓ (primary), longer episodes, ho/de_pickup ↔/↑, attempt_grip ↑. Collisions stable.
+
+Exit criteria for this subgoal
+- +5pp grip_success and +1pp delivery_success vs baseline, with OOB not worse by >2pp.
