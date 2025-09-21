@@ -27,10 +27,13 @@ Purpose: concise long‑term memory that guides future iterations at a glance. U
 
 ## 4) Open Questions & Next Hypotheses (≤5)
 - Does the difficulty ramp (grip_k decay, box_k growth) explain the common “good start → poor end” pattern? Add/plot k vs perfect_* over updates.
-- Are hover/grip gates calibrated to typical velocity and distance distributions at k≈1? Consider logging distributions to validate.
+ - Are hover/grip gates calibrated to typical velocity and distance distributions at k≈1? Consider logging distributions to validate (post spawn-near-box change).
 - Is OOB driven by descent overshoot or lateral drift near the box? Compare `xy_dist_to_box` and vertical speed at failure.
 - Do CPU spikes align with short env/learn bursts while GPU dominates wall‑time? Use performance/* timings to confirm resource balance.
 - Are delivery gates too tight relative to grip dynamics at late k? Inspect failure transitions from gripping→drop.
+ - After gentler descent (−0.06) and wider grip gates (0.20·k), do ho/de_pickup increase without raising collisions? Applied spawn-near-box; validate OOB↓ and ho/de_pickup↑ before considering soft‑floor.
+ - Drop approach gating: previously drop hover z‑window (0.7–1.3m) didn’t match target (+0.4m), likely suppressing `ho_drop` and `to_drop`. Adjusted to 0.3–0.6m and set `approaching_drop=true` upon carry; verify `to_drop↑, ho_drop↑`, OOB↓ during carry.
+ - New: Require XY alignment before descent (pickup/drop); hold altitude until `xy_dist <= 0.20·max(k,1)`. Add near‑miss counters (`attempt_grip`, `attempt_drop`). Hypothesis: OOB↓ by preventing drift‑descent; ho/de_pickup↑; first non‑zero gripping.
 
 ## 5) Decisions Log (terse, dated)
 - 2025‑09‑20: Restore header to upstream commit `552502e`; revert local edits; baseline re‑established.
@@ -38,3 +41,7 @@ Purpose: concise long‑term memory that guides future iterations at a glance. U
 - 2025‑09‑21: Adopt box2 INI hparams in `baseline_full.json`; add EXACT_CONFIG passthrough.
 - 2025‑09‑21: Remove personal names from prompt/notes; prefer “latest committed environment code”.
 - 2025‑09‑21: Enforce single‑run per iteration; add Notes.md discipline (curated, concise, edit‑in‑place).
+ - 2025-09-21: Grip diagnostic patch — lower hover offset (+0.6m), slower descent (−0.06 m/s), relax grip gates to 0.20·k; goal: convert hover attempts into grips, reduce OOB modestly; verify ho/de_pickup↑ and any non‑zero deliveries next run (fresh).
+- 2025-09-21: Spawn near box — in PP2 reset, spawn 1.0–2.5 m laterally and 1.5–2.5 m above box; clamp to grid and zero initial vel/omega; goal: reduce early OOB and raise hover/grip attempts.
+ - 2025-09-21: Raise pickup hover + spawn z — increase hidden pickup hover to +0.9 m (from +0.6) and raise spawn altitude to 2.0–3.0 m above box; rationale: OOB remained ~0.80 with near‑floor starts; aligns with fix_stability without re‑introducing low‑altitude penalties; expect OOB↓ and ho/de_pickup↑ next run.
+ - 2025-09-21: Gate descent on XY alignment; add near‑miss counters — descend only when `xy_dist <= 0.20·max(k,1)` for pickup/drop; otherwise hold altitude. Added `attempt_grip/attempt_drop` logging and exported in binding. Rationale: high OOB with misaligned descents; expected OOB↓ and better grip attempts.

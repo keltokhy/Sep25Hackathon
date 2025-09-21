@@ -495,8 +495,29 @@ void reset_pp2(DronePP* env, Drone *agent, int idx) {
     agent->hover_timer = 0.0f;
     agent->target_pos = agent->box_pos;
     agent->hidden_pos = agent->target_pos;
-    agent->hidden_pos.z += 1.0f;
+    // Raise initial hover target to provide more headroom above floor
+    // Rationale: High OOB near floor indicates insufficient margin; +0.9m reduces floor interactions
+    agent->hidden_pos.z += 0.9f;
     agent->hidden_vel = (Vec3){0.0f, 0.0f, 0.0f};
+
+    // Spawn the drone near its assigned box to reduce early OOB
+    // and encourage immediate hover/grip attempts (diagnostic_grip focus)
+    float r_xy = rndf(1.0f, 2.5f);
+    float theta = rndf(0.0f, 2.0f * (float)M_PI);
+    Vec3 spawn_pos = {
+        agent->box_pos.x + r_xy * cosf(theta),
+        agent->box_pos.y + r_xy * sinf(theta),
+        // Raise spawn altitude slightly to reduce early floor contacts
+        agent->box_pos.z + rndf(2.0f, 3.0f)
+    };
+    // Clamp within grid margins
+    spawn_pos.x = clampf(spawn_pos.x, -GRID_X + 0.5f, GRID_X - 0.5f);
+    spawn_pos.y = clampf(spawn_pos.y, -GRID_Y + 0.5f, GRID_Y - 0.5f);
+    spawn_pos.z = clampf(spawn_pos.z, -GRID_Z + 0.2f, GRID_Z - 0.2f);
+    agent->state.pos = spawn_pos;
+    agent->prev_pos = spawn_pos;
+    agent->state.vel = (Vec3){0.0f, 0.0f, 0.0f};
+    agent->state.omega = (Vec3){0.0f, 0.0f, 0.0f};
 
     float drone_capacity = agent->params.arm_len * 4.0f;
     agent->box_size = rndf(0.05f, fmaxf(drone_capacity, 0.1f));
@@ -692,7 +713,8 @@ void c_step(DronePP *env) {
                     if (DEBUG > 0) printf("    dist_to_hidden = %.3f\n", dist_to_hidden);
                     if (DEBUG > 0) printf("    xy_dist_to_box = %.3f\n", xy_dist_to_box);
                     if (DEBUG > 0) printf("    z_dist_above_box = %.3f\n", z_dist_above_box);
-                    if (dist_to_hidden < 0.4f && speed < 0.4f) {
+                    // Relax hover gate: allow slightly larger radius and speed
+                    if (dist_to_hidden < 0.6f && speed < 0.5f) {
                         agent->hovering_pickup = true;
                         agent->color = (Color){255, 255, 255, 255}; // White
                     } else {
@@ -705,17 +727,28 @@ void c_step(DronePP *env) {
                 // Phase 2 Box Descent
                 else {
                     agent->descent_pickup = true;
-                    agent->hidden_vel = (Vec3){0.0f, 0.0f, -0.1f};
+                    // Only allow descent when laterally aligned with the box.
+                    // This reduces floor interactions and OOB from drifting during descent.
+                    float k_floor = fmaxf(k, 1.0f);
+                    if (xy_dist_to_box <= k_floor * 0.20f) {
+                        // Even gentler descent to improve stability entering grip
+                        agent->hidden_vel = (Vec3){0.0f, 0.0f, -0.06f};
+                    } else {
+                        // Hold altitude while correcting lateral error
+                        agent->hidden_vel = (Vec3){0.0f, 0.0f, 0.0f};
+                        agent->hidden_pos.z = fmaxf(agent->hidden_pos.z, agent->box_pos.z + 0.6f);
+                    }
                     if (DEBUG > 0) printf("  GRIP\n");
                     if (DEBUG > 0) printf("    xy_dist_to_box = %.3f\n", xy_dist_to_box);
                     if (DEBUG > 0) printf("    z_dist_above_box = %.3f\n", z_dist_above_box);
                     if (DEBUG > 0) printf("    speed = %.3f\n", speed);
                     if (DEBUG > 0) printf("    agent->state.vel.z = %.3f\n", agent->state.vel.z);
                     if (
-                        xy_dist_to_box < k * 0.1f &&
-                        z_dist_above_box < k * 0.1f && z_dist_above_box > 0.0f &&
-                        speed < k * 0.1f &&
-                        agent->state.vel.z > k * -0.05f && agent->state.vel.z < 0.0f
+                        // Relax grip gates further to register more legitimate attempts
+                        xy_dist_to_box < k * 0.20f &&
+                        z_dist_above_box < k * 0.20f && z_dist_above_box > 0.0f &&
+                        speed < k * 0.20f &&
+                        agent->state.vel.z > k * -0.06f && agent->state.vel.z < 0.0f
                     ) {
                         if (k < 1.01 && env->box_k > 0.99f) {
                             agent->perfect_grip = true;
@@ -726,6 +759,12 @@ void c_step(DronePP *env) {
                         random_bump(agent);
                     } else if (dist_to_hidden > 0.4f || speed > 0.4f) {
                         agent->color = (Color){255, 100, 100, 255}; // Light Red
+                        // Near-miss diagnostic: count plausible grip attempts that miss strict gates
+                        if (xy_dist_to_box < k_floor * 0.40f &&
+                            z_dist_above_box > 0.05f && z_dist_above_box < 0.6f &&
+                            speed < 1.0f) {
+                            env->log.attempt_grip += 1.0f;
+                        }
                     }
                 }
             } else {
@@ -743,10 +782,14 @@ void c_step(DronePP *env) {
                 }
 
                 if (!agent->hovering_drop) {
+                    // Begin approach to drop: flag for logging and set a nearby hover point
+                    agent->approaching_drop = true;
                     agent->target_pos = (Vec3){agent->drop_pos.x, agent->drop_pos.y, agent->drop_pos.z + 0.4f};
-                    agent->hidden_pos = (Vec3){agent->drop_pos.x, agent->drop_pos.y, agent->drop_pos.z + 1.0f};
+                    // Lower hidden hover point to reduce overshoot before descent (mirrors pickup phase)
+                    agent->hidden_pos = (Vec3){agent->drop_pos.x, agent->drop_pos.y, agent->drop_pos.z + 0.6f};
                     agent->hidden_vel = (Vec3){0.0f, 0.0f, 0.0f};
-                    if (xy_dist_to_drop < k * 0.4f && z_dist_above_drop > 0.7f && z_dist_above_drop < 1.3f) {
+                    // Align drop hover gate with target hover height (~0.4m above drop)
+                    if (xy_dist_to_drop < k * 0.4f && z_dist_above_drop > 0.3f && z_dist_above_drop < 0.6f) {
                         agent->hovering_drop = true;
                         reward += 0.25;
                         agent->color = (Color){0, 0, 255, 255}; // Blue
@@ -758,7 +801,15 @@ void c_step(DronePP *env) {
                     agent->target_pos = agent->drop_pos;
                     agent->hidden_pos.x = agent->drop_pos.x;
                     agent->hidden_pos.y = agent->drop_pos.y;
-                    agent->hidden_vel = (Vec3){0.0f, 0.0f, -0.1f};
+                    // Only descend when laterally aligned with drop; otherwise hold altitude to correct drift
+                    float k_floor = fmaxf(k, 1.0f);
+                    if (xy_dist_to_drop <= k_floor * 0.20f) {
+                        // Gentler drop descent for stability, mirroring pickup descent tuning
+                        agent->hidden_vel = (Vec3){0.0f, 0.0f, -0.06f};
+                    } else {
+                        agent->hidden_vel = (Vec3){0.0f, 0.0f, 0.0f};
+                        agent->hidden_pos.z = fmaxf(agent->hidden_pos.z, agent->drop_pos.z + 0.6f);
+                    }
                     if (xy_dist_to_drop < k * 0.2f && z_dist_above_drop < k * 0.2f) {
                         agent->hovering_pickup = false;
                         agent->gripping = false;
@@ -775,6 +826,13 @@ void c_step(DronePP *env) {
                             agent->color = (Color){0, 255, 0, 255}; // Green
                         }
                         reset_pp2(env, agent, i);
+                    } else {
+                        // Near-miss diagnostic for delivery
+                        if (xy_dist_to_drop < k_floor * 0.40f &&
+                            z_dist_above_drop > 0.05f && z_dist_above_drop < 0.6f &&
+                            speed < 1.0f) {
+                            env->log.attempt_drop += 1.0f;
+                        }
                     }
                 }
             }

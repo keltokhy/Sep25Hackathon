@@ -70,6 +70,9 @@ struct Log {
     float to_drop;
     float ho_drop;
     float de_drop;
+    // Diagnostics: near-miss counters to explain failure modes
+    float attempt_grip;  // near-grip attempts that miss strict gates
+    float attempt_drop;  // near-drop attempts that miss strict gates
     float dist;
     float dist100;
     float jitter;
