@@ -26,19 +26,39 @@ Purpose: concise long‑term memory that guides future iterations at a glance. U
 - Physics/curriculum adjusted: box mass dynamics and occasional perturbations to make early grips achievable without removing challenge later.
  - PP2 observation alignment: For the generic “to target” vector, use the hidden hover point (not box/drop) so the policy aims for the hover waypoint before descent; retain explicit to_box/to_drop vectors for context.
 
-## 4) Open Questions & Next Hypotheses (≤5)
-- Does the difficulty ramp (grip_k decay, box_k growth) explain the common “good start → poor end” pattern? Add/plot k vs perfect_* over updates.
- - Are hover/grip gates calibrated to typical velocity and distance distributions at k≈1? Consider logging distributions to validate (post spawn-near-box change).
-- Is OOB driven by descent overshoot or lateral drift near the box? Compare `xy_dist_to_box` and vertical speed at failure.
-- Do CPU spikes align with short env/learn bursts while GPU dominates wall‑time? Use performance/* timings to confirm resource balance.
-- Are delivery gates too tight relative to grip dynamics at late k? Inspect failure transitions from gripping→drop.
+## 4) Critical Performance Analysis (2025-09-21)
+
+### Task Performance Crisis
+- **Grip attempts: 0.016% of episodes** - Drones almost never try to grip packages
+- **Grip success: 4.3% of episodes** - When counted, most are false positives from cumulative logging
+- **Delivery success: 0.04% of episodes** - Essentially zero task completion
+- **Key insight**: Despite OOB improvements (95%→58% best case), actual task performance is negligible
+
+### Root Cause: Curriculum Too Hard
+- `grip_k` starts at 17.9, decays to 1.0 after only 200K timesteps (epoch 0.1)
+- At k>5: grip gates require <0.35*k XY distance and <0.35*k Z distance - essentially impossible
+- Training runs 200M timesteps but k=1.0 for 199.8M of them (99.9% of training)
+- Drones never learn to grip during the brief easy window
+
+### Training Stability Issues
+- Best performance occurs mid-training (epoch 33-40) then degrades
+- Run 095422Z: OOB 91.5%→57.7%→79.8% (start→best→final)
+- Score pattern: 3.3→177.7→34.9 (collapse after epoch 60)
+- Suggests overfitting or destabilization from velocity penalties
+
+## 5) Immediate Recommendations
+1. **Extend training to 1B+ timesteps** - Current 200M is far too short for this task complexity
+2. **Fix curriculum decay** - Stretch grip_k decay over 50M+ timesteps, not 200K
+3. **Remove velocity penalty** - It helped OOB but killed task learning
+4. **Add grip attempt rewards** - Currently no learning signal for trying to grip
+5. **Monitor within-run metrics** - Catch performance collapses early (epoch 64-65 pattern)
  - After gentler descent (−0.06) and wider grip gates (0.20·k), do ho/de_pickup increase without raising collisions? Applied spawn-near-box; validate OOB↓ and ho/de_pickup↑ before considering soft‑floor.
  - Drop approach gating: previously drop hover z‑window (0.7–1.3m) didn’t match target (+0.4m), likely suppressing `ho_drop` and `to_drop`. Adjusted to 0.3–0.6m and set `approaching_drop=true` upon carry; verify `to_drop↑, ho_drop↑`, OOB↓ during carry.
  - New: Require XY alignment before descent (pickup/drop); hold altitude until `xy_dist <= 0.20·max(k,1)`. Add near‑miss counters (`attempt_grip`, `attempt_drop`). Hypothesis: OOB↓ by preventing drift‑descent; ho/de_pickup↑; first non‑zero gripping.
  - Relax pickup hover gate further: admit hovering when `dist_to_hidden < 1.8` and `speed < 1.2` (was 1.0/0.8). Rationale: agents struggle to satisfy hover gate at typical spawn offsets; descent remains XY‑gated and gentle (−0.06 m/s). Expect ho/de_pickup↑ and attempt_grip↑ without increasing collisions.
 - New: Relax grip vertical descent gate — require `vel.z > -max(0.15, 0.06·k)` (still `< 0`) during pickup grip. Rationale: at k≈1 the −0.06 m/s cap is too strict and blocks legitimate grips; allowing moderate descent should yield first non‑zero grips and `to_drop > 0` without increasing collisions.
 
-## 5) Decisions Log
+## 6) Decisions Log
  - 2025-09-21T085023Z: Relax drop success gates to match pickup (XY,Z ≤ 0.40·k). Rationale: to_drop and ho_drop are non‑trivial but perfect_deliv is low; carry is noisier than pickup. Expect delivery_success↑ and OOB↔/↓ without impacting collisions.
  - 2025-09-21T091542Z: Remove post‑grip random_bump and widen spawn edge_margin 8→12. Rationale: reduce boundary exits and carry instability triggered immediately after gripping; expect OOB↓ (primary), to_drop/ho_drop↑, attempt_drop↑; collisions stable.
 \- 2025-09-21T090309Z: Tighten XY gating and cap k in phase gates (pickup/drop). Applied k_eff=min(k,2.0) in hover/descent/grip/drop checks; require stronger XY alignment before descent (≤0.20·k_eff, cap 0.8m); revert hover_ok_hidden to 1.8m/1.2m; clamp hover_ok_xy to ≤min(0.35·k_eff, 1.5m); similarly cap drop hover/descent; spawn: edge_margin 8m, r_xy 0.4–1.0m. Rationale: early high‑k phases allowed far‑field descent/hover, driving OOB. Expect OOB↓, ho/de_pickup↑, attempt_grip↔/↑, to_drop/ho_drop↑; collisions stable.
@@ -70,6 +90,8 @@ Note (reverts applied after Run 2025-09-21T061611Z):
 
 ## 5) Decisions Log
 - 2025-09-21 (Run 2025-09-21T062450Z): OOB ≈ 0.952 remains primary. Clamp dynamics to curb drift/spin and widen spawn margins: BASE_MAX_VEL 50→20 m/s; BASE_MAX_OMEGA 50→25 rad/s (dronelib.h). Increase PP2 edge_margin 3→6 m for box/drop spawns. Hypothesis: OOB↓, longer episodes, hover stability↑; grips convert; deliveries follow once OOB under control.
+ 
+- 2025-09-21 (Run 2025-09-21T173030Z): OOB ≈ 0.92 is the primary blocker. Do not add soft walls/center forces. Change: tighten PP2 XY spawn band with a simple curriculum in `reset_pp2` — edge_margin starts at 22 m and linearly relaxes to 14 m over ~200k global steps (uses `global_tick`); reduce lateral spawn radius r_xy from 0.3–0.8 to 0.2–0.6 around the box. Expected: OOB↓ materially, episode_length↑, ho/de_pickup maintained or ↑; collisions stable. Next: if OOB still >0.9, consider mild XY action governor; if OOB improves but grips=0, relax grip gates (diagnostic_grip path).
  - 2025-09-21T06:43:20Z (Run 2025-09-21T063752Z): OOB ≈ 0.953 persists with some grips, zero deliveries. Decision: reduce floor OOB by raising pickup/drop altitude in `drone_pp.h/reset_pp2` (z: −GRID_Z+0.5→−GRID_Z+1.5) and increase initial hover target offset (+0.6→+0.8 m). Hypothesis: OOB↓ (fewer floor strikes), ho/de_pickup stable or ↑, collisions ~2.2%; delivery gates unchanged. Next: if OOB still >0.9, consider lateral spawn band tightening before any physics helpers.
 
 - 2025-09-21T070501Z: Remove proximity gating from velocity_penalty (drone_pp.h:compute_reward). Rationale: OOB≈0.95 from far-field runaways; penalize speed globally to curb drift while keeping approach shaping. Expect OOB↓, ho_drop↑, first deliveries as k→1.
