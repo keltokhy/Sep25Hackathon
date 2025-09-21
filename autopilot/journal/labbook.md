@@ -236,3 +236,9 @@
    • Expected: first non‑zero perfect_grip; to_drop/ho_drop maintain or improve; OOB ≤0.72; collisions ≤0.11. If perfect_grip still 0 with attempt_grip high, consider small pickup attempt bonus and/or further widen vz acceptance next.
    • Next config: {autopilot.resume_mode="continue", resume_from="latest", save_strategy="best"}.
 - 2025-09-21T21:34:44Z | run complete | Run 2025-09-21T212447Z (iteration 17) | metrics captured | 
+- 2025-09-21T21:44:39Z | run complete | Run 2025-09-21T213444Z (iteration 18) | metrics captured | 
+- 2025-09-21T21:49:34Z | run complete | Run 2025-09-21T214439Z (iteration 19) | trainer_summary: mean_reward≈40.34 (Δ vs 213444Z +2.43), ep_len≈311.71 (Δ −78.44), coll_rate≈0.088 (Δ +0.014), SPS≈1.67M; UI final: oob≈0.697 (Δ +7.7pp), attempt_grip≈0.461 (Δ +0.082), attempt_drop≈2.635 (Δ +1.303), ho_drop≈407 (Δ +214); perfect_grip/deliv=0.000.
+  • Diagnosis: attempts and drop hovering are up but perfect_* stay 0 due to curriculum decaying k slowly (capped at ~5M steps) and resetting each run (global_tick not persisted). Success metrics tied to k<1.01 cannot register.
+  • Change (env/drone_pp.h): decouple success metrics from curriculum — mark perfect_grip/deliv using strict, k‑independent tolerances (grip/drop XY<0.40, Z<0.35, z>−0.10; grip also speed<0.60 and |vz|≤0.20; require box_k>0.99). Acceptance gates unchanged.
+  • Expected: first non‑zero perfect_grip (and possibly perfect_deliv) if true grips/deliveries occur; OOB stable ±3pp; collisions ≤0.10.
+  • Next: continue from latest; if perfect_* remain zero but gripping/delivered counters rise, tune strict thresholds (±0.05). If OOB trends up, revisit hover gate/spawn z or bump boundary proximity penalty slightly.

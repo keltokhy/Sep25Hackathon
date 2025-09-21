@@ -1,0 +1,29 @@
+Run 2025-09-21T214439Z (iteration 19)
+
+Summary (final panel):
+- oob≈0.697 (prev 0.620, Δ +7.7pp)
+- collision_rate≈0.088 (prev 0.074, Δ +1.4pp)
+- score≈40.34 (prev 37.91, Δ +2.43)
+- perfect_grip=0.000, perfect_deliv=0.000 (↔)
+- attempts/events: attempt_grip≈0.461 (prev 0.379, Δ +0.082), attempt_drop≈2.635 (prev 1.332, Δ +1.303)
+- phases: to_pickup≈19.83k (prev 24.86k), ho_pickup≈2.35k (prev 3.14k), de_pickup≈2.30k (prev 3.10k), to_drop≈2.14k (prev 2.99k), ho_drop≈407 (prev 193)
+
+Diagnosis:
+- Hover/descend attempts present; attempt_grip increased, drop hovering improved, but perfect_* remain zero. Root cause: k-decay slowed to multi‑million steps and resets each run (global_tick not persisted), so condition (k<1.01) almost never met → perfect_* never register even when grips occur.
+- OOB rose ~8pp vs prior; boundary penalty remains mild; spawn margins centralize starts (edge_margin 20). Keep focus on conversion before revisiting OOB.
+
+Change applied (env/drone_pp.h):
+- Decouple perfect_* metrics from curriculum clock. Mark perfect_grip and perfect_deliv when strict, k‑independent tolerances are met:
+  • grip: XY<0.40, Z<0.35 (>-0.10), speed<0.60, |vz|≤0.20, and box_k>0.99
+  • drop: XY<0.40, Z<0.35 (>-0.10), perfect_grip and box_k>0.99
+- Acceptance gates for gripping/drop unchanged; only metrics marking updated.
+
+Expected next:
+- perfect_grip>0 and possibly perfect_deliv>0 if true grips/deliveries occur under strict window; attempts remain high; OOB stable within ±3pp; collisions ≤0.10.
+
+Interactions to watch:
+- If perfect_* remain zero but gripping/delivered counters rise, tighten/loosen strict thresholds ±0.05.
+- If OOB keeps rising, revisit hover gate or spawn z range; consider raising boundary proximity penalty slightly.
+
+Proposals/next_config:
+{ "autopilot": { "resume_mode": "continue", "resume_from": "latest", "save_strategy": "best" } }

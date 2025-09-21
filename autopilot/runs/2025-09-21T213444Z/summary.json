@@ -1,6 +1,6 @@
 {
   "run_id": "2025-09-21T213444Z",
-  "timestamp": "2025-09-21T21:40:11Z",
+  "timestamp": "2025-09-21T21:44:39Z",
   "seed": 42,
   "grip_success": null,
   "delivery_success": null,
@@ -8,34 +8,51 @@
   "mean_reward": 37.90717649459839,
   "episode_length": 390.149803797404,
   "metrics_extended": {
+    "grip_attempts": null,
+    "delivery_attempts": null,
+    "gripping_events": null,
+    "delivered_events": null,
+    "grip_conv_rate": null,
+    "deliv_conv_rate": null,
+    "e2e_conv_rate": null,
+    "hover_efficiency": null,
     "collision_rate": 0.07406611492236455,
-    "oob_rate": 0.620,
-    "SPS": 1632882.183340137
+    "oob_rate": null,
+    "SPS": null,
+    "performance_env": null,
+    "performance_learn": null,
+    "policy_loss": null,
+    "value_loss": null,
+    "entropy": null,
+    "approx_kl": null,
+    "clipfrac": null,
+    "explained_variance": null,
+    "importance": null
   },
   "behavioral_analysis": {
     "insights": [
-      "Hover and descent phase established; frequent near-miss grips recorded",
-      "No perfect grips/deliveries yet; drop attempts present → carry sometimes engages"
+      "\ud83d\udea8 Drone not attempting to grip objects at all"
     ],
-    "severity": "high",
+    "severity": "critical",
     "next_focus": "diagnostic_grip",
     "grip_efficiency": 0,
     "metrics_summary": {
       "grip_success": "0.0%",
       "delivery_success": "0.0%",
       "end_to_end": "0.0%",
-      "collision_rate": "7.4%",
-      "oob": "62.0%"
+      "collision_rate": "7.4%"
     }
   },
-  "environment_changes": true,
+  "environment_changes": false,
   "environment_comparison": {
-    "has_changes": true,
-    "description": "Relax pickup/drop acceptance floors and substantially slow k-decay schedule (200k→5M global steps)",
-    "files_changed": [
-      "PufferLib/pufferlib/ocean/drone_pp/drone_pp.h"
-    ]
+    "has_changes": false,
+    "description": "",
+    "files_changed": []
   },
+  "base_commit": "f47f873c9f5823ee5f38c96cd25aee1884c0290b",
+  "modified_files": "",
+  "artifacts": [],
+  "notes": "auto-generated run summary",
   "trainer_summary": {
     "timestamp": "2025-09-21T21:40:11Z",
     "run_id": "2025-09-21T213444Z",
@@ -76,9 +93,9 @@
       "delivery_success": null,
       "end_to_end_success": null,
       "mean_reward": 3.878561019897461,
-      "episode_length": 73.46016820271813,
-      "oob_rate": -0.034,
-      "SPS": -577805.49
+      "episode_length": 73.46016820271814,
+      "oob_rate": null,
+      "SPS": null
     },
     "vs_baseline": {
       "grip_success": null,

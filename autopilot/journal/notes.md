@@ -134,6 +134,13 @@ Note (reverts applied after Run 2025-09-21T061611Z):
   • Change: Increase PP2 spawn edge_margin 17→20 for box/drop and drone spawns (no soft walls). Rationale: reduce immediate boundary fly‑offs; centralize early experience near pickup.
   • Expected: OOB↓; ho/de_pickup↑; collisions ↔. Interactions: complements mild boundary proximity penalty (−0.15) without introducing helper forces.
   • Next config: {autopilot.resume=continue latest, save=best}.
+
+## 7) Decisions Log
+- 2025-09-21T21:49:34Z (run 2025-09-21T214439Z): Decouple success metrics from k. Perfect_* tied to k<1.01 never register under slow curriculum that resets each run. Implement strict, k‑independent envelopes for marking perfect_grip/deliv; keep acceptance gates unchanged. Expect perfect_* > 0 if true behaviors occur; continue from latest.
+
+## 8) Open Questions & Next Hypotheses
+- If perfect_* stay zero next run while `gripping`/`delivered` rise, relax strict envelopes slightly (XY/Z +0.05) or add a brief post‑grip hold requirement to reduce bounce false negatives.
+- If OOB continues to rise (>0.72), consider modestly increasing boundary proximity penalty (from 0.15→0.20) or widening spawn z floor by +0.5 m.
  - 2025‑09‑21T20:18:25Z (iter 10, run 2025‑09‑21T201321Z)
    • Result: mean_reward≈18.14 (Δ vs 195318Z −46.30; vs best 200258Z −183.80), ep_len≈330.80 (Δ +129.83), sps≈1.79M; oob≈0.678 (Δ vs 195318Z −0.127; vs best +0.288); collision_rate≈0.083 (Δ +0.072); perfect_grip=0, perfect_deliv=0; ho/de_pickup≫ (≈3.17k/3.15k); to_drop≈3.04k; ho_drop≈0.75k; attempt_grip>0; attempt_drop≈4.7.
    • Diagnosis: Pickup hover/descend OK; near‑miss grips appear, but actual grips blocked by narrow gates (speed<0.20, vz∈[−0.08,0]).

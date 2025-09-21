@@ -848,7 +848,20 @@ void c_step(DronePP *env) {
                         speed < grip_v_tol &&
                         agent->state.vel.z > -grip_vz_tol && agent->state.vel.z <= 0.30f
                     ) {
-                        if (k < 1.01 && env->box_k > 0.99f) {
+                        // Mark a "perfect" grip when the agent meets a
+                        // strict, k‑independent envelope. This avoids tying
+                        // success metrics to the curriculum clock (which
+                        // resets between runs) while still requiring
+                        // precise placement and low relative speed.
+                        const float perfect_xy = 0.40f;
+                        const float perfect_z  = 0.35f;
+                        const float perfect_v  = 0.60f;
+                        const float perfect_vz = 0.20f;
+                        bool perfect_envelope =
+                            (xy_dist_to_box < perfect_xy) &&
+                            (z_dist_above_box < perfect_z) && (z_dist_above_box > -0.10f) &&
+                            (speed < perfect_v) && (fabsf(agent->state.vel.z) <= perfect_vz);
+                        if (perfect_envelope && env->box_k > 0.99f) {
                             agent->perfect_grip = true;
                             agent->color = (Color){100, 100, 255, 255}; // Light Blue
                         }
@@ -913,7 +926,13 @@ void c_step(DronePP *env) {
                         reward += env->reward_deliv;
                         agent->delivered = true;
                         agent->has_delivered = true;
-                        if (k < 1.01f && agent->perfect_grip  && env->box_k > 0.99f) {
+                        // Mark a "perfect" delivery using strict, k‑independent
+                        // tolerances so metrics can register under slow curricula.
+                        const float perfect_xy = 0.40f;
+                        const float perfect_z  = 0.35f;
+                        bool perfect_drop = (xy_dist_to_drop < perfect_xy) &&
+                                            (z_dist_above_drop < perfect_z) && (z_dist_above_drop > -0.10f);
+                        if (perfect_drop && agent->perfect_grip && env->box_k > 0.99f) {
                             agent->perfect_deliv = true;
                             agent->perfect_deliveries += 1.0f;
                             agent->perfect_now = true;
