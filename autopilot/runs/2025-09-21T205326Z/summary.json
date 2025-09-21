@@ -1,0 +1,68 @@
+{
+  "run_id": "2025-09-21T205326Z",
+  "timestamp": "2025-09-21T21:02:41Z",
+  "seed": 42,
+  "grip_success": null,
+  "delivery_success": null,
+  "end_to_end_success": null,
+  "mean_reward": 30.433286825815838,
+  "episode_length": 333.89937591552734,
+  "metrics_extended": {
+    "collision_rate": 0.09730061438555519,
+    "oob_rate": null,
+    "SPS": 1751228.3236146746
+  },
+  "behavioral_analysis": {
+    "insights": [
+      "Descending but not gripping \u2014 gates still too strict at k\u22481"
+    ],
+    "severity": "high",
+    "next_focus": "diagnostic_grip",
+    "grip_efficiency": 0,
+    "metrics_summary": {
+      "grip_success": "0.0%",
+      "delivery_success": "0.0%",
+      "collision_rate": "9.7%"
+    }
+  },
+  "environment_changes": false,
+  "environment_comparison": {
+    "has_changes": false,
+    "description": "",
+    "files_changed": []
+  },
+  "trainer_summary": {
+    "timestamp": "2025-09-21T20:58:21Z",
+    "run_id": "2025-09-21T205326Z",
+    "train": {
+      "seed": 42,
+      "learning_rate": 0.006047018496816363,
+      "entropy_coef": 0.07123566778619919,
+      "batch_size": 2359296,
+      "minibatch_size": 2359296,
+      "max_minibatch_size": 2359296,
+      "bptt_horizon": 64,
+      "total_timesteps": 200000000
+    },
+    "env": {
+      "num_envs": 24,
+      "num_drones": 64
+    },
+    "vec": {
+      "num_envs": 24,
+      "num_workers": 24
+    },
+    "metrics": {
+      "success_rate": 0.0,
+      "mean_reward": 30.433286825815838,
+      "episode_length": 333.89937591552734,
+      "collision_rate": 0.09730061438555519,
+      "sps": 1751228.3236146746,
+      "agent_steps": 276037632,
+      "epoch": 85
+    }
+  },
+  "resume_mode": "continue",
+  "resume_from": "latest",
+  "save_strategy": "best"
+}

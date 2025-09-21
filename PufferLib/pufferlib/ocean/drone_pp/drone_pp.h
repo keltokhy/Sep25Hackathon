@@ -799,11 +799,13 @@ void c_step(DronePP *env) {
                     // This is logging-only; no reward change.
                     // Slightly widen near-miss window to better reflect genuine attempts
                     // seen in recent runs without affecting rewards.
-                    float near_xy_tol = fmaxf(0.40f, k * 0.30f);
-                    float near_z_tol  = fmaxf(0.35f, k * 0.30f);
+                    // Broaden near-miss window slightly to better capture
+                    // genuine pickup attempts at k≈1 without affecting rewards.
+                    float near_xy_tol = fmaxf(0.45f, k * 0.35f);
+                    float near_z_tol  = fmaxf(0.40f, k * 0.35f);
                     bool near_xy = (xy_dist_to_box < near_xy_tol);
                     bool near_z  = (z_dist_above_box < near_z_tol && z_dist_above_box > -0.10f);
-                    bool near_v  = (speed < fmaxf(0.6f, k * 0.6f));
+                    bool near_v  = (speed < fmaxf(0.70f, k * 0.70f));
                     bool desc_z  = (agent->state.vel.z <= 0.0f);
                     if (near_xy && near_z && near_v && desc_z) {
                         env->log.attempt_grip += 1.0f;
@@ -817,15 +819,19 @@ void c_step(DronePP *env) {
                     // Rationale: logs show ho/de_pickup high and attempt_grip>0
                     // but perfect_grip=0. Widen XY/Z and speed/vertical-velocity
                     // tolerances modestly to bootstrap carry without physics hacks.
-                    float grip_xy_tol = fmaxf(0.40f, k * 0.25f);
-                    float grip_z_tol  = fmaxf(0.40f, k * 0.25f);
-                    float grip_v_tol  = fmaxf(0.55f, k * 0.35f);
-                    float grip_vz_tol = fmaxf(0.22f, k * 0.10f);
+                    // Relax pickup acceptance thresholds modestly to convert
+                    // frequent near-misses (hover/descend) into occasional grips
+                    // at k≈1 without introducing physics hacks. Floors ensure
+                    // persistence when k decays.
+                    float grip_xy_tol = fmaxf(0.50f, k * 0.30f);
+                    float grip_z_tol  = fmaxf(0.45f, k * 0.30f);
+                    float grip_v_tol  = fmaxf(0.60f, k * 0.40f);
+                    float grip_vz_tol = fmaxf(0.28f, k * 0.12f);
                     if (
                         xy_dist_to_box < grip_xy_tol &&
-                        z_dist_above_box < grip_z_tol && z_dist_above_box > -0.10f &&
+                        z_dist_above_box < grip_z_tol && z_dist_above_box > -0.12f &&
                         speed < grip_v_tol &&
-                        agent->state.vel.z > -grip_vz_tol && agent->state.vel.z <= 0.12f
+                        agent->state.vel.z > -grip_vz_tol && agent->state.vel.z <= 0.15f
                     ) {
                         if (k < 1.01 && env->box_k > 0.99f) {
                             agent->perfect_grip = true;

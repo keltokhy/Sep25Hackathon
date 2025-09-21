@@ -1,0 +1,27 @@
+Run 2025-09-21T205326Z (iteration 14)
+
+Comparison Checklist
+- Key rates: perfect_grip=0.000, perfect_deliv=0.000, end_to_end_success=0.0
+- Attempts/events: attempt_grip≈0.351, attempt_drop≈1.293, to_pickup≈21.26k, ho_pickup≈3.50k, de_pickup≈3.47k, to_drop≈3.36k, ho_drop≈194
+- Stability: oob≈0.675, collision_rate≈0.0973
+- Throughput: sps≈1.75M, epoch=85
+
+Deltas
+- Δ vs previous (2025-09-21T204227Z): mean_reward +13.92, ep_len −193.91, collision +0.059, OOB +0.190; attempts/events ↑ (attempt_grip 0.351 vs 0.041; to_drop 3364 vs 298; ho_drop 194 vs 22)
+- Δ vs baseline (best.json → 2025-09-21T204227Z): same as above (baseline pointer missing; using best)
+
+Diagnosis
+- diagnostic_grip: ho/de_pickup strong, but perfect_grip remains 0 → pickup acceptance too strict at k≈1 (speed/vz and XY/Z tolerances).
+- fix_stability: OOB elevated (0.675), but not the primary 0.95+ crisis; collisions ≈0.10.
+
+Change (for next iteration)
+- env/drone_pp.h (Phase 2 pickup):
+  • near-miss window: XY/Z +0.05, speed cap +0.10 (logging only)
+  • acceptance floors: XY 0.50 (was 0.40), Z 0.45 (was 0.40), speed 0.60 (was 0.55), |vz|≤0.15 and descent > −0.28 (was 0.12/0.22)
+- No changes to physics (dronelib.h), rewards, or spawns; curriculum clamp retained.
+
+Expected Impact
+- attempt_grip↑ and first non‑zero perfect_grip; to_drop/ho_drop↗; OOB ≤0.70; collisions ≤0.11.
+
+Next Config
+- autopilot.proposal: { "autopilot": { "resume_mode": "continue", "resume_from": "latest", "save_strategy": "best" } }

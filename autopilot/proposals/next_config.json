@@ -1,1 +1,7 @@
-{"autopilot": {"resume_mode": "continue", "resume_from": "latest", "save_strategy": "best"}}
+{
+  "autopilot": {
+    "resume_mode": "continue",
+    "resume_from": "latest",
+    "save_strategy": "best"
+  }
+}

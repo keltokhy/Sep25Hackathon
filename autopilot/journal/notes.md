@@ -170,3 +170,10 @@ Note (reverts applied after Run 2025-09-21T061611Z):
   • Change: Widen hover gate (dist<1.0, speed<0.8). Relax pickup grip acceptance slightly (z floor −0.10 from −0.06; vz≤0.12 from 0.08; grip_z_tol floor 0.40). No physics/reward changes.
   • Expected: ho_pickup↑, attempt_grip↑, first non‑zero grips; OOB ≤0.55; collisions ≤0.06.
   • Next: continue from latest; reassess attempt→grip conversion; if attempts rise without grips, relax vz window further or add small attempt reward.
+
+- 2025‑09‑21T20:58:21Z (iter 14, run 2025‑09‑21T205326Z)
+  • Result: OOB≈0.675 (Δ vs 204227Z +0.190), collision_rate≈0.097 (Δ +0.059), ep_len≈333.90 (Δ −193.91), mean_reward≈30.43 (Δ +13.92); ho/de_pickup≫ (≈3.50k/3.47k), to_drop≈3.36k, ho_drop≈194; attempt_grip≈0.351; perfect_grip/deliv=0.
+  • Diagnosis: Hover/descend established; “descending but can’t grip” persists at k≈1. Acceptance remains too strict (speed/vz/XY/Z) causing near‑misses without conversion.
+  • Change: Relax pickup floors further (XY 0.50, Z 0.45, speed 0.60, |vz|≤0.15 with descent not faster than 0.28). Broaden near‑miss window (XY/Z +0.05; speed +0.10). Physics/drag unchanged; spawn unchanged; curriculum clamp remains.
+  • Expected: attempt_grip↑ and first non‑zero perfect_grip; to_drop/ho_drop↗; OOB ≤0.70; collisions ≤0.11.
+  • Next config: {autopilot.resume_mode="continue", resume_from="latest", save_strategy="best"}.
