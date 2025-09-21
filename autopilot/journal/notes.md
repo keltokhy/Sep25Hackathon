@@ -1,59 +1,40 @@
-# Autopilot Notes
+# Autopilot Notes (Curated)
 
-This file serves as long‑term memory for the agent. Summaries below distill stable
-lessons and intent so future iterations don’t re‑learn the same context.
+Purpose: concise long‑term memory that guides future iterations at a glance. Updated in place; not an append‑only log.
 
-## 2025‑09‑20 — Restore `drone_pp.h` to latest upstream state
-- Action: Reverted local/drex edits to `PufferLib/pufferlib/ocean/drone_pp/drone_pp.h` back to the latest committed version at commit `552502e` (2025‑09‑20 17:17:36‑0400), titled “Good - Sweep Event Rewards - Alter Hover Reward”.
-- Rationale: Undo curriculum/gate relaxations introduced by autopilot to return to the validated baseline before making any new changes.
-- Impact: Working tree now matches the upstream header; no pending diff for that file.
+## 1) Current Baseline (as of 2025‑09‑21)
+- Header version: `PufferLib/pufferlib/ocean/drone_pp/drone_pp.h` at commit `552502e` (2025‑09‑20). Matches upstream/box2.
+- Config profile: `autopilot/configs/baseline_full.json` mirrors box2 `drone_pp.ini`.
+  • train: total_timesteps=200M; bptt_horizon=64; batch_size="auto"; minibatch_size=16384; max_minibatch_size=32768; lr≈0.00605; ent≈0.0712; clip≈0.6177; vf≈5.0; vf_clip≈1.2424; max_grad_norm≈3.05; gae_λ≈0.989; γ≈0.988; update_epochs=1; checkpoint_interval=200; anneal_lr=true; prio_alpha≈0.842; prio_beta0≈0.957.
+  • env/vec: env.num_envs=24; env.num_drones=64; max_rings=10; vec.num_envs=24; vec.num_workers=24.
+  • device: `mps` (local Mac). Upstream default is `cuda`.
+- Runner policy: EXACT_CONFIG=1 (no normalization). Single‑run per iteration; no hparam edits allowed in proposals.
 
-## Header evolution: `drone_pp.h` (Sep 11 → Sep 20, 2025)
-High‑level themes extracted from 62 commits touching `drone_pp.h`:
+## 2) Stable Learnings (keep under 10 bullets)
+- Favor environment logic over hyperparameters; enforce the no‑hparam policy.
+- Preserve clear phase boundaries and success gates (hover → descend → grip → carry → deliver) with thresholds consistent with reward shaping.
+- Difficulty ramp is intentional (e.g., grip_k decay, box_k growth). Expect apparent early success followed by stricter gating; interpret metrics in that light.
+- Use event rewards to shape toward the next feasible subgoal but avoid over‑rewarding noisy behaviors.
+- Keep observations focused and stable; velocity obs help reduce aliasing in approach/descent.
+- Instrument attempts and successes (hover/grip/deliver) to explain failure modes; correlate with difficulty variables.
+- Small, testable env edits beat broad refactors; document the behavioral hypothesis for each change.
 
-- Reward shaping & events
-  - Introduced and iterated “Perfect” metrics and rewards; tightened/loosened gates to make “perfect grip” achievable without over‑rewarding noise.
-  - Added sweepable reward coefficients (A/B/C/D), distance‑based decay, and later “event reward sweeps” to balance hover, grip, carry, and deliver signals.
-  - Experimented with low‑altitude penalties (added → removed) and adjusted hover reward magnitude and criteria.
+## 3) Header Evolution (high‑level)
+- Reward shaping matured from simple signals to event‑swept weights with distance decay and “perfect” gates.
+- Observations shifted away from spawn specifics toward velocities/orientation to stabilize approach and descent.
+- Phase logic clarified: hover at a hidden point above the box, then controlled descent onto center; delivery mirrors this.
+- Physics/curriculum adjusted: box mass dynamics and occasional perturbations to make early grips achievable without removing challenge later.
 
-- State/observation & stability
-  - Removed spawn‑related observations; added velocity observations to reduce aliasing and encourage smoother approach/descent.
-  - Added jitter logging and trained under jitter to improve robustness.
-  - Multiple passes on velocity/distance alignment, using squared distance and decay for more stable gradients.
+## 4) Open Questions & Next Hypotheses (≤5)
+- Does the difficulty ramp (grip_k decay, box_k growth) explain the common “good start → poor end” pattern? Add/plot k vs perfect_* over updates.
+- Are hover/grip gates calibrated to typical velocity and distance distributions at k≈1? Consider logging distributions to validate.
+- Is OOB driven by descent overshoot or lateral drift near the box? Compare `xy_dist_to_box` and vertical speed at failure.
+- Do CPU spikes align with short env/learn bursts while GPU dominates wall‑time? Use performance/* timings to confirm resource balance.
+- Are delivery gates too tight relative to grip dynamics at late k? Inspect failure transitions from gripping→drop.
 
-- Phase logic (hover → descend → grip → carry → deliver)
-  - Clarified phase transitions and success gating; “hidden” hover target above box, then controlled descent onto box center for grip.
-  - Tweaks to thresholds for distance, speed, and vertical velocity to enter GRIP safely and consistently.
-
-- Physics & task curriculum
-  - Adjusted box mass and grip physics (reduce base mass, taper/grow mass over training) and experimented with larger drones and grip decay.
-  - Occasional random bumps and curriculum sweeps aimed at making grips achievable early while preserving difficulty later.
-
-Key commits (chronology paraphrased)
-- 2025‑09‑16..09‑18: distance decay; velocity alignment; sweepable rewards A/B/C/D; cleaner method; INI/H changes before sweep; success‑gate bugfix; remove original TASK_PP.
-- 2025‑09‑17..09‑18: remove spawn obs, add velocity obs; grip decay; curriculum sweeps; perfect metric for multiple pickups; tighter logging.
-- 2025‑09‑19: refactors and physics tweaks — reduce/taper/grow box mass; adjust grip; add random bump; larger drones; cleanup.
-- 2025‑09‑20: add/remove low‑altitude penalty; add “Perfect Now” baseline; adjust hover reward; event‑reward sweeps (552502e).
-
-Guidance for future edits
-- Prefer environment/logic changes over hyperparameter tweaks (see no‑hparam policy).
-- Maintain clear, testable phase boundaries and success criteria; keep thresholds consistent with reward shaping.
-- When proposing curriculum or gating changes, document the behavioral failure being targeted and how the change makes the success preconditions more reachable.
-
-## 2025‑09‑21 — Adopt box2 INI hparams as baseline
-- Action: Mirrored `PufferLib/pufferlib/config/ocean/drone_pp.ini` into `autopilot/configs/baseline_full.json`:
-  - vec/env: 24/24 envs, 64 drones, max_rings 10.
-  - train: total_timesteps=200M, bptt_horizon=64, batch_size="auto", minibatch_size=16384, max_minibatch_size=32768, lr=0.006047…, ent_coef=0.071235…, clip_coef=0.617688…, vf_coef=5.0, vf_clip_coef=1.24236…, max_grad_norm=3.04955…, gae_lambda=0.989234…, gamma=0.987853…, update_epochs=1, checkpoint_interval=200, anneal_lr=true, prio_alpha=0.841906…, prio_beta0=0.957297…
-  - device set to `mps` for compatibility on this workstation (original default INI uses `cuda`).
-- Run script: added `EXACT_CONFIG=1` mode to skip normalization of batch sizes and vec divisibility so runs can use these settings verbatim.
-- Rationale: Align local runs with the exact hyperparameters used on branch `box2` while preserving hardware compatibility.
-
-## 2025‑09‑20 — Prompt refactor to remove contradictions
-- Problem: The Codex prompt mixed a strict no‑hyperparameter policy with detailed guidance about editing hyperparameters, creating a contradiction.
-- Fixes:
-  - Removed hyperparameter ranges/guidance; made “WHAT YOU CANNOT CHANGE” explicit (no `train.*`, `env.*`, `vec.*`).
-  - Reorganized into: OVERVIEW & GOALS; WORKFLOW; DECISION FRAMEWORK; WHAT YOU CAN CHANGE; WHAT YOU CANNOT CHANGE; TECHNICAL DETAILS.
-  - Clarified the core loop and added an Environment Debugging Checklist.
-  - Reframed experiment selection as environment‑change priorities (not hparam tuning).
-  - Added success thresholds and failsafes for missing analysis, build failures, regressions, and reverts.
-- Intent: Make the agent thoughtful, memory‑driven, and environment‑focused.
+## 5) Decisions Log (terse, dated)
+- 2025‑09‑20: Restore header to upstream commit `552502e`; revert local edits; baseline re‑established.
+- 2025‑09‑20: Prompt refactor — remove hparam contradictions; add workflow/constraints/checklist.
+- 2025‑09‑21: Adopt box2 INI hparams in `baseline_full.json`; add EXACT_CONFIG passthrough.
+- 2025‑09‑21: Remove personal names from prompt/notes; prefer “latest committed environment code”.
+- 2025‑09‑21: Enforce single‑run per iteration; add Notes.md discipline (curated, concise, edit‑in‑place).
