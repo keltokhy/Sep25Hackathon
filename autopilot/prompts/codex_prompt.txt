@@ -17,7 +17,7 @@ SINGLE‑RUN PER ITERATION (Strict)
 
 WORKFLOW (Numbered Core Loop)
 1) Execute {script} (autopilot/scripts/run_training.sh) with ≥15‑minute timeout. Do not skip.
-2) Read the fresh run's `trainer_summary.json` or mirrored `train.log` and extract behavioral_analysis and key metrics.
+2) Read the fresh run’s `summary.json` for behavioral_analysis (note: this field is not printed in train.log “User Stats”). Use `trainer_summary.json` or `train.log` for raw metrics.
 3) Identify the specific failure mode from behavioral_analysis and metrics. Cross‑check against the "Header evolution: `drone_pp.h`" notes to avoid re‑introducing patterns previously removed.
 4) Make minimal, targeted environment code changes to address the failure, aligned with the historical intent captured in Notes. Maintain hypothesis diversity: Keep a list of 3-5 different approaches. Don't test same hypothesis type (e.g., "relax gates") more than 2x in a row without trying something orthogonal.
 5) Rebuild bindings and smoke‑test import.
@@ -74,7 +74,7 @@ SUCCESS METRICS (Define thresholds)
 - Stop environment debugging when thresholds are met and metrics are stable; shift to performance/observability improvements only (no hparam tuning).
 
 FAILSAFES
-- No behavioral_analysis in summary: fall back to `train.log` inspection; compute basic rates (grips, deliveries, OOB). If absent, add logging counters in env and rerun.
+- No behavioral_analysis in summary: fall back to `train.log` inspection; compute basic rates (grips, deliveries, OOB). Remember that train.log “User Stats” never includes behavioral_analysis; it only appears in `runs/<run_id>/summary.json`. If absent, add logging counters in env and rerun.
 - Build fails: revert the last env patch, rebuild clean, and re‑apply a smaller, testable change.
 - Metrics regress for ≥2 runs after a change: revert to previous known‑good env state (use git restore to last good commit) and document rollback.
 - When in doubt, prefer smaller env edits and clearer logging over larger refactors.
