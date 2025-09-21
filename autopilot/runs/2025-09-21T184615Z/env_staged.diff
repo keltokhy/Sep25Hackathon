@@ -1,0 +1,377 @@
+diff --git a/PufferLib/pufferlib/ocean/drone_pp/drone_pp.h b/PufferLib/pufferlib/ocean/drone_pp/drone_pp.h
+index 5d65973..d728644 100644
+--- a/PufferLib/pufferlib/ocean/drone_pp/drone_pp.h
++++ b/PufferLib/pufferlib/ocean/drone_pp/drone_pp.h
+@@ -73,10 +73,7 @@ typedef struct {
+     float dist;
+ 
+     Log log;
+-    // Episode-local tick (resets each horizon for rollouts)
+     int tick;
+-    // Monotonic global step counter for curriculum scheduling (never resets)
+-    unsigned long long global_tick;
+     int report_interval;
+     bool render;
+ 
+@@ -130,7 +127,6 @@ void init(DronePP *env) {
+     env->ring_buffer = calloc(env->max_rings, sizeof(Ring));
+     env->log = (Log){0};
+     env->tick = 0;
+-    env->global_tick = 0ULL;
+ }
+ 
+ void add_log(DronePP *env, int idx, bool oob) {
+@@ -213,17 +209,9 @@ void compute_observations(DronePP *env) {
+         env->observations[idx++] = agent->state.pos.y / GRID_Y;
+         env->observations[idx++] = agent->state.pos.z / GRID_Z;
+ 
+-        // For PP2, guide the policy toward the hidden hover point
+-        // rather than the box/drop directly to stabilize approach.
+-        // This preserves the fixed observation size while aligning
+-        // guidance with the phase logic (hover -> descend -> grip).
+-        Vec3 obs_tgt = agent->target_pos;
+-        if (env->task == TASK_PP2) {
+-            obs_tgt = agent->hidden_pos;
+-        }
+-        float dx = obs_tgt.x - agent->state.pos.x;
+-        float dy = obs_tgt.y - agent->state.pos.y;
+-        float dz = obs_tgt.z - agent->state.pos.z;
++        float dx = agent->target_pos.x - agent->state.pos.x;
++        float dy = agent->target_pos.y - agent->state.pos.y;
++        float dz = agent->target_pos.z - agent->state.pos.z;
+         env->observations[idx++] = clampf(dx, -1.0f, 1.0f);
+         env->observations[idx++] = clampf(dy, -1.0f, 1.0f);
+         env->observations[idx++] = clampf(dz, -1.0f, 1.0f);
+@@ -433,13 +421,8 @@ float compute_reward(DronePP* env, Drone *agent, bool collision) {
+ 
+     float position_reward = clampf(expf(-dist / (env->reward_dist * env->pos_const)), -env->pos_penalty, 1.0f);
+ 
+-    // Apply gentle velocity penalty with distance-based scaling.
+-    // Near target (< 5m): full penalty to encourage careful approach
+-    // Far from target: reduced penalty (10% strength) to allow efficient travel
+-    // This fixes the epoch 64-65 collapse where global penalty destroyed performance
+-    float distance_factor = fminf(1.0f, fmaxf(0.1f, 1.0f - (dist - 5.0f) / 20.0f));
+-    float base_penalty = clampf((2.0f * expf(-(vel_magnitude - 0.05f) * 10.0f) - 1.0f), -1.0f, 1.0f);
+-    float velocity_penalty = base_penalty * distance_factor;
++    // slight reward for 0.05 for example, large penalty for over 0.4
++    float velocity_penalty = clampf(proximity_factor * (2.0f * expf(-(vel_magnitude - 0.05f) * 10.0f) - 1.0f), -1.0f, 1.0f);
+     if (DEBUG > 0) printf("    velocity_penalty = %.3f\n", velocity_penalty);
+ 
+     float stability_reward = -angular_vel_magnitude / agent->params.max_omega;
+@@ -482,19 +465,6 @@ float compute_reward(DronePP* env, Drone *agent, bool collision) {
+                         hover_bonus +
+                         collision_penalty;
+ 
+-    // Mild boundary proximity penalty (XY only) to reduce OOB without adding
+-    // soft walls or centralizing forces. Penalize only when an agent roams
+-    // outside the inner 80% of the arena, scaling up to the hard boundary.
+-    // Revert to earlier, gentler shaping after regression (OOB ≈ 0.92):
+-    // avoid over-penalizing wide exploration early in training.
+-    float frac_x = fabsf(agent->state.pos.x) / GRID_X;
+-    float frac_y = fabsf(agent->state.pos.y) / GRID_Y;
+-    float over_x = fmaxf(0.0f, frac_x - 0.80f) / 0.20f;
+-    float over_y = fmaxf(0.0f, frac_y - 0.80f) / 0.20f;
+-    float boundary_prox = fminf(1.0f, fmaxf(over_x, over_y));
+-    // Small fixed weight so no config change needed
+-    total_reward -= 0.15f * boundary_prox;
+-
+     total_reward = clampf(total_reward, -1.0f, 1.0f);
+ 
+     float delta_reward = total_reward - agent->last_abs_reward;
+@@ -511,24 +481,8 @@ float compute_reward(DronePP* env, Drone *agent, bool collision) {
+ }
+ 
+ void reset_pp2(DronePP* env, Drone *agent, int idx) {
+-    // Keep box/drop spawns farther from hard XY boundaries to reduce early OOB.
+-    // Use a gentler curriculum to avoid over-centralization at start of training.
+-    // Start with reasonable margins (10) and gradually expand to use more space (5).
+-    float progress = clampf((float)env->global_tick / 500000.0f, 0.0f, 1.0f);
+-    float edge_margin = 10.0f - 5.0f * progress; // 10→5 over 500k global steps
+-    agent->box_pos = (Vec3){
+-        rndf(-MARGIN_X + edge_margin, MARGIN_X - edge_margin),
+-        rndf(-MARGIN_Y + edge_margin, MARGIN_Y - edge_margin),
+-        // Raise box a bit off the floor to reduce early floor strikes
+-        // and lower OOB terminations while preserving pickup geometry.
+-        -GRID_Z + 1.5f
+-    };
+-    agent->drop_pos = (Vec3){
+-        rndf(-MARGIN_X + edge_margin, MARGIN_X - edge_margin),
+-        rndf(-MARGIN_Y + edge_margin, MARGIN_Y - edge_margin),
+-        // Mirror the raised pickup height at the drop zone
+-        -GRID_Z + 1.5f
+-    };
++    agent->box_pos = (Vec3){rndf(-MARGIN_X, MARGIN_X), rndf(-MARGIN_Y, MARGIN_Y), -GRID_Z + 0.5f};
++    agent->drop_pos = (Vec3){rndf(-MARGIN_X, MARGIN_X), rndf(-MARGIN_Y, MARGIN_Y), -GRID_Z + 0.5f};
+     agent->gripping = false;
+     agent->delivered = false;
+     agent->grip_height = 0.0f;
+@@ -541,37 +495,9 @@ void reset_pp2(DronePP* env, Drone *agent, int idx) {
+     agent->hover_timer = 0.0f;
+     agent->target_pos = agent->box_pos;
+     agent->hidden_pos = agent->target_pos;
+-    // Set initial hover target modestly above the (now slightly higher) box
+-    // to keep early descent gentle while further reducing floor contact risk.
+-    agent->hidden_pos.z += 0.9f;
++    agent->hidden_pos.z += 1.0f;
+     agent->hidden_vel = (Vec3){0.0f, 0.0f, 0.0f};
+ 
+-    // Spawn the drone near its assigned box to reduce early OOB and
+-    // encourage immediate hover/grip attempts (diagnostic_grip focus).
+-    // Use moderate spawn radius to balance proximity with avoiding collisions.
+-    float r_xy = rndf(0.5f, 1.5f);
+-    float theta = rndf(0.0f, 2.0f * (float)M_PI);
+-    Vec3 spawn_pos = {
+-        agent->box_pos.x + r_xy * cosf(theta),
+-        agent->box_pos.y + r_xy * sinf(theta),
+-        // Raise spawn altitude slightly more to avoid early floor strikes,
+-        // while keeping vertical distance to hover moderate
+-        agent->box_pos.z + rndf(2.5f, 3.5f)
+-    };
+-    // Clamp within safe margins (use MARGIN not GRID to avoid spawning near boundaries)
+-    spawn_pos.x = clampf(spawn_pos.x, -MARGIN_X + 2.0f, MARGIN_X - 2.0f);
+-    spawn_pos.y = clampf(spawn_pos.y, -MARGIN_Y + 2.0f, MARGIN_Y - 2.0f);
+-    spawn_pos.z = clampf(spawn_pos.z, -MARGIN_Z + 0.5f, MARGIN_Z - 0.5f);
+-    agent->state.pos = spawn_pos;
+-    agent->prev_pos = spawn_pos;
+-    agent->state.vel = (Vec3){0.0f, 0.0f, 0.0f};
+-    agent->state.omega = (Vec3){0.0f, 0.0f, 0.0f};
+-
+-    // Give a tiny upward nudge to reduce immediate floor falls without
+-    // masking control errors. This mitigates very early OOB terminations
+-    // while the policy is still random, improving ho/de_pickup signal.
+-    agent->state.vel.z += rndf(0.03f, 0.08f);
+-
+     float drone_capacity = agent->params.arm_len * 4.0f;
+     agent->box_size = rndf(0.05f, fmaxf(drone_capacity, 0.1f));
+ 
+@@ -700,10 +626,6 @@ void c_reset(DronePP *env) {
+ 
+ void c_step(DronePP *env) {
+     env->tick = (env->tick + 1) % HORIZON;
+-    // Keep a monotonic global step for curriculum variables (k) so
+-    // difficulty ramps consistently across rollouts instead of resetting
+-    // every horizon.
+-    env->global_tick += 1ULL;
+     //env->log.dist = 0.0f;
+     //env->log.dist100 = 0.0f;
+     for (int i = 0; i < env->num_agents; i++) {
+@@ -713,16 +635,7 @@ void c_step(DronePP *env) {
+         agent->perfect_now = false;
+ 
+         float* atn = &env->actions[4*i];
+-        // Gentle action ramp: scale actions during early training to curb
+-        // untrained saturation without removing control authority. Scale
+-        // increases from 0.7 → 1.0 over the first ~100k global steps.
+-        float atn_scaled[4];
+-        float scale = 0.7f + 0.3f * fminf(1.0f, (float)env->global_tick / 100000.0f);
+-        atn_scaled[0] = atn[0] * scale;
+-        atn_scaled[1] = atn[1] * scale;
+-        atn_scaled[2] = atn[2] * scale;
+-        atn_scaled[3] = atn[3] * scale;
+-        move_drone(agent, atn_scaled);
++        move_drone(agent, atn);
+ 
+         bool out_of_bounds = agent->state.pos.x < -GRID_X || agent->state.pos.x > GRID_X ||
+                              agent->state.pos.y < -GRID_Y || agent->state.pos.y > GRID_Y ||
+@@ -756,15 +669,8 @@ void c_step(DronePP *env) {
+             }
+             agent->approaching_pickup = true;
+             float speed = norm3(agent->state.vel);
+-            // Use global_tick to schedule curriculum so k evolves smoothly across training.
+-            // Clamp the effective decay to avoid collapsing difficulty too quickly when
+-            // configs set an aggressive value (e.g., 0.02). Target ~200k global steps
+-            // to go from k_max to k_min: max_decay = (k_max - k_min) / 200_000.
+-            float sched_t = (float)env->global_tick;
+-            float max_decay = (env->grip_k_max - env->grip_k_min) / 200000.0f;
+-            float decay = fminf(env->grip_k_decay, max_decay);
+-            env->grip_k = clampf(sched_t * -decay + env->grip_k_max, env->grip_k_min, 100.0f);
+-            env->box_k = clampf(sched_t * env->box_k_growth + env->box_k_min, env->box_k_min, env->box_k_max);
++            env->grip_k = clampf(env->tick * -env->grip_k_decay + env->grip_k_max, env->grip_k_min, 100.0f);
++            env->box_k = clampf(env->tick * env->box_k_growth + env->box_k_min, env->box_k_min, env->box_k_max);
+             agent->box_mass = env->box_k * agent->box_base_mass;
+             float k = env->grip_k;
+             if (DEBUG > 0) printf("  PP2\n");
+@@ -782,33 +688,11 @@ void c_step(DronePP *env) {
+ 
+                 // Phase 1 Box Hover
+                 if (!agent->hovering_pickup) {
+-                    // Align reward shaping with hover guidance: during pickup approach,
+-                    // shape toward the hidden hover point rather than the box center.
+-                    // Rationale: encourages stabilizing above the box before descent,
+-                    // which should reduce early floor/OOB and raise ho/de_pickup.
+-                    agent->target_pos = agent->hidden_pos;
+                     if (DEBUG > 0) printf("  Phase1\n");
+                     if (DEBUG > 0) printf("    dist_to_hidden = %.3f\n", dist_to_hidden);
+                     if (DEBUG > 0) printf("    xy_dist_to_box = %.3f\n", xy_dist_to_box);
+                     if (DEBUG > 0) printf("    z_dist_above_box = %.3f\n", z_dist_above_box);
+-                    // Hover gate: admit stabilization near the hidden point, but keep
+-                    // thresholds tight enough to avoid accepting very loose hovers that
+-                    // later descend far from the box. Based on notes, use 1.8m/1.2m.
+-                    bool hover_ok_hidden = (dist_to_hidden < 1.8f && speed < 1.2f);
+-                    // New fallback: if laterally near the box and safely above it,
+-                    // allow hover acquisition even if not precisely at the hidden point.
+-                    // This increases ho/de_pickup and enables earlier descent,
+-                    // while descent itself remains XY-gated and gentle.
+-                    float k_floor = fmaxf(k, 1.0f);
+-                    // Cap k when computing XY tolerance so early high-k phases
+-                    // don't allow extremely loose hovers far from the box.
+-                    float k_eff = fminf(k_floor, 2.0f);
+-                    bool hover_ok_xy = (
+-                        xy_dist_to_box <= fminf(k_eff * 0.35f, 1.5f) &&
+-                        z_dist_above_box > 0.3f &&
+-                        speed < 1.8f
+-                    );
+-                    if (hover_ok_hidden || hover_ok_xy) {
++                    if (dist_to_hidden < 0.4f && speed < 0.4f) {
+                         agent->hovering_pickup = true;
+                         agent->color = (Color){255, 255, 255, 255}; // White
+                     } else {
+@@ -821,71 +705,27 @@ void c_step(DronePP *env) {
+                 // Phase 2 Box Descent
+                 else {
+                     agent->descent_pickup = true;
+-                    // Keep reward shaping focused on the (moving) hidden point while
+-                    // descending. The hidden point drops gently when XY-aligned,
+-                    // pulling the agent down in a controlled manner.
+-                    agent->target_pos = agent->hidden_pos;
+-                    // Only allow descent when laterally aligned with the box.
+-                    // This reduces floor interactions and OOB from drifting during descent.
+-                    float k_floor = fmaxf(k, 1.0f);
+-                    // Require stronger XY alignment before allowing descent. Cap the
+-                    // effective k so early phases don't descend while still far away.
+-                    float k_eff = fminf(k_floor, 2.0f);
+-                    if (xy_dist_to_box <= fminf(k_eff * 0.20f, 0.8f)) {
+-                        // Even gentler descent to improve stability entering grip
+-                        agent->hidden_vel = (Vec3){0.0f, 0.0f, -0.05f};
+-                    } else {
+-                        // Hold altitude while correcting lateral error
+-                        agent->hidden_vel = (Vec3){0.0f, 0.0f, 0.0f};
+-                        agent->hidden_pos.z = fmaxf(agent->hidden_pos.z, agent->box_pos.z + 0.6f);
+-                    }
++                    agent->hidden_vel = (Vec3){0.0f, 0.0f, -0.1f};
+                     if (DEBUG > 0) printf("  GRIP\n");
+                     if (DEBUG > 0) printf("    xy_dist_to_box = %.3f\n", xy_dist_to_box);
+                     if (DEBUG > 0) printf("    z_dist_above_box = %.3f\n", z_dist_above_box);
+                     if (DEBUG > 0) printf("    speed = %.3f\n", speed);
+                     if (DEBUG > 0) printf("    agent->state.vel.z = %.3f\n", agent->state.vel.z);
+                     if (
+-                        // Further relax grip gates to convert descent attempts
+-                        // into actual grips. The goal is to secure first non‑zero
+-                        // grips under diagnostic_grip without raising collisions.
+-                        xy_dist_to_box < fminf(k_floor, 2.0f) * 0.35f &&
+-                        z_dist_above_box < fminf(k_floor, 2.0f) * 0.35f && z_dist_above_box > 0.0f &&
+-                        // Permit moderate approach speeds; enforce a minimum allowance
+-                        // so typical descent velocities are not rejected by a too‑small k.
+-                        speed < fmaxf(0.8f, fminf(k_floor, 2.0f) * 0.35f) &&
+-                        // Loosen vertical descent gate at low k to admit reasonable
+-                        // approach speeds (diagnostic_grip). Cap strictness so
+-                        // vel.z > -0.20 m/s at minimum; scale with k otherwise.
+-                        agent->state.vel.z > -fmaxf(0.20f, 0.08f * k) && agent->state.vel.z < 0.0f
++                        xy_dist_to_box < k * 0.1f &&
++                        z_dist_above_box < k * 0.1f && z_dist_above_box > 0.0f &&
++                        speed < k * 0.1f &&
++                        agent->state.vel.z > k * -0.05f && agent->state.vel.z < 0.0f
+                     ) {
+                         if (k < 1.01 && env->box_k > 0.99f) {
+                             agent->perfect_grip = true;
+                             agent->color = (Color){100, 100, 255, 255}; // Light Blue
+                         }
+                         agent->gripping = true;
+-                        // Immediately update physics to account for the gripped box.
+-                        // Hypothesis: enabling carry mass/inertia as soon as the grip
+-                        // occurs reduces overshoot and drift during the carry phase,
+-                        // lowering OOB and improving approach to the drop zone.
+-                        update_gripping_physics(agent);
+                         reward += env->reward_grip;
+-                        // Remove post-grip disturbance to reduce OOB and
+-                        // stabilize the carry phase. Prior runs showed
+-                        // upward and angular kicks here often caused drift
+-                        // and boundary exits before reaching drop hover.
++                        random_bump(agent);
+                     } else if (dist_to_hidden > 0.4f || speed > 0.4f) {
+                         agent->color = (Color){255, 100, 100, 255}; // Light Red
+-                        // Near-miss diagnostic: count plausible grip attempts that miss strict gates
+-                        if (xy_dist_to_box < k_floor * 0.40f &&
+-                            z_dist_above_box > 0.05f && z_dist_above_box < 0.6f &&
+-                            speed < 1.0f) {
+-                            env->log.attempt_grip += 1.0f;
+-                            // Provide a small shaping bonus for credible grip attempts
+-                            // to increase learning signal without rewarding noise.
+-                            // Uses existing hover reward to avoid introducing new knobs.
+-                            // Expectation: attempt_grip↑, first non‑zero grips, to_drop>0.
+-                            reward += env->reward_hover * 0.25f;
+-                        }
+                     }
+                 }
+             } else {
+@@ -903,48 +743,23 @@ void c_step(DronePP *env) {
+                 }
+ 
+                 if (!agent->hovering_drop) {
+-                    // Begin approach to drop: flag for logging and set a nearby hover point
+-                    agent->approaching_drop = true;
+                     agent->target_pos = (Vec3){agent->drop_pos.x, agent->drop_pos.y, agent->drop_pos.z + 0.4f};
+-                    // Lower hidden hover point to reduce overshoot before descent (mirrors pickup phase)
+-                    agent->hidden_pos = (Vec3){agent->drop_pos.x, agent->drop_pos.y, agent->drop_pos.z + 0.6f};
++                    agent->hidden_pos = (Vec3){agent->drop_pos.x, agent->drop_pos.y, agent->drop_pos.z + 1.0f};
+                     agent->hidden_vel = (Vec3){0.0f, 0.0f, 0.0f};
+-                    // Align drop hover gate with pickup-style tolerance to admit stable hovers
+-                    // near the drop before descent (wider XY, speed-bounded). Carry dynamics are
+-                    // noisier than pickup, so allow a wider lateral tolerance here.
+-                        // Use capped k for hover tolerance at drop to avoid overly
+-                        // loose acceptance early. Slightly wider than pickup due to carry jitter.
+-                        float k_eff = fminf(fmaxf(k, 1.0f), 2.0f);
+-                        if (xy_dist_to_drop < fminf(k_eff * 0.55f, 1.1f) && z_dist_above_drop > 0.3f && speed < 2.2f) {
+-                            agent->hovering_drop = true;
+-                            reward += 0.25;
+-                            agent->color = (Color){0, 0, 255, 255}; // Blue
+-                        }
++                    if (xy_dist_to_drop < k * 0.4f && z_dist_above_drop > 0.7f && z_dist_above_drop < 1.3f) {
++                        agent->hovering_drop = true;
++                        reward += 0.25;
++                        agent->color = (Color){0, 0, 255, 255}; // Blue
+                     }
++                }
+ 
+                 // Phase 4 Drop Descent
+                 else {
+                     agent->target_pos = agent->drop_pos;
+                     agent->hidden_pos.x = agent->drop_pos.x;
+                     agent->hidden_pos.y = agent->drop_pos.y;
+-                    // Only descend when laterally aligned with drop; otherwise hold altitude to correct drift
+-                    float k_floor = fmaxf(k, 1.0f);
+-                    float k_eff = fminf(k_floor, 2.0f);
+-                    // Require stronger XY alignment for drop descent (slightly wider than pickup),
+-                    // with a cap on k to prevent descending far from the target early on.
+-                    if (xy_dist_to_drop <= fminf(k_eff * 0.30f, 0.9f)) {
+-                        // Gentler drop descent for stability, mirroring pickup descent tuning
+-                        agent->hidden_vel = (Vec3){0.0f, 0.0f, -0.05f};
+-                    } else {
+-                        agent->hidden_vel = (Vec3){0.0f, 0.0f, 0.0f};
+-                        agent->hidden_pos.z = fmaxf(agent->hidden_pos.z, agent->drop_pos.z + 0.6f);
+-                    }
+-                    // Relax delivery success gates to mirror pickup success tolerance
+-                    // (match XY/Z windows used for gripping). Hypothesis: carry is noisier;
+-                    // aligning drop gates with pickup reduces false negatives and converts
+-                    // sustained hovers near the drop into successful deliveries.
+-                    if (xy_dist_to_drop < fminf(fmaxf(k, 1.0f), 2.0f) * 0.35f &&
+-                        z_dist_above_drop < fminf(fmaxf(k, 1.0f), 2.0f) * 0.35f) {
++                    agent->hidden_vel = (Vec3){0.0f, 0.0f, -0.1f};
++                    if (xy_dist_to_drop < k * 0.2f && z_dist_above_drop < k * 0.2f) {
+                         agent->hovering_pickup = false;
+                         agent->gripping = false;
+                         update_gripping_physics(agent);
+@@ -960,13 +775,6 @@ void c_step(DronePP *env) {
+                             agent->color = (Color){0, 255, 0, 255}; // Green
+                         }
+                         reset_pp2(env, agent, i);
+-                    } else {
+-                        // Near-miss diagnostic for delivery
+-                        if (xy_dist_to_drop < k_floor * 0.40f &&
+-                            z_dist_above_drop > 0.05f && z_dist_above_drop < 0.6f &&
+-                            speed < 1.0f) {
+-                            env->log.attempt_drop += 1.0f;
+-                        }
+                     }
+                 }
+             }

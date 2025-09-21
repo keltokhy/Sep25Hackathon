@@ -1,0 +1,37 @@
+Run: 2025-09-21T184615Z | Iteration: 1
+
+Key metrics (final snapshot):
+- oob: 0.959
+- collision_rate: 0.005
+- episode_return: 0.165
+- perfect_grip: 0.000 | perfect_deliv: 0.000
+- to_pickup: 2669.178 | ho_pickup: 0.000 | de_pickup: 0.000
+- to_drop: 0.000 | ho_drop: 0.000 | attempt_grip: 0.000 | attempt_drop: 0.000
+- sps: ~1.81M | agent_steps: 276.0M | epoch: 85
+
+Deltas:
+- vs previous: N/A (first iteration in this loop)
+- vs baseline pointer (best/baseline): not comparable (no matching artifact files). Trend consistent with high OOB regime.
+
+Diagnosis:
+- Primary failure: OOB ≈ 96% dominates; zero hover/grip/drop signals. Root causes traced in code:
+  • Spawns for box/drop and agents use full ±MARGIN bands (XY) and z≈floor (0.5 m), increasing floor hits and boundary runaways.
+  • Velocity penalty applies only near target (scaled by proximity), enabling far‑field runaways.
+  • Boundary proximity penalty was removed, eliminating gentle discouragement near edges.
+  • Curriculum uses horizon‑local tick (resets) and aggressive decay (0.02), collapsing k quickly and cyclically.
+  • Observations guide toward target_pos instead of hidden hover point, making hover acquisition harder.
+
+Change (for next run):
+- Spawns: add XY edge_margin=10 m and raise box/drop z to −GRID_Z+1.5; spawn PP2 agents away from edges and above floor.
+- Rewards: re‑add gentle boundary proximity penalty (start at 0.8·GRID, weight −0.15).
+- Velocity shaping: switch to distance‑scaled global penalty (full near target, 10% strength far‑field).
+- Observations: use hidden hover point for PP2 dx/dy/dz guidance.
+- Descent: slow hidden z descent to −0.05 m/s for pickup and drop.
+- Curriculum: reintroduce global_tick schedule and clamp effective grip_k decay to max (k_max−k_min)/200k.
+
+Expected impact:
+- OOB ↓ materially; episode_length ↑; ho/de_pickup → > 0; attempt_grip becomes non‑zero; collisions stable (~0.5–2%).
+- No hyperparameter changes; proposals left as {} per policy.
+
+Interactions to watch:
+- Mild centralization from edge_margin; monitor exploration collapse. If ho/de improve but OOB remains high, revisit agent spawn band or add gentle early action scaling (0.7→1.0 over 100k).
