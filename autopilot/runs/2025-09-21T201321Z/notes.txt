@@ -1,0 +1,30 @@
+Run 2025-09-21T201321Z (iteration 10)
+
+Summary
+- mean_reward: ~18.14 (vs 195318Z −46.30; vs best 200258Z −183.80)
+- episode_length: ~330.80 (vs 195318Z +129.83)
+- sps: ~1.79M; epoch: 85
+- oob: ~0.678 (vs 195318Z −0.127; vs best +0.288)
+- collision_rate: ~0.083 (vs 195318Z +0.072)
+- perfect_grip: 0; perfect_deliv: 0
+- ho_pickup/de_pickup: ≫ (≈3.17k/3.15k)
+- to_drop: ≈3.04k; ho_drop: ≈0.75k
+- attempt_grip: >0; attempt_drop: ≈4.7
+
+Analysis
+- Hover and descent phases are active; near-miss grips recorded but no successful grips.
+- Primary bottleneck now: pickup grip gate too strict at k≈1.0 (speed and vertical velocity windows).
+- OOB improved vs 195318Z but remains elevated; collisions rose with more active approach.
+
+Environment Change (staged for next run)
+- File: PufferLib/pufferlib/ocean/drone_pp/drone_pp.h (Phase 2 pickup gate)
+- Relax floors: XY 0.30 (was 0.20), Z 0.25 (was 0.20), speed 0.35 (was 0.20), |vz|≤0.12 (was 0.08), allow slight contact (z>−0.02), keep near-zero descent (vz≤0.05).
+- Hypothesis: convert frequent near-misses into first successful grips; carry/drop metrics to rise without worsening OOB materially.
+
+Interactions & Risks
+- Works with slowed k‑decay and early action scaling; monitor for increased floor taps (min_z already +0.3m when gripping).
+- Watch collision_rate; if it climbs >0.10, consider slightly tightening speed window or adding a tiny landing hover pause before grip.
+
+Next Config
+{ "autopilot": { "resume_mode": "continue", "resume_from": "latest", "save_strategy": "best" } }
+

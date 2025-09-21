@@ -134,6 +134,12 @@ Note (reverts applied after Run 2025-09-21T061611Z):
   • Change: Increase PP2 spawn edge_margin 17→20 for box/drop and drone spawns (no soft walls). Rationale: reduce immediate boundary fly‑offs; centralize early experience near pickup.
   • Expected: OOB↓; ho/de_pickup↑; collisions ↔. Interactions: complements mild boundary proximity penalty (−0.15) without introducing helper forces.
   • Next config: {autopilot.resume=continue latest, save=best}.
+ - 2025‑09‑21T20:18:25Z (iter 10, run 2025‑09‑21T201321Z)
+   • Result: mean_reward≈18.14 (Δ vs 195318Z −46.30; vs best 200258Z −183.80), ep_len≈330.80 (Δ +129.83), sps≈1.79M; oob≈0.678 (Δ vs 195318Z −0.127; vs best +0.288); collision_rate≈0.083 (Δ +0.072); perfect_grip=0, perfect_deliv=0; ho/de_pickup≫ (≈3.17k/3.15k); to_drop≈3.04k; ho_drop≈0.75k; attempt_grip>0; attempt_drop≈4.7.
+   • Diagnosis: Pickup hover/descend OK; near‑miss grips appear, but actual grips blocked by narrow gates (speed<0.20, vz∈[−0.08,0]).
+   • Change: In `drone_pp.h::c_step` Phase 2 (pickup), relax floors: XY 0.30 (was 0.20), Z 0.25 (was 0.20), speed 0.35 (was 0.20), |vz|≤0.12 (was 0.08) and allow slight contact (z>−0.02) while still requiring near‑zero descent (vz≤0.05). No physics helpers added.
+   • Expected: attempt_grip↑ and first grips; to_drop/ho_drop↑; OOB stable (≤0.70); collisions ≤0.09. Interactions: complements slow k‑decay and early action scaling; watch for floor taps (min_z buffer already +0.3m when gripping).
+   • Next config: {autopilot.resume=continue latest, save=best}.
  - 2025‑09‑21T19:58:05Z (iter 8, run 2025‑09‑21T195318Z)
   • Result: oob≈0.805 (Δ vs prev −0.147), ho/de_pickup≈24.18/24.10 (≫), ho_drop≈0.108, attempt_grip=0, perfect_grip/deliv=0; mean_reward≈64.44 (Δ +33.30), ep_len≈200.97 (Δ +150.03), coll_rate≈0.0102.
   • Diagnosis: Phase emergence (hover/descend) without gripping → pickup gates too strict given k decays to 1.0 within ~200k global steps vs 200M total.

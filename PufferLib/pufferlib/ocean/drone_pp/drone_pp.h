@@ -809,15 +809,20 @@ void c_step(DronePP *env) {
                     // Relax pickup grip gate with minimum floors so learning persists
                     // even once k decays to ~1.0. This should convert frequent
                     // hover/descend events into occasional grips to bootstrap carry.
-                    float grip_xy_tol = fmaxf(0.20f, k * 0.15f);
-                    float grip_z_tol  = fmaxf(0.20f, k * 0.15f);
-                    float grip_v_tol  = fmaxf(0.20f, k * 0.20f);
-                    float grip_vz_tol = fmaxf(0.08f, k * 0.06f);
+                    // Slightly relax pickup grip gate floors to convert
+                    // frequent near-misses into occasional grips while k≈1.
+                    // Rationale: logs show ho/de_pickup high and attempt_grip>0
+                    // but perfect_grip=0. Widen XY/Z and speed/vertical-velocity
+                    // tolerances modestly to bootstrap carry without physics hacks.
+                    float grip_xy_tol = fmaxf(0.30f, k * 0.20f);
+                    float grip_z_tol  = fmaxf(0.25f, k * 0.20f);
+                    float grip_v_tol  = fmaxf(0.35f, k * 0.25f);
+                    float grip_vz_tol = fmaxf(0.12f, k * 0.08f);
                     if (
                         xy_dist_to_box < grip_xy_tol &&
-                        z_dist_above_box < grip_z_tol && z_dist_above_box > 0.02f &&
+                        z_dist_above_box < grip_z_tol && z_dist_above_box > -0.02f &&
                         speed < grip_v_tol &&
-                        agent->state.vel.z > -grip_vz_tol && agent->state.vel.z <= 0.0f
+                        agent->state.vel.z > -grip_vz_tol && agent->state.vel.z <= 0.05f
                     ) {
                         if (k < 1.01 && env->box_k > 0.99f) {
                             agent->perfect_grip = true;
