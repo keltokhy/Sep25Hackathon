@@ -7,12 +7,16 @@ Drone must: take off → approach box → hover → descend → grip → carry t
 Success requires completing the full chain.
 
 KEY METRICS
-- `perfect_grip`: Successfully gripped box (0-1)
-- `perfect_deliv`: Successfully delivered (0-1)
-- `ho_pickup`: Hovering for pickup (0-1)
-- `de_pickup`: Descending for pickup (0-1)
-- `to_drop`: Carrying toward drop zone (0-1)
+- `perfect_grip` / `grip_success`: Successfully gripped box (0-1)
+- `perfect_deliv` / `delivery_success`: Successfully delivered (0-1)
+- `ho_pickup`: "Hovering for pickup" - drone above box before descent (0-1)
+- `de_pickup`: "Descending for pickup" - drone descending toward box (0-1)
+- `to_pickup`: "Toward pickup" - moving toward box (0-1)
+- `to_drop`: "Toward drop" - carrying box to drop zone (0-1)
+- `ho_drop`: "Hovering for drop" - above drop zone (0-1)
+- `attempt_grip` / `attempt_drop`: Number of attempts
 - `oob`: Out of bounds rate (0-1)
+- `collision_rate`: Hit obstacles/floor (0-1)
 - `episode_return`: Total reward (higher better)
 
 CONTEXT
@@ -26,41 +30,31 @@ OPERATING PRINCIPLES
 - If performance degrades at consistent training points, suspect curriculum (k parameter) issues - consider making configurable.
 - Track which 'dimensions' tried (gates/physics/rewards/spawn/curriculum) and explore untouched ones.
 
-SINGLE‑RUN PER ITERATION (Strict)
-- Launch training exactly once at the start of the iteration, then do analysis and documentation only. Do not relaunch training again within the same iteration.
-- Any environment edits you make apply to the next iteration’s single training run.
-- If the run fails or times out, record the failure and end the iteration; do not auto‑retry.
+SINGLE‑RUN PER ITERATION
+- Launch training once per iteration. Edits apply to next iteration's run. No auto-retry on failures.
 
-WORKFLOW (Numbered Core Loop)
-1) Execute {script} (autopilot/scripts/run_training.sh) with ≥15‑minute timeout. Do not skip.
-2) Read the fresh run’s `summary.json` for behavioral_analysis (note: this field is not printed in train.log “User Stats”). Use `trainer_summary.json` or `train.log` for raw metrics.
-3) Identify the specific failure mode from behavioral_analysis and metrics. Cross‑check against the "Header evolution: `drone_pp.h`" notes to avoid re‑introducing patterns previously removed.
-4) Make minimal, targeted environment code changes to address the failure, aligned with the historical intent captured in Notes. Maintain hypothesis diversity: Keep a list of several different approaches. Don't repeatedly test the same hypothesis type (e.g., "relax gates") without trying something orthogonal.
-5) Rebuild bindings and smoke‑test import.
-6) Configure the next run using only `autopilot.*` overrides (or `{}`) in `autopilot/proposals/next_config.json`.
-7) Record actions/observations/outcomes/next steps in labbook and notes; repeat.
+WORKFLOW (Core Loop)
+1) Execute {script} with ≥15‑minute timeout
+2) Read `summary.json` for behavioral_analysis and metrics
+3) Identify failure mode, check against notes history
+4) Make minimal environment changes; maintain hypothesis diversity
+5) Rebuild: `cd PufferLib && NO_TRAIN=1 python3 setup.py build_ext --inplace --force`
+6) Configure next run in `autopilot/proposals/next_config.json` (autopilot.* keys only)
+7) Document in labbook/notes
 
-DECISION FRAMEWORK (Diagnose by metrics)
-- Read behavioral_analysis first. Use metrics to choose an environment‑focused response:
+DECISION FRAMEWORK
+• diagnostic_grip (when perfect_grip = 0):
+  - If ho_pickup < 0.1: Drone can't reach hover → relax hover gates or adjust spawn
+  - If ho_pickup > 0.1 but de_pickup < 0.1: Hover works but won't descend → check descent gates
+  - If de_pickup > 0.1 but perfect_grip = 0: Descending but can't grip → relax grip conditions
+  - If metrics improve then degrade at consistent epoch: Curriculum too aggressive → control k decay
 
-  • diagnostic_grip (when perfect_grip = 0):
-    - If ho_pickup < 0.1: Drone can't reach hover position → relax hover gates or adjust spawn
-    - If ho_pickup > 0.1 but de_pickup < 0.1: Hover works but won't descend → check descent gates
-    - If de_pickup > 0.1 but perfect_grip = 0: Descending but can't grip → relax grip conditions
-    - If metrics improve then degrade at consistent epoch: Curriculum too aggressive → control k decay
-    Try different approaches each iteration: gates OR rewards OR physics OR curriculum
+• improve_carrying (when perfect_grip > 0 but perfect_deliv = 0):
+  - Check to_drop: If low, navigation issue → adjust carry rewards
+  - Check ho_drop: If low, can't stabilize at drop → tune drop hover gates
 
-  • improve_carrying (when perfect_grip > 0 but perfect_deliv = 0):
-    - Check to_drop: If low, navigation issue → adjust carry rewards
-    - Check ho_drop: If low, can't stabilize at drop → tune drop hover gates
-    - Tune carry stability (mass, drag, grip decay)
-
-  • fix_stability (when oob > 0.5 or collision_rate > 0.1):
-    - High OOB often means spawn too close to boundaries or descent too aggressive
-    - Adjust physics constants, spawn margins, descent speeds
-
-  • optimize_performance (only after perfect_grip > 0.1):
-    - Improve throughput/observability, add logging, keep environment stable
+• fix_stability (when oob > 0.5 or collision_rate > 0.1):
+  - High OOB often means spawn too close to boundaries or descent too aggressive
 
 CREATIVE ESCALATION (When progress stalls)
 - Early iterations: Focus on PRIORITY 1 (.ini tweaks) and PRIORITY 2 (drone_pp.h gates/logic)
@@ -69,11 +63,9 @@ CREATIVE ESCALATION (When progress stalls)
 - After several iterations with minimal improvement, try orthogonal approaches:
   • Reward shaping: Modify reward weights in .ini first, then computation in .h
   • Physics tuning: Adjust box mass, drone thrust, gravity constants
-  • Curriculum control: Make k decay configurable via .ini or implement adaptive difficulty based on success rate
-  • Anti-collapse mechanisms: Add exploration bonuses or success-gated progression when performance degrades
+  • Curriculum control: Make k decay configurable via .ini or implement adaptive difficulty
+  • Anti-collapse mechanisms: Add exploration bonuses or success-gated progression
   • Spawn strategy: Alter initial positions/orientations fundamentally
-  • Observation space: Add/remove observations to change what policy sees
-- Document which dimension you're exploring and why previous approach plateaued
 
 WHAT YOU CAN CHANGE
 - Environment code (primary):
@@ -89,9 +81,8 @@ WHAT YOU CAN CHANGE
   • `autopilot.save_strategy` = `best` | `latest` | `all`
 - Notes and labbook entries.
 
-WHAT YOU CANNOT CHANGE (Hard Rule)
-- Do not modify any `train.*`, `env.*`, or `vec.*` hyperparameters in proposals. Under current policy these are off‑limits; the orchestrator ignores them.
-- The training script may enforce derived constraints (batch sizing, vec divisibility) for correctness; this is not a policy exception and should not be edited.
+WHAT YOU CANNOT CHANGE
+- Do not modify any `train.*`, `env.*`, or `vec.*` hyperparameters in proposals.
 
 ENVIRONMENT DEBUGGING CHECKLIST
 1) Identify failure from behavioral_analysis and concrete metrics.
@@ -117,101 +108,68 @@ ENVIRONMENT DEBUGGING CHECKLIST
 6) Test: `pytest PufferLib/tests/test_env_binding.py -q` (if present) and ensure import works.
 7) Document in `runs/<run_id>/notes.txt`: problem → change → expected outcome; reference the specific historical bullet(s) you followed or intentionally deviated from.
 
-SUCCESS METRICS (Define thresholds)
-- Baseline environment "working" when, over a stable eval slice:
-  • grip_success shows majority success across agents/episodes
-  • delivery_success shows significant success rate
-  • end_to_end_success shows consistent upward trend
+SUCCESS METRICS
+- Baseline "working" when:
+  • grip_success shows majority success
+  • delivery_success shows significant rate
+  • end_to_end_success shows upward trend
   • OOB/crash rates remain low and stable
-- Intermediate milestones (reassess approach if not met):
-  • Early: ho_pickup showing improvement (hovering behavior emerging)
-  • Mid: de_pickup increasing (attempting descent more often)
-  • Later: perfect_grip becoming non-zero (first successful grips)
+- Intermediate milestones (reassess if not met):
+  • Early: ho_pickup showing improvement
+  • Mid: de_pickup increasing
+  • Later: perfect_grip becoming non-zero
   • Eventually: perfect_grip showing consistent growth
-  If milestones stagnate, switch to different approach dimension
-  Note: If performance degrades consistently around the same training point, the curriculum (k parameter) may need adjustment rather than gate relaxation
-- Stop environment debugging when thresholds are met and metrics are stable; shift to performance/observability improvements only (no hparam tuning).
+- If milestones stagnate, switch approach dimension
+- Note: Consistent degradation at same epoch suggests curriculum issues (k parameter)
 
 FAILSAFES
-- No behavioral_analysis in summary: fall back to `train.log` inspection; compute basic rates (grips, deliveries, OOB). Remember that train.log “User Stats” never includes behavioral_analysis; it only appears in `runs/<run_id>/summary.json`. If absent, add logging counters in env and rerun.
-- Build fails: revert the last env patch, rebuild clean, and re‑apply a smaller, testable change.
-- Metrics regress for multiple runs after a change: revert to previous known‑good env state (use git restore to last good commit) and document rollback.
-- When in doubt, prefer smaller env edits and clearer logging over larger refactors.
+- No behavioral_analysis: Check `summary.json` (not in train.log), add logging if needed
+- Build fails: Revert patch, rebuild clean
+- Metrics regress multiple runs: Revert to known-good state
+- Prefer smaller edits over large refactors
 
 TECHNICAL DETAILS
-- File locations:
-  • Environment logic: `PufferLib/pufferlib/ocean/drone_pp/` (`.h`, `.c`, `.py`, `binding.c`, `dronelib.h`)
-  • Environment config: `PufferLib/pufferlib/config/ocean/drone_pp.ini` (rewards, episode params)
-  • Training configs: `autopilot/configs/`
-  • Prompts: `autopilot/prompts/`
-- Build: `cd PufferLib && NO_TRAIN=1 python3 setup.py build_ext --inplace --force` (rebuild native bindings after `.h` changes).
-- Tests: `pytest PufferLib/tests/test_env_binding.py -q` when available; otherwise smoke‑import.
-- Constraints the script enforces before training:
-  • `vec.num_envs % vec.num_workers == 0`.
-  • `train.batch_size = env.num_envs × env.num_drones × vec.num_envs × train.bptt_horizon`.
-  • `train.minibatch_size = train.batch_size = train.max_minibatch_size`.
-- Device: Prefer `mps`; switch to `cpu` only for diagnostics and note slower runtime.
-- Run artifacts: `$PUFFER_AUTOPILOT_RUN_DIR`; logs under `autopilot/logs/`.
+- Build: `cd PufferLib && NO_TRAIN=1 python3 setup.py build_ext --inplace --force`
+- Tests: `pytest PufferLib/tests/test_env_binding.py -q` when available
+- Constraints:
+  • vec.num_envs % vec.num_workers == 0
+  • train.batch_size = env.num_envs × env.num_drones × vec.num_envs × train.bptt_horizon
+- Device: Prefer `mps`; use `cpu` only for diagnostics
+- Run artifacts: `$PUFFER_AUTOPILOT_RUN_DIR`; logs under `autopilot/logs/`
 
 EXECUTION RULES
-- Step 1 is mandatory: Launch {script} immediately from repo root and allow ≥15 minutes. Wait until it completes and capture stdout/stderr. Diagnose early exits before changing configs.
-- Run training only once per iteration. Do not start a second training after making edits; those edits are for the next iteration’s single run.
-- After the run, write the next overrides as `{}` or only `autopilot.*` keys. Do not propose any other hparam changes.
+- Launch {script} immediately from repo root with ≥15 minutes timeout
+- Single training run per iteration - no retries
+- Only propose `autopilot.*` keys in overrides
 
 RECORDKEEPING
-- Labbook (`autopilot/journal/labbook.md`): actions, observations (SPS/CPU%), outcome, next step.
-- Notes (`autopilot/journal/notes.md`): curated long‑term memory. Edit in place; keep concise and up to date.
-- Drive the training toward better drone behavior (grip → carry → deliver) by understanding what's failing and targeting specific issues.
-- Use behavioral analysis to make intelligent decisions about experiment type and focus.
-- Honor a strict no‑hyperparameter‑changes policy; use the provided baselines as‑is.
+- Labbook (`autopilot/journal/labbook.md`): actions, observations, outcomes, next steps
+- Notes (`autopilot/journal/notes.md`): curated long-term memory, edit in place, keep concise
+- Run directories: `autopilot/runs/<run_id>` where `<run_id>` = `YYYY-MM-DDTHHMMSSZ`
+- Always reference exact run_id in commits and notes
 
-RUN NAMING STANDARD
-- Run directories live under `autopilot/runs/<run_id>` where `<run_id>` is a UTC timestamp in ISO‑8601 Zulu without colons: `YYYY-MM-DDTHHMMSSZ` (e.g., `2025-09-21T012845Z`).
-- Do not rename run folders. Always reference the exact `<run_id>` in commit messages, labbook entries, and notes.
-- Logs follow the training script’s naming and are not committed; all other artifacts in the run folder are committed each iteration.
+COMMIT DISCIPLINE (MANDATORY)
+- After EVERY single training run, make exactly one commit capturing:
+  • Environment code edits
+  • Run artifacts under `autopilot/runs/<run_id>/`
+  • Journal updates (labbook.md and notes.md)
+  • `autopilot/proposals/next_config.json` for next run
+- ALWAYS immediately push to current branch. Never skip the push.
+- Commit message format: `env(drone_pp): <change> | <run_id>`
+  Follow with bullets: problem, change, expected, outcome, next
 
-COMMIT DISCIPLINE (Atomic Per Iteration - MANDATORY)
-- After EVERY single training run and your analysis, you MUST make exactly one commit capturing:
-  • Any environment code edits (e.g., `PufferLib/pufferlib/ocean/drone_pp/drone_pp.h` and adjacent files).
-  • Run artifacts under `autopilot/runs/<run_id>/` (config.json, summary.json, trainer_summary.json, train.log, notes.txt).
-  • Journal updates: `autopilot/journal/labbook.md` and `autopilot/journal/notes.md` (curated).
-  • `autopilot/proposals/next_config.json` for the next run (usually `{}` or autopilot.* only).
-- ALWAYS immediately push the commit to the current branch (e.g., `git push -u origin HEAD`) so the remote stays in sync each iteration. Never skip the push.
-- Commit message format:
-  `env(drone_pp): <brief change>; expected effect | <run_id>`
-  Follow with short bullets:
-  - Problem observed: <key metrics>
-  - Change: <what/where in .h>
-  - Expected impact: <hypothesis>
-  - Outcome: <core metrics from trainer_summary>
-  - Next: <one action or `{}`>
-- Do not start another training inside the same iteration after committing. Edits are for the next iteration's single run.
+ENVIRONMENT CHANGE TRACKING
+- Each run captures diffs and environment comparison
+- Correlate changes with outcomes to decide keep/revert
+- Document changes and impacts in run notes
 
-ENVIRONMENT CHANGE TRACKING (DREX Feature)
-- Each run captures diffs of environment code (e.g., `env_uncommitted.diff`).
-- Summaries may include `environment_comparison` vs the previous run.
-- Use these to correlate env changes with outcomes:
-  • Grip improves after grip‑gate tweak → keep it.
-  • Collision rate spikes after physics change → revert/adjust.
-  • Track which files were modified: `drone_pp.h`, `drone_pp.c`, bindings.
-Document what changed, why, expected vs actual impact in `runs/<run_id>/notes.txt`.
-
-NOTES.MD DISCIPLINE (Curated, Concise)
-- Purpose: `autopilot/journal/notes.md` is the single source of stable intent and learnings. It is not a dump log.
-- Edit‑in‑place rules:
-  • Update or replace outdated bullets; prune stale hypotheses.
-  • Keep it short (aim ≤ 150 lines). Prefer crisp bullets over paragraphs.
-  • Reference concrete run IDs when relevant (e.g., 2025‑09‑20T233055Z).
-- Recommended structure:
-  1) Current Baseline: env header commit, config profile, device, vec/env concurrency.
-  2) Stable Learnings: 5–10 bullets of proven heuristics that should persist.
-  3) Header Evolution: `drone_pp.h` summary (keep high‑level; update only when upstream changes).
-  4) Open Questions & Next Hypotheses: ≤5 bullets you intend to test next.
-  5) Decisions Log: terse dated bullets linking to runs (decision → rationale → outcome).
-  6) Behavioral Patterns: Track recurring patterns across runs:
-    • Points where performance typically degrades
-    • Correlation between specific metrics
-    • Which changes had NO effect (equally important as successes)
-- Division of labor:
-  • Put detailed, per‑run narratives in `labbook.md` and `runs/<run_id>/notes.txt`.
-  • Keep `notes.md` focused on what must guide future iterations at a glance.
+NOTES.MD DISCIPLINE
+- Edit in place, keep ≤150 lines, prefer bullets
+- Structure:
+  1) Current Baseline
+  2) Stable Learnings (5-10 bullets)
+  3) Header Evolution
+  4) Open Questions & Next Hypotheses (≤5 bullets)
+  5) Decisions Log (dated bullets with run IDs)
+  6) Behavioral Patterns (what worked AND what didn't)
+- Division: detailed narratives in labbook.md; notes.md for quick reference

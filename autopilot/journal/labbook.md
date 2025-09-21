@@ -81,3 +81,4 @@
  - 2025-09-21T03:33:00Z | align descent XY with grip gate | `PufferLib/pufferlib/ocean/drone_pp/drone_pp.h`: raise pickup/drop descent XY threshold from 0.30→0.40·max(k,1) to match grip/drop gates; keep gentle descent (−0.06 m/s); no other logic changes | Hypothesis: allow vertical motion whenever grip/drop gates are plausible → attempt_grip↑, first non‑zero grips, to_drop>0; collisions stable | Rebuilt bindings; smoke‑import OK | Next: `{}`
 - 2025-09-21T03:34:03Z | run complete | Run 2025-09-21T032205Z (iteration 3) | metrics captured | 
 - 2025-09-21T03:42:49Z | run baseline_full + physics damping | ho/de_pickup≈0.07–0.10; perfect_grip=0; to_drop=0; oob≈0.85; sps≈1.62M | apply physics tweak in dronelib.h (B_DRAG 0.1→0.2; K_ANG_DAMP 0.2→0.3); rebuilt; smoke‑import OK | next: {}
+- 2025-09-21T03:46:34Z | run complete | Run 2025-09-21T033403Z (iteration 4) | metrics captured | 
