@@ -607,7 +607,9 @@ void reset_agent(DronePP* env, Drone *agent, int idx) {
 void random_bump(Drone* agent) {
     agent->state.vel.x += rndf(-0.1f, 0.1f);
     agent->state.vel.y += rndf(-0.1f, 0.1f);
-    agent->state.vel.z += rndf(0.05f, 0.3f);
+    // Softer upward nudge on successful grip to avoid overshoot
+    // and reduce post-grip OOB while still breaking symmetry.
+    agent->state.vel.z += rndf(0.02f, 0.12f);
     agent->state.omega.x += rndf(-0.5f, 0.5f);
     agent->state.omega.y += rndf(-0.5f, 0.5f);
     agent->state.omega.z += rndf(-0.5f, 0.5f);
@@ -794,7 +796,7 @@ void c_step(DronePP *env) {
                 else {
                     agent->descent_pickup = true;
                     // Slow descent for stability during pickup
-                    agent->hidden_vel = (Vec3){0.0f, 0.0f, -0.05f};
+                    agent->hidden_vel = (Vec3){0.0f, 0.0f, -0.04f};
                     if (DEBUG > 0) printf("  GRIP\n");
                     if (DEBUG > 0) printf("    xy_dist_to_box = %.3f\n", xy_dist_to_box);
                     if (DEBUG > 0) printf("    z_dist_above_box = %.3f\n", z_dist_above_box);
@@ -845,11 +847,13 @@ void c_step(DronePP *env) {
                     // into occasional successful grips at k≈1.
                     float grip_xy_tol = fmaxf(0.90f, k * 0.28f);
                     float grip_z_tol  = fmaxf(0.70f, k * 0.28f);
-                    float grip_v_tol  = fmaxf(1.00f, k * 0.35f);
-                    float grip_vz_tol = fmaxf(0.45f, k * 0.10f);
+                    // Accept slightly higher horizontal speed and vertical rate
+                    // to convert common near-misses into successful grips.
+                    float grip_v_tol  = fmaxf(1.40f, k * 0.35f);
+                    float grip_vz_tol = fmaxf(0.55f, k * 0.10f);
                     if (
                         xy_dist_to_box < grip_xy_tol &&
-                        z_dist_above_box < grip_z_tol && z_dist_above_box > -0.30f &&
+                        z_dist_above_box < grip_z_tol && z_dist_above_box > -0.40f &&
                         speed < grip_v_tol &&
                         agent->state.vel.z > -grip_vz_tol && agent->state.vel.z <= 0.30f
                     ) {
@@ -917,7 +921,7 @@ void c_step(DronePP *env) {
                     agent->hidden_pos.x = agent->drop_pos.x;
                     agent->hidden_pos.y = agent->drop_pos.y;
                     // Slow descent for stability during drop
-                    agent->hidden_vel = (Vec3){0.0f, 0.0f, -0.05f};
+                    agent->hidden_vel = (Vec3){0.0f, 0.0f, -0.04f};
                     // Near-miss diagnostics for drops
                     float near_drop_xy_tol = fmaxf(0.50f, k * 0.30f);
                     float near_drop_z_tol  = fmaxf(0.35f, k * 0.30f);

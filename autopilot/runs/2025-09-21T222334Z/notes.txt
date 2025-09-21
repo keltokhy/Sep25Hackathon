@@ -1,0 +1,51 @@
+Run: 2025-09-21T222334Z (iteration 23)
+
+Comparison Checklist
+- Key rates: perfect_grip=0.000, perfect_deliv=0.000, end_to_end_success=N/A
+- Attempts/events: attempt_grip≈0.384, attempt_drop≈2.365, to_pickup≈19528, ho_pickup≈2110, de_pickup≈2067, to_drop≈1980, ho_drop≈368
+- Stability: oob≈0.696, collision_rate≈0.078
+- Throughput: sps≈1.74M, epoch=85
+
+Δ vs previous (2025-09-21T221348Z)
+- oob: +0.159 (0.537 → 0.696)
+- collision_rate: +0.038 (0.040 → 0.078)
+- episode_return: +0.654 (−0.368 → 0.286)
+- mean_reward/score: +11.60 (24.74 → 36.34)
+- attempt_grip: +0.227 (0.157 → 0.384)
+- attempt_drop: +1.843 (0.522 → 2.365)
+- ho_pickup: +730 (≈1381 → ≈2110)
+- de_pickup: +700 (≈1367 → ≈2067)
+- to_drop: +633 (≈1347 → ≈1980)
+- ho_drop: +281 (≈87 → ≈368)
+- perfect_grip: 0 → 0; perfect_deliv: 0 → 0
+
+Δ vs baseline (best.json → 2025-09-21T221348Z)
+- Using named baseline in best.json (2025-09-21T221348Z) since baseline.json target not available on disk.
+- See deltas above (same as vs previous for this iteration).
+
+Diagnosis
+- Hover and descent gating are functioning; near‑miss counts and drop approach rose sharply.
+- Conversions remain zero at k≈1 → pickup acceptance still too strict on speed/vz and/or descent pacing; elevated OOB likely exacerbated by fast descents and strong post‑grip bump.
+
+Change Applied (env/drone_pp.h)
+- Pickup acceptance: increase speed floor to max(1.40, 0.35·k), vertical rate |vz|≤max(0.55, 0.10·k); allow slight undershoot z>−0.40 (was −0.30).
+- Descent pacing: hidden_vel.z = −0.04 for pickup/drop (was −0.05).
+- Post‑grip stabilization: soften random_bump vz U[0.02,0.12] (was [0.05,0.30]).
+
+Expected Impact (next run)
+- attempt→grip conversion becomes non‑zero; first perfect_grip detections.
+- ho_drop stable or ↑; deliveries possible if carry stabilizes.
+- OOB ≤0.72; collision_rate ≤0.11; SPS unchanged.
+
+Next Override (autopilot.* only)
+{
+  "autopilot": {
+    "resume_mode": "continue",
+    "resume_from": "latest",
+    "save_strategy": "best"
+  }
+}
+
+Interaction Effects To Watch
+- If OOB remains high, consider further reducing descent rate or limiting horizontal speed near the box (metric‑only penalty) without physics changes.
+- If attempts stay high but perfect_grip=0, widen vz window slightly again or add tiny diagnostic reward for grip attempts to sustain exploration.

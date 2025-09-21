@@ -136,6 +136,11 @@ Note (reverts applied after Run 2025-09-21T061611Z):
   • Next config: {autopilot.resume=continue latest, save=best}.
 
 ## 7) Decisions Log
+ - 2025-09-21T22:28:37Z (iter 23, run 2025-09-21T222334Z)
+   • Δ vs prev (221348Z): oob +15.9pp → 0.696; collision +3.8pp → 0.078; mean_reward +11.60 → 36.34; attempt_grip +0.227 → 0.384; attempt_drop +1.843 → 2.365; ho/de_pickup +0.73k/+0.70k; to_drop +0.63k; ho_drop +281; perfect_grip=0, perfect_deliv=0.
+   • Interpretation: Phase‑1/2/3 activity is present and rising, but pickup acceptance still blocks conversions at k≈1 and faster descents/bumps likely fuel OOB.
+   • Change (env/drone_pp.h): soften post‑grip random_bump (vz U[0.02,0.12] from [0.05,0.30]); slow descent hidden_vel.z −0.04 (was −0.05) for pickup and drop; relax pickup acceptance speed floors (speed<max(1.40, 0.35·k), |vz|≤max(0.55, 0.10·k)) and allow z>−0.40 (was −0.30).
+   • Next: continue from latest; expect first non‑zero perfect_grip; watch OOB (target ≤0.72) and collisions (≤0.11). If conversions still 0 with attempts high, widen vz further or add tiny pickup attempt reward (diagnostic‑only).
 - 2025-09-21T21:49:34Z (run 2025-09-21T214439Z): Decouple success metrics from k. Perfect_* tied to k<1.01 never register under slow curriculum that resets each run. Implement strict, k‑independent envelopes for marking perfect_grip/deliv; keep acceptance gates unchanged. Expect perfect_* > 0 if true behaviors occur; continue from latest.
  - 2025-09-21T22:18:53Z (run 2025-09-21T221348Z): Attempts/regressions vs 220242Z; OOB ↓ to 0.537, but ho/de_pickup and carry events fell; perfect_* remain 0. Adjust only metric envelopes (pickup XY/Z/speed/|vz|; drop XY/Z) to be closer to acceptance while still stricter. Goal: register genuine successes at k≈1 without altering behavior gates.
 
