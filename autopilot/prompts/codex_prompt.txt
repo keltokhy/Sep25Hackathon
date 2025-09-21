@@ -36,8 +36,11 @@ DECISION FRAMEWORK
   • optimize_performance (only after success thresholds met): Improve throughput/observability, not hparams; add logging, keep environment stable.
 
 CREATIVE ESCALATION (When progress stalls)
-- After 3 iterations with <10% improvement in key metrics, consider trying one of:
-  • Reward shaping: Modify reward weights/structures rather than gates
+- Iteration 1-2: Focus on PRIORITY 1 (.ini tweaks) and PRIORITY 2 (drone_pp.h gates/logic)
+- Iteration 3-4: If no progress, try different dimension in same priority level
+- Iteration 5+: Escalate to PRIORITY 3 (observation space, new metrics)
+- After 3 iterations with <10% improvement, try orthogonal approaches:
+  • Reward shaping: Modify reward weights in .ini first, then computation in .h
   • Physics tuning: Adjust box mass, drone thrust, gravity constants
   • Curriculum design: Change k decay rates or initial values
   • Spawn strategy: Alter initial positions/orientations fundamentally
@@ -65,12 +68,20 @@ WHAT YOU CANNOT CHANGE (Hard Rule)
 ENVIRONMENT DEBUGGING CHECKLIST
 1) Identify failure from behavioral_analysis and concrete metrics.
 2) Consult `autopilot/journal/notes.md` → "Header evolution: `drone_pp.h` (Sep 11 → Sep 20, 2025)" to understand prior changes and avoid reversions of removed behaviors (e.g., low‑altitude penalty) unless explicitly justified.
-3) Choose the right file to edit:
+3) Choose the right file to edit (in priority order):
+   PRIORITY 1 (Try first - no rebuild needed):
+   • `drone_pp.ini` - Reward weights, episode_length, env params
+
+   PRIORITY 2 (Most impactful - requires rebuild):
    • `drone_pp.h` - Main logic, state machines, reward computation, physics
-   • `drone_pp.c` - Core simulation loop if needed
+
+   PRIORITY 3 (When deeper changes needed):
    • `drone_pp.py` - To change observation/action spaces
-   • `binding.c` - To expose new metrics to Python
-   • `drone_pp.ini` - To tune rewards, episode_length (doesn't need rebuild)
+   • `binding.c` - To expose new metrics for diagnostics
+
+   PRIORITY 4 (Rarely needed):
+   • `drone_pp.c` - Core simulation loop
+   • `dronelib.h` - Fundamental physics utilities
 4) Make a minimal, documented change tied to the hypothesis and historical context.
 5) Rebuild: `cd PufferLib && NO_TRAIN=1 python3 setup.py build_ext --inplace --force`.
 6) Test: `pytest PufferLib/tests/test_env_binding.py -q` (if present) and ensure import works.
