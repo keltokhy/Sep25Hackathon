@@ -1,0 +1,19 @@
+Run 2025-09-21T094027Z (iteration 5)
+
+Problem
+- OOB remains the primary failure: oob≈0.843 at final snapshot (last 4 runs 0.82–0.84), collisions low (~2.6%).
+- Grips low; deliveries near zero at end-of-run (perfect_deliv≈1.03). Early epoch (~80) briefly showed better deliveries before regressing by epoch 85.
+- Hover/descent phases fire frequently (to/ho/de_pickup≫), but many episodes terminate by OOB during approach/carry.
+
+Root cause
+- Far‑field runaways: with clean physics (no soft walls/centralizing), exploratory thrusts can drift to ±GRID edges; reward has no boundary awareness, so agents don’t learn to avoid edges.
+
+Change (for next run)
+- Env: PufferLib/pufferlib/ocean/drone_pp/drone_pp.h::compute_reward — add a mild XY boundary‑proximity penalty (0 when |x|,|y| ≤ 0.8·GRID; scales linearly to −0.15 at boundary). No physics “helpers”.
+
+Expected impact
+- OOB↓ (primary) by discouraging edge‑ward drift; longer episodes; ho/de_pickup↔/↑; to_drop/ho_drop↑; collisions stable.
+
+Notes
+- Kept curriculum clamp via global_tick with safe max decay; gates unchanged; spawns remain central with raised pickup/drop z.
+- No trainer/env/vec hyperparameter changes in proposals; next_config: {}.
