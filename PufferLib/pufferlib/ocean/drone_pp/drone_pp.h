@@ -855,8 +855,9 @@ void c_step(DronePP *env) {
                     agent->hidden_pos = (Vec3){agent->drop_pos.x, agent->drop_pos.y, agent->drop_pos.z + 0.6f};
                     agent->hidden_vel = (Vec3){0.0f, 0.0f, 0.0f};
                     // Align drop hover gate with pickup-style tolerance to admit stable hovers
-                    // near the drop before descent (wider XY, speed-bounded)
-                    if (xy_dist_to_drop < k * 0.75f && z_dist_above_drop > 0.3f && speed < 2.5f) {
+                    // near the drop before descent (wider XY, speed-bounded). Carry dynamics are
+                    // noisier than pickup, so allow a wider lateral tolerance here.
+                    if (xy_dist_to_drop < k * 1.25f && z_dist_above_drop > 0.3f && speed < 2.5f) {
                         agent->hovering_drop = true;
                         reward += 0.25;
                         agent->color = (Color){0, 0, 255, 255}; // Blue
@@ -872,7 +873,8 @@ void c_step(DronePP *env) {
                     float k_floor = fmaxf(k, 1.0f);
                     // Relax XY alignment threshold for drop descent to mirror pickup
                     // (match grip/drop gates) and promote successful deliveries once grips occur.
-                    if (xy_dist_to_drop <= k_floor * 0.40f) {
+                    // Slightly wider than pickup to account for carry-induced jitter.
+                    if (xy_dist_to_drop <= k_floor * 0.55f) {
                         // Gentler drop descent for stability, mirroring pickup descent tuning
                         agent->hidden_vel = (Vec3){0.0f, 0.0f, -0.06f};
                     } else {
@@ -880,8 +882,9 @@ void c_step(DronePP *env) {
                         agent->hidden_pos.z = fmaxf(agent->hidden_pos.z, agent->drop_pos.z + 0.6f);
                     }
                     // Relax delivery success gates to mirror pickup success tolerance
-                    // to encourage first deliveries once grips occur
-                    if (xy_dist_to_drop < fmaxf(k, 1.0f) * 0.30f && z_dist_above_drop < fmaxf(k, 1.0f) * 0.30f) {
+                    // to encourage first deliveries once grips occur. Slightly wider laterally
+                    // to reflect reduced precision while carrying.
+                    if (xy_dist_to_drop < fmaxf(k, 1.0f) * 0.35f && z_dist_above_drop < fmaxf(k, 1.0f) * 0.30f) {
                         agent->hovering_pickup = false;
                         agent->gripping = false;
                         update_gripping_physics(agent);

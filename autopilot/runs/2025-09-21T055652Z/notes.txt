@@ -1,0 +1,30 @@
+Run 2025-09-21T055652Z — analysis and next steps
+
+Problem
+- improve_carrying: first non-zero grips observed previously, but deliveries remain 0.
+- Drop-phase engagement is rare: ho_drop very low despite substantial to_drop while carrying.
+- OOB still high (~0.95); collision rate acceptable (~2.1%).
+
+Key metrics (final UI snapshot)
+- perfect_grip ≈ 0.10; perfect_deliv = 0.00
+- ho_pickup ≫ 0; de_pickup ≫ 0; attempt_grip ≈ 0.017
+- to_drop large; ho_drop ≈ 37 (very low), attempt_drop ≈ 0.003
+- oob ≈ 0.950; collision_rate ≈ 0.021; episode_length ≈ 52.8; SPS ≈ 1.44M
+
+Root cause hypothesis
+- Drop hover and descent gates remain too strict relative to pickup when carrying the box (more jitter, reduced control).
+- The policy frequently approaches the drop zone (to_drop≫0) but fails to satisfy the drop hover XY gate; descent and delivery rarely trigger.
+
+Change applied (for next run)
+- Widen drop gates in `PufferLib/pufferlib/ocean/drone_pp/drone_pp.h`:
+  • Hovering for drop: XY < 1.25·k (was 0.75·k), z > 0.3, speed < 2.5.
+  • Drop descent start: XY ≤ 0.55·max(k,1) (was 0.40·max(k,1)).
+  • Delivery success: XY < 0.35·max(k,1) (was 0.30·max(k,1)), z < 0.30·max(k,1).
+
+Expected impact
+- ho_drop↑ and attempt_drop↑ once grips occur; first non‑zero deliveries possible.
+- OOB should not worsen; collisions expected to remain < 0.05.
+
+Notes
+- No trainer/env/vec hyperparameter changes in proposals; kept `{}` per policy.
+- If ho_drop remains low next run, consider modestly widening hover to 1.5·k and/or slightly relaxing the delivery z gate (≤0.35·k). Keep curriculum (grip_k_decay=0.02) unchanged for now.

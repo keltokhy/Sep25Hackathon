@@ -136,7 +136,7 @@ int main() {
 
     env->grip_k_min = 1.0;
     env->grip_k_max = 17.887758597919266;
-    env->grip_k_decay = 0.09049941256843744;
+    env->grip_k_decay = 0.005;  // Reduced from 0.09 - gives much more time to learn at each difficulty level
 
     env->box_base_density = 50.0;
     env->box_k_growth = 0.02;

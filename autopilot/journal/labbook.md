@@ -2,6 +2,8 @@
 
 > Append entries with `- YYYY-MM-DDTHH:MM:SSZ | action | observation | outcome | next`.
 
+- 2025-09-21T06:02:52Z | run complete | Run 2025-09-21T055652Z (iteration 2) | trainer_summary: success_rate=0.0, mean_reward≈5.73, episode_len≈52.8, coll_rate≈0.021, SPS≈1.44M; UI: perfect_grip≈0.10, perfect_deliv=0.00, ho_pickup≫0, de_pickup≫0, to_drop≫0, ho_drop≈37, attempt_drop≈0.003, oob≈0.95 | env patch for next run: widen drop tolerances in `drone_pp.h` (hover XY<1.25·k; descent when XY≤0.55·k; success XY<0.35·k, z<0.30·k). Hypothesis: carry is noisier; wider drop gates should raise ho_drop/attempt_drop and enable first deliveries without raising collisions.
+
 - 2025-09-20T23:30:27Z | train quick baseline | no grip; ho_pickup=0, perfect_* = 0; oob~0.95; sps~17k | patched env to target hidden_pos for hover then box_pos for descent; rebuilt bindings | rerun fresh; expect ho_pickup>0 and first grips
 - 2025-09-20T23:30:55Z | run complete | Run 2025-09-20T232651Z (iteration 1) | metrics captured | 
 - 2025-09-20T23:34:31Z | run complete | Run 2025-09-20T233055Z (iteration 2) | metrics captured | 
@@ -109,3 +111,4 @@
 - 2025-09-21T05:38:00Z | revert action governor | PufferLib/pufferlib/ocean/drone_pp/drone_pp.h: pass raw actions to move_drone (remove early-stage scaling by k) | Hypothesis: strong scaling (floor 0.25) starves control authority and raises OOB; reverting should increase hover acquisition (ho/de_pickup↑) and episode length, enabling first grips; collisions expected stable | next: if OOB remains >0.5 with ho/de_pickup <0.05, consider narrowing soft-boundary constants or further relaxing hover gate; otherwise inspect to_drop/ho_drop once grips > 0
 - 2025-09-21T05:39:41Z | run complete | Run 2025-09-21T053033Z (iteration 4) | metrics captured | 
 - 2025-09-21T05:53:16Z | run complete | Run 2025-09-21T054645Z (iteration 1) | SPS≈1.37M; CPU≈340%; collision_rate≈0.022; episode_len≈48.9; UI: perfect_grip≈0.12, perfect_deliv=0.0, ho_drop low (~31), oob≈0.954 | relax drop hover/success gates in `drone_pp.h` (XY<0.75·k & z>0.3, speed<2.5 for hover; success XY/z<0.30·k_floor). Expect ho_drop↑ and first deliveries next; keep hparams unchanged; next_config `{}`
+- 2025-09-21T05:56:52Z | run complete | Run 2025-09-21T054645Z (iteration 1) | metrics captured | 

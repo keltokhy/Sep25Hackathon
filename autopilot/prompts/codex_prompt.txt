@@ -81,6 +81,10 @@ WHAT YOU CAN CHANGE
   • `binding.c` - Python-C interface
   • `dronelib.h` - Physics utilities
   • `drone_pp.ini` - ALL environment parameters including rewards, episode_length, and ANY NEW PARAMETERS YOU ADD (like k_decay_rate, k_start, k_end)
+- Autopilot tools and helpers:
+  • You can modify your own scripts in `autopilot/scripts/` to add diagnostics or analysis
+  • You can create helper functions in `autopilot/utils/` for metric analysis
+  • You can enhance logging/debugging in the training pipeline
 - Autopilot overrides (`autopilot/proposals/next_config.json`):
   • ONLY: resume_mode, resume_from, save_strategy
 
@@ -94,6 +98,7 @@ ENVIRONMENT DEBUGGING CHECKLIST
 3) Choose the right file to edit (in priority order):
    PRIORITY 1 (Try first - no rebuild needed):
    • `drone_pp.ini` - Modify existing parameters like grip_k_decay (currently 0.09049941256843744)
+     WARNING: Check if parameters are actually read from config! Some are hardcoded in drone_pp.c
      This controls how fast difficulty decreases: env->grip_k = tick * -grip_k_decay + grip_k_max
      Lower values = slower decay = more time to learn at each difficulty level
      Math insight: With current values, k drops from 17.9 to 1.0 in ~200k steps. Is that too fast?
@@ -101,13 +106,14 @@ ENVIRONMENT DEBUGGING CHECKLIST
    PRIORITY 2 (Most impactful - requires rebuild):
    • `drone_pp.h` - Main logic, state machines, reward computation, physics
      Consider: Environment-side solutions to training dynamics issues
+   • `drone_pp.c` - CRITICAL: Check line 137-143 for hardcoded parameters that override configs!
+     Many values like grip_k_decay are hardcoded here and ignore .ini files
 
    PRIORITY 3 (When deeper changes needed):
    • `drone_pp.py` - To change observation/action spaces
    • `binding.c` - To expose new metrics for diagnostics
 
    PRIORITY 4 (Rarely needed):
-   • `drone_pp.c` - Core simulation loop
    • `dronelib.h` - Fundamental physics utilities
 4) Make a minimal, documented change tied to the hypothesis and historical context.
 5) Rebuild: `cd PufferLib && NO_TRAIN=1 python3 setup.py build_ext --inplace --force`.

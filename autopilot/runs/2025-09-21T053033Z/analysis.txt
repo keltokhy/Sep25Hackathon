@@ -36,3 +36,25 @@ only 25% of what the policy outputs - no wonder it can't stay in bounds!
 
 RECOMMENDATION:
 Stop adding band-aids. Revert to clean baseline, keep only grip_k_decay=0.02.
+
+UPDATE - CRITICAL BUG DISCOVERED:
+==========================================
+The autopilot has been changing grip_k_decay in baseline_full.json and drone_pp.ini,
+but these values ARE COMPLETELY IGNORED! The actual value is hardcoded in drone_pp.c:139
+
+env->grip_k_decay = 0.09049941256843744;  // This hardcoded value overrides all config files!
+
+The autopilot's changes to config files had NO EFFECT. The curriculum was still using 0.09!
+
+ACTUAL FIX APPLIED:
+- Changed drone_pp.c line 139 to: env->grip_k_decay = 0.005;
+- Rebuilt bindings with: python setup.py build_ext --inplace --force
+- This reduces k decay from 0.09 to 0.005 (18x slower curriculum progression)
+
+With k_decay=0.005:
+- k drops from 17.9 to 1.0 in ~3.6M steps (was ~200k steps)
+- Policy has 18x more time to learn at each difficulty level
+- Should finally enable hover acquisition and first grips
+
+The autopilot also successfully reverted the harmful action governor.
+Next run should show dramatic improvement in OOB and ho_pickup metrics.
