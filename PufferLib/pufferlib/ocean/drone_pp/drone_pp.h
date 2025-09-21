@@ -538,10 +538,10 @@ void reset_pp2(DronePP* env, Drone *agent, int idx) {
         // while keeping vertical distance to hover moderate
         agent->box_pos.z + rndf(2.0f, 3.0f)
     };
-    // Clamp within grid margins
-    spawn_pos.x = clampf(spawn_pos.x, -GRID_X + 0.5f, GRID_X - 0.5f);
-    spawn_pos.y = clampf(spawn_pos.y, -GRID_Y + 0.5f, GRID_Y - 0.5f);
-    spawn_pos.z = clampf(spawn_pos.z, -GRID_Z + 0.2f, GRID_Z - 0.2f);
+    // Clamp within safe margins (use MARGIN not GRID to avoid spawning near boundaries)
+    spawn_pos.x = clampf(spawn_pos.x, -MARGIN_X + 2.0f, MARGIN_X - 2.0f);
+    spawn_pos.y = clampf(spawn_pos.y, -MARGIN_Y + 2.0f, MARGIN_Y - 2.0f);
+    spawn_pos.z = clampf(spawn_pos.z, -MARGIN_Z + 0.5f, MARGIN_Z - 0.5f);
     agent->state.pos = spawn_pos;
     agent->prev_pos = spawn_pos;
     agent->state.vel = (Vec3){0.0f, 0.0f, 0.0f};
