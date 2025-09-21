@@ -1,0 +1,96 @@
+{
+  "run_id": "2025-09-21T212447Z",
+  "timestamp": "2025-09-21T21:29:36Z",
+  "seed": 42,
+  "grip_success": 0.0,
+  "delivery_success": 0.0,
+  "end_to_end_success": 0.0,
+  "mean_reward": 34.02861547470093,
+  "episode_length": 316.68963559468585,
+  "metrics_extended": {
+    "collision_rate": 0.09452479565516114,
+    "oob_rate": 0.692,
+    "SPS": 1690687.66931999,
+    "agent_steps": 276037632,
+    "attempt_grip": 0.454,
+    "attempt_drop": 2.783,
+    "to_pickup": 20146.859,
+    "ho_pickup": 2605.599,
+    "de_pickup": 2562.470,
+    "to_drop": 2390.392,
+    "ho_drop": 409.424
+  },
+  "behavioral_analysis": {
+    "insights": [
+      "Hover/descend established; near-miss grips frequent but no conversions",
+      "OOB regressed with higher activity; collisions ~9.5%",
+      "Pickup acceptance still too strict at k≈1"
+    ],
+    "severity": "high",
+    "next_focus": "diagnostic_grip",
+    "grip_efficiency": 0,
+    "metrics_summary": {
+      "grip_success": "0.0%",
+      "delivery_success": "0.0%",
+      "end_to_end": "0.0%",
+      "collision_rate": "9.45%"
+    }
+  },
+  "environment_changes": false,
+  "environment_comparison": {
+    "has_changes": false,
+    "description": "",
+    "files_changed": []
+  },
+  "trainer_summary": {
+    "timestamp": "2025-09-21T21:29:36Z",
+    "run_id": "2025-09-21T212447Z",
+    "train": {
+      "seed": 42,
+      "learning_rate": 0.006047018496816363,
+      "entropy_coef": 0.07123566778619919,
+      "batch_size": 2359296,
+      "minibatch_size": 2359296,
+      "max_minibatch_size": 2359296,
+      "bptt_horizon": 64,
+      "total_timesteps": 200000000
+    },
+    "env": {
+      "num_envs": 24,
+      "num_drones": 64
+    },
+    "vec": {
+      "num_envs": 24,
+      "num_workers": 24
+    },
+    "metrics": {
+      "success_rate": 0.0,
+      "mean_reward": 34.02861547470093,
+      "episode_length": 316.68963559468585,
+      "collision_rate": 0.09452479565516114,
+      "sps": 1690687.66931999,
+      "agent_steps": 276037632,
+      "epoch": 85
+    }
+  },
+  "resume_mode": "continue",
+  "resume_from": "latest",
+  "save_strategy": "best",
+  "deltas": {
+    "vs_previous": {
+      "previous_run_id": "2025-09-21T211342Z",
+      "mean_reward": 5.722925543785097,
+      "episode_length": -191.87710062662765,
+      "oob_rate": 0.188,
+      "collision_rate": 0.04978812423845132,
+      "SPS": -110420.4882691187
+    },
+    "vs_baseline": {
+      "baseline_run_id": "2025-09-21T211342Z",
+      "mean_reward": 5.722925543785097,
+      "episode_length": -191.87710062662765,
+      "oob_rate": 0.188,
+      "SPS": -110420.4882691187
+    }
+  }
+}

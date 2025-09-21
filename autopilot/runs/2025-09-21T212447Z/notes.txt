@@ -1,0 +1,37 @@
+Run 2025-09-21T212447Z (iteration 17)
+
+Problem
+- End-to-end success remains zero; perfect_grip=0, perfect_deliv=0.
+- OOB regressed to ~0.692 (vs 0.504 prior) as activity increased; collisions ~0.095.
+
+Key Metrics (final User Stats)
+- oob: 0.692; collision_rate: 0.0945; episode_length: 316.69; mean_reward: 34.03; SPS: 1.69M; epoch: 85
+- to_pickup: 20146.86; ho_pickup: 2605.60; de_pickup: 2562.47
+- to_drop: 2390.39; ho_drop: 409.42
+- attempt_grip: 0.454; attempt_drop: 2.783
+- perfect_grip: 0.0; perfect_deliv: 0.0; perfect_now: 0.0
+
+Deltas
+- vs previous (2025-09-21T211342Z): mean_reward +5.72; ep_len −191.88; oob +0.188; collisions +0.0498; SPS −0.11M
+  • Attempts/events: ho_pickup +1.97k; de_pickup +1.94k; to_drop +1.81k; ho_drop +0.30k; attempt_grip +0.367; attempt_drop +2.104
+- vs baseline pointer (best.json → 2025-09-21T211342Z): same as above
+
+Interaction Effects
+- More generous hover gate + curriculum clamp produced high hover/descend and near-miss rates, but pickup acceptance still blocks grips at k≈1.
+- Higher activity correlates with higher OOB and collisions, indicating exploration without conversion.
+
+Hypothesis
+- Pickup acceptance floors (XY/Z/speed/vz) remain slightly too strict at k≈1; frequent near-misses fail final gate → no grips.
+
+Change (staged for next run)
+- Relax pickup acceptance floors (env/drone_pp.h):
+  • XY tol floor: 0.50 (was 0.60)
+  • Z tol floor: 0.50 (was 0.55)
+  • Speed tol floor: 0.70 (was 0.75)
+  • |vz| tol floor: 0.30 (was 0.35)
+  • Accept z > −0.25 (was −0.20); cap vz ≤ 0.25 (was 0.20)
+- No changes to spawn margins, boundary proximity penalty, or curriculum clamp.
+
+Expected Impact (next)
+- First non-zero perfect_grip; to_drop/ho_drop maintain or improve; OOB ≤ 0.72; collisions ≤ 0.11.
+- If grips still zero with attempt_grip high, next consider: small pickup attempt reward and/or widen vz acceptance modestly.

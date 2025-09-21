@@ -827,15 +827,21 @@ void c_step(DronePP *env) {
                     // persistence when k decays. Slightly widen XY/Z position
                     // window and velocity bounds while keeping a cap on upward
                     // motion to avoid false positives from bounce.
-                    float grip_xy_tol = fmaxf(0.60f, k * 0.30f);
-                    float grip_z_tol  = fmaxf(0.55f, k * 0.30f);
-                    float grip_v_tol  = fmaxf(0.75f, k * 0.40f);
-                    float grip_vz_tol = fmaxf(0.35f, k * 0.12f);
+                    // Iter17 tweak: convert frequent near‑misses at k≈1 into
+                    // occasional grips by modestly relaxing floors.
+                    // Rationale: ho/de_pickup and attempt_grip are high but
+                    // perfect_grip remains 0. Tight floors likely block
+                    // acceptance at k≈1. So lower floors slightly while
+                    // keeping k‑scaled terms for earlier phases.
+                    float grip_xy_tol = fmaxf(0.50f, k * 0.28f);
+                    float grip_z_tol  = fmaxf(0.50f, k * 0.28f);
+                    float grip_v_tol  = fmaxf(0.70f, k * 0.35f);
+                    float grip_vz_tol = fmaxf(0.30f, k * 0.10f);
                     if (
                         xy_dist_to_box < grip_xy_tol &&
-                        z_dist_above_box < grip_z_tol && z_dist_above_box > -0.20f &&
+                        z_dist_above_box < grip_z_tol && z_dist_above_box > -0.25f &&
                         speed < grip_v_tol &&
-                        agent->state.vel.z > -grip_vz_tol && agent->state.vel.z <= 0.20f
+                        agent->state.vel.z > -grip_vz_tol && agent->state.vel.z <= 0.25f
                     ) {
                         if (k < 1.01 && env->box_k > 0.99f) {
                             agent->perfect_grip = true;
