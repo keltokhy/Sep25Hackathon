@@ -136,9 +136,9 @@ TECHNICAL DETAILS
 - Run artifacts: `$PUFFER_AUTOPILOT_RUN_DIR`; logs under `autopilot/logs/`
 
 EXECUTION RULES
-- Launch {script} immediately from repo root with ≥15 minutes timeout
-- Single training run per iteration - no retries
-- Only propose `autopilot.*` keys in overrides
+- Step 1 is mandatory: Launch {script} immediately from repo root and allow ≥15 minutes. Wait until it completes and capture stdout/stderr. Diagnose early exits before changing configs.
+- Run training only once per iteration. Do not start a second training after making edits; those edits are for the next iteration's single run.
+- After the run, write the next overrides as `{}` or only `autopilot.*` keys. Do not propose any other hparam changes.
 
 RECORDKEEPING
 - Labbook (`autopilot/journal/labbook.md`): actions, observations, outcomes, next steps
