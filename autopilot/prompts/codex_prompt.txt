@@ -36,6 +36,10 @@ OPERATING PRINCIPLES
 - If performance degrades at consistent training points, suspect curriculum (k parameter) issues.
 - Track which 'dimensions' tried (gates/physics/rewards/spawn/curriculum) and explore untouched ones.
 - Before adding new mechanisms, check if existing parameters in .ini/.c files can achieve the goal.
+ - Think long-term: keep a short "goal stack" in Notes (north star → current subgoal → exit criteria) and update it each iteration.
+ - Always compare now vs before: write deltas (Δ) versus the previous run and versus your last known-good baseline in the Decisions Log.
+ - Consider interactions: for each change, list which systems it touches (gates, rewards, physics, curriculum) and potential synergies/conflicts to watch for.
+ - Avoid tunneling: if one idea fails to improve metrics after 1–2 iterations, step back, reassess goals, and consider alternatives.
 
 SINGLE‑RUN PER ITERATION
 - Launch training once per iteration. Edits apply to next iteration's run. No auto-retry on failures.
@@ -53,13 +57,24 @@ WORKFLOW (Numbered Core Loop)
    - This script handles environment setup, activation, and proper configuration
    - Monitor with: `tail -f autopilot/runs/latest/train.log` or check latest run directory
 2) Read the fresh run's `summary.json` for behavioral_analysis (note: this field is not printed in train.log "User Stats"). Use `trainer_summary.json` or `train.log` for raw metrics.
-3) Analyze: Compare metrics across last 3-5 runs for patterns. Look beyond surface metrics - if grip_success seems high but attempt counts are low, ask why. Examine score evolution within runs - improvements followed by collapse often reveal deeper issues than the last epoch's numbers suggest.
+3) Analyze: Compare metrics across the last 3–5 runs AND explicitly compute deltas (Δ) to: a) the immediately prior run and b) a named baseline run. Prefer conversion rates (grip/deliver/e2e) over raw returns. If grip_success seems high but attempts are low, ask why. Inspect score/metrics curves within the run for improvement-then-collapse patterns.
 4) Every 5th iteration: Launch meta-reviewer with `codex exec < autopilot/prompts/meta_reviewer_prompt.txt` for systemic analysis. Consider: are we solving root causes or just symptoms?
 5) Root cause: Trace failure modes through the actual math. If grip_k decays from 17.9→1.0 in 200k steps but training runs 200M steps, is the curriculum window too narrow? Calculate actual gate thresholds at current k values.
 6) Solution: Make minimal, targeted environment code changes to address the root cause, aligned with the historical intent captured in Notes. If recent changes made things worse, revert them first.
 7) Rebuild bindings and smoke‑test import if .h/.c files changed.
 8) Configure the next run using only `autopilot.*` overrides (or `{}`) in `autopilot/proposals/next_config.json`.
 9) Record actions/observations/outcomes/next steps in labbook and notes; repeat.
+
+COMPARISON CHECKLIST (Per Run)
+- Record in `runs/<run_id>/summary.json` and notes:
+  • Key rates: grip_success, delivery_success, end_to_end_success
+  • Attempts/events: attempt_grip, attempt_drop, to_pickup, to_drop, gripping, delivered
+  • Stability: oob, collision_rate
+  • Throughput: sps, cpu/gpu utilization (if available)
+- Write two deltas:
+  • Δ vs previous run
+  • Δ vs named baseline (last known-good)
+- Briefly note suspected cause of change (if any) and whether it matches the prior hypothesis.
 
 DECISION FRAMEWORK
 • diagnostic_grip (when perfect_grip = 0):
@@ -139,6 +154,11 @@ ENVIRONMENT DEBUGGING CHECKLIST
 5) Rebuild: `cd PufferLib && NO_TRAIN=1 python3 setup.py build_ext --inplace --force`.
 6) Test: `pytest PufferLib/tests/test_env_binding.py -q` (if present) and ensure import works.
 7) Document in `runs/<run_id>/notes.txt`: problem → change → expected outcome; reference the specific historical bullet(s) you followed or intentionally deviated from.
+
+INTERACTION EFFECTS REVIEW (Before/After a Change)
+- Map affected systems: gates, rewards, physics constants, curriculum (k), spawns.
+- Predict side-effects (e.g., looser hover gate may increase descent attempts but also collisions).
+- After the run, verify predictions using Δ metrics; if side-effects dominate, revert or isolate.
 
 SUCCESS METRICS
 - CRITICAL: If OOB > 0.90, this is the PRIMARY problem - fix this before anything else
