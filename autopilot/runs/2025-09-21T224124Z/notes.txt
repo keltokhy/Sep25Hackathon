@@ -1,0 +1,43 @@
+Run 2025-09-21T224124Z (Iteration 25)
+
+Summary
+- sps: 1.735M
+- epoch: 85
+- mean_reward: 34.256
+- episode_length: 361.705
+- collision_rate: 0.0521
+- oob: 0.648
+- perfect_grip: 0.000; perfect_deliv: 0.000
+- phases/attempts: to_pickup 23041; ho_pickup 1583; de_pickup 1553; to_drop 1489; ho_drop 258; attempt_grip 0.340; attempt_drop 1.667
+
+Comparisons
+- vs previous (2025-09-21T223313Z):
+  • mean_reward: −3.472 (34.256 ← 37.728)
+  • sps: −0.012M (1.735M ← 1.748M)
+  • episode_length: +77.507 (361.705 ← 284.198)
+  • collision_rate: −0.0285 (0.0521 ← 0.0806)
+  • oob: −0.076 (0.648 ← 0.724)
+  • to_pickup: +4.98k (23041 ← 18065)
+  • ho_pickup: −987 (1583 ← 2569)
+  • de_pickup: −972 (1553 ← 2524)
+  • to_drop: −963 (1489 ← 2452)
+  • ho_drop: −146 (258 ← 403)
+  • attempt_grip: −0.086 (0.340 ← 0.426)
+  • attempt_drop: −0.925 (1.667 ← 2.592)
+- vs baseline (best.json → 2025-09-21T223313Z): identical deltas.
+
+Diagnosis
+- Primary: OOB improved materially (−7.6pp) and collisions fell, but e2e remains 0. Hover/descent present but fewer conversions to pickup/drop vs the prior run.
+- Failure mode: diagnostic_grip persists (descending but can’t grip). High to_pickup with lowered ho/de_pickup suggests hover gate a bit tight; acceptance window still too strict at k≈1.
+
+Change for next run (env/drone_pp.h)
+- Hover gate: widen slightly (dist 1.0→1.2, speed 0.8→1.0) to increase Phase‑1 entries.
+- Pickup acceptance: relax vertical envelope and |vz| floor (z_tol 0.90→1.20; |vz| floor 0.70→0.90; upward cap 0.40→0.50). Expected to convert near‑aligned descents into occasional grips at k≈1 without physics hacks.
+- Metrics only: slightly relax “perfect grip” envelope so true successes register in metrics (no acceptance change).
+
+Expected Impact (next)
+- ↑ ho_pickup, ↑ de_pickup, ↑ attempt_grip, first non‑zero perfect_grip; to_drop/ho_drop should rise. OOB ≤ 0.70; collision_rate ≤ 0.08.
+
+Next overrides (autopilot only)
+{ "autopilot": { "resume_mode": "continue", "resume_from": "latest", "save_strategy": "best" } }
+

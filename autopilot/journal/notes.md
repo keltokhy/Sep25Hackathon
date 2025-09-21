@@ -129,6 +129,12 @@ Note (reverts applied after Run 2025-09-21T061611Z):
    Decision: OOB still the primary blocker. Keep relaxed hover gate; slow early action ramp further (0.5→1.0 over ~800k global steps) in `drone_pp.h::c_step` to reduce early fly‑offs without physics helpers. Expected: OOB↓, episode_length↑, ho/de_pickup↗; collisions stable. Next: if ho/de improve but grips remain 0, consider slightly relaxing pickup descent gates.
 
 ## 5) Decisions Log (2025‑09‑21)
+
+ - 22:46Z | iter 25 | run 2025-09-21T224124Z
+   • Result: sps≈1.735M; epoch=85; mean_reward≈34.26 (Δ vs prev −3.47); ep_len≈361.70 (Δ +77.51); collision_rate≈0.052 (Δ −0.0285); oob≈0.648 (Δ −0.076); perfect_grip/deliv=0; phases: to_pickup≈23.0k (↑), ho_pickup≈1.58k (↓), de_pickup≈1.55k (↓), to_drop≈1.49k (↓), ho_drop≈258 (↓); attempts: attempt_grip≈0.340 (↓), attempt_drop≈1.667 (↓).
+   • Diagnosis: diagnostic_grip persists (descending but can’t grip). Stability improved (OOB/collisions down), but fewer conversions to pickup/drop vs prior run.
+   • Change: in `drone_pp.h` widen pickup hover gate (dist 1.2, speed 1.0) and relax pickup acceptance floors (z_tol 1.20, |vz| floor 0.90, upward cap 0.50). Relax “perfect grip” envelope for metrics only. No physics/drag changes.
+   • Expected: ↑ ho/de_pickup, ↑ attempt_grip, first non‑zero perfect_grip; to_drop/ho_drop↗. OOB ≤0.70; collisions ≤0.08.
 - 2025‑09‑21T19:49:13Z (iter 7, run 2025‑09‑21T194416Z)
   • Result: oob≈0.952 (Δ vs prev −0.003), ho/de_pickup≈0.004/0.004 (Δ −0.009/−0.008), mean_reward≈31.14 (Δ +4.64), ep_len≈50.94 (Δ +3.13); perfect_grip/deliv=0.
   • Change: Increase PP2 spawn edge_margin 17→20 for box/drop and drone spawns (no soft walls). Rationale: reduce immediate boundary fly‑offs; centralize early experience near pickup.
