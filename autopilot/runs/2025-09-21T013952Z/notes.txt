@@ -1,0 +1,22 @@
+Run ID: 2025-09-21T013952Z
+
+Problem observed (behavioral + metrics):
+- diagnostic_grip with high OOB; agents rarely satisfy pickup hover gate → almost no descent/grip attempts
+- Final User Stats snapshot: oob ≈ 0.855; ho_pickup ≈ 0.002; de_pickup ≈ 0.002; perfect_grip = 0; perfect_deliv = 0; to_drop = 0; ho_drop = 0
+- Collisions low (≈0.006); episode_length ≈ 150; SPS ≈ 1.57M
+
+Change (for next iteration):
+- PufferLib/pufferlib/ocean/drone_pp/drone_pp.h
+  • compute_observations: for PP2, compute generic “to target” deltas to hidden_pos (hover waypoint) instead of box/drop
+  • pickup Phase 1 gate: relax to dist_to_hidden < 1.8 and speed < 1.2 (was 1.0 / 0.8)
+
+Historical alignment (Notes → Header evolution):
+- Upholds phase logic (hover above box → controlled descent) and avoids reintroducing low‑altitude penalties
+- Extends prior gate relaxations; keeps XY‑alignment requirement and gentle descent (−0.06 m/s)
+
+Expected outcome:
+- ho_pickup↑ and de_pickup↑; attempt_grip↑; modest oob↓ by guiding toward hover position and avoiding drift‑descent
+- First non‑zero gripping under k≈1 if alignment succeeds; collisions should remain low
+
+Overrides for next run:
+- autopilot/proposals/next_config.json = {}

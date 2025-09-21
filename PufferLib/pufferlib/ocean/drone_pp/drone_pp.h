@@ -209,9 +209,17 @@ void compute_observations(DronePP *env) {
         env->observations[idx++] = agent->state.pos.y / GRID_Y;
         env->observations[idx++] = agent->state.pos.z / GRID_Z;
 
-        float dx = agent->target_pos.x - agent->state.pos.x;
-        float dy = agent->target_pos.y - agent->state.pos.y;
-        float dz = agent->target_pos.z - agent->state.pos.z;
+        // For PP2, guide the policy toward the hidden hover point
+        // rather than the box/drop directly to stabilize approach.
+        // This preserves the fixed observation size while aligning
+        // guidance with the phase logic (hover -> descend -> grip).
+        Vec3 obs_tgt = agent->target_pos;
+        if (env->task == TASK_PP2) {
+            obs_tgt = agent->hidden_pos;
+        }
+        float dx = obs_tgt.x - agent->state.pos.x;
+        float dy = obs_tgt.y - agent->state.pos.y;
+        float dz = obs_tgt.z - agent->state.pos.z;
         env->observations[idx++] = clampf(dx, -1.0f, 1.0f);
         env->observations[idx++] = clampf(dy, -1.0f, 1.0f);
         env->observations[idx++] = clampf(dz, -1.0f, 1.0f);
@@ -713,10 +721,10 @@ void c_step(DronePP *env) {
                     if (DEBUG > 0) printf("    dist_to_hidden = %.3f\n", dist_to_hidden);
                     if (DEBUG > 0) printf("    xy_dist_to_box = %.3f\n", xy_dist_to_box);
                     if (DEBUG > 0) printf("    z_dist_above_box = %.3f\n", z_dist_above_box);
-                    // Relax hover gate further: admit earlier stabilization near the hidden point
+                    // Relax hover gate: admit earlier stabilization near the hidden point.
                     // Hypothesis (diagnostic_grip): strict hover gating blocks descent → no grips.
-                    // Loosen distance/speed slightly; descent still guarded by XY-alignment gate.
-                    if (dist_to_hidden < 1.0f && speed < 0.8f) {
+                    // Loosen distance/speed modestly; descent remains XY-gated.
+                    if (dist_to_hidden < 1.8f && speed < 1.2f) {
                         agent->hovering_pickup = true;
                         agent->color = (Color){255, 255, 255, 255}; // White
                     } else {

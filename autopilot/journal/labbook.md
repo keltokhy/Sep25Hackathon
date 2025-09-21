@@ -40,3 +40,17 @@
 - Change (for next iteration): In PufferLib/pufferlib/ocean/drone_pp/drone_pp.h, relax the Phase 1 pickup hover gate from dist_to_hidden < 0.6 and speed < 0.5 to dist_to_hidden < 1.0 and speed < 0.8. Descent remains guarded by XY-alignment and gentle descent rate (−0.06 m/s).
 - Hypothesis: Earlier admission into “hovering_pickup” enables descent attempts; expect ho/de_pickup↑, attempt_grip↑, modest oob↓; eventual non‑zero gripping under k≈1.
 - Next: Keep proposals as {} (no hparam changes). Resume fresh next run; reassess attempt_grip, ho/de_pickup, and oob trends.
+- 2025-09-21T01:39:52Z | run complete | Run 2025-09-21T012845Z (iteration 1) | metrics captured | 
+2025-09-21T01:48:27Z — Run 2025-09-21T013952Z (single run, EXACT_CONFIG=1)
+
+- Action: Launched autopilot/scripts/run_training.sh (full profile). Read trainer_summary.json and tail of train log.
+- Observations:
+  - SPS ≈ 1.57M; CPU ≈ 340%; GPU 0%.
+  - success_rate = 0.0; collision_rate ≈ 0.0056; episode_length ≈ 150.2.
+  - User Stats (final): oob ≈ 0.855; ho_pickup ≈ 0.002; de_pickup ≈ 0.002; perfect_grip = 0; perfect_deliv = 0; to_drop = 0; ho_drop = 0.
+  - Failure mode: diagnostic_grip with high OOB — agents rarely satisfy pickup hover gate; grips/deliveries remain zero.
+- Change (for next iteration):
+  - PufferLib/pufferlib/ocean/drone_pp/drone_pp.h: use hidden hover point for the generic “to target” observation in PP2 (align obs with phase logic); relax pickup hover gate (dist_to_hidden < 1.8, speed < 1.2) while keeping XY‑gated descent and gentle −0.06 m/s.
+  - Rebuilt native bindings; smoke‑import OK.
+- Hypothesis: Better guidance toward hover point increases ho/de_pickup and attempt_grip without raising collisions; OOB should drop modestly by reducing drift‑descent.
+- Next: Keep next_config `{}` (no hyperparameter edits). Monitor ho/de_pickup, attempt_grip, oob, and first non‑zero grips next run.
