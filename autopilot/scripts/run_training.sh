@@ -29,8 +29,9 @@ export PYTORCH_MPS_HIGH_WATERMARK_RATIO=${PYTORCH_MPS_HIGH_WATERMARK_RATIO:-0.0}
 export OMP_NUM_THREADS=${OMP_NUM_THREADS:-28}
 export MKL_NUM_THREADS=${MKL_NUM_THREADS:-28}
 
-# Normalize config: enforce divisibility and batch sizing, and allow env selection
-# This edits the config in-place so the applied values are recorded alongside the run.
+# Normalize config unless EXACT_CONFIG=1
+# When EXACT_CONFIG=1, we pass the config through unchanged to honor upstream settings exactly.
+if [[ "${EXACT_CONFIG:-0}" != "1" ]]; then
 ENV_NAME=$(python3 - "$CONFIG_PATH" <<'PYCONF'
 import json, math, sys
 from pathlib import Path
@@ -71,6 +72,17 @@ cfg_path.write_text(json.dumps(cfg, indent=2))
 print(env_name)
 PYCONF
 )
+else
+  # Read env_name without mutating config
+  ENV_NAME=$(python3 - "$CONFIG_PATH" <<'PYREAD'
+import json, sys
+from pathlib import Path
+cfg = json.loads(Path(sys.argv[1]).read_text())
+print(cfg.get('env_name') or cfg.get('base', {}).get('env_name') or 'puffer_drone_pp')
+PYREAD
+)
+  echo "EXACT_CONFIG=1 → Skipping normalization of batch sizes and vec divisibility"
+fi
 
 # macOS system bash is 3.2 (no mapfile); use portable array capture
 TRAIN_ARGS=( $(python3 "${SCRIPT_DIR}/render_cli_args.py" "${CONFIG_PATH}") )

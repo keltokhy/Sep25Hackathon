@@ -40,6 +40,14 @@ Guidance for future edits
 - Maintain clear, testable phase boundaries and success criteria; keep thresholds consistent with reward shaping.
 - When proposing curriculum or gating changes, document the behavioral failure being targeted and how the change makes the success preconditions more reachable.
 
+## 2025‑09‑21 — Adopt box2 INI hparams as baseline
+- Action: Mirrored `PufferLib/pufferlib/config/ocean/drone_pp.ini` into `autopilot/configs/baseline_full.json`:
+  - vec/env: 24/24 envs, 64 drones, max_rings 10.
+  - train: total_timesteps=200M, bptt_horizon=64, batch_size="auto", minibatch_size=16384, max_minibatch_size=32768, lr=0.006047…, ent_coef=0.071235…, clip_coef=0.617688…, vf_coef=5.0, vf_clip_coef=1.24236…, max_grad_norm=3.04955…, gae_lambda=0.989234…, gamma=0.987853…, update_epochs=1, checkpoint_interval=200, anneal_lr=true, prio_alpha=0.841906…, prio_beta0=0.957297…
+  - device set to `mps` for compatibility on this workstation (original default INI uses `cuda`).
+- Run script: added `EXACT_CONFIG=1` mode to skip normalization of batch sizes and vec divisibility so runs can use these settings verbatim.
+- Rationale: Align local runs with the exact hyperparameters used on branch `box2` while preserving hardware compatibility.
+
 ## 2025‑09‑20 — Prompt refactor to remove contradictions
 - Problem: The Codex prompt mixed a strict no‑hyperparameter policy with detailed guidance about editing hyperparameters, creating a contradiction.
 - Fixes:
