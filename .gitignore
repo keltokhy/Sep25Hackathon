@@ -19,11 +19,9 @@ dist/
 .vscode/
 .idea/
 
-# Logs, runs, models
+# Logs, models
 autopilot/logs/
 autopilot/models/
-autopilot/runs/*
-!autopilot/runs/.gitkeep
 PufferLib/experiments/
 *.log
 *.pt
