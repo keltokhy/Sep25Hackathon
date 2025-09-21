@@ -81,7 +81,7 @@ EXECUTION RULES
 
 RECORDKEEPING
 - Labbook (`autopilot/journal/labbook.md`): actions, observations (SPS/CPU%), outcome, next step.
-- Notes (`autopilot/journal/notes.md`): longer‑term learnings; treat as long‑term memory.
+- Notes (`autopilot/journal/notes.md`): curated long‑term memory. Edit in place; keep concise and up to date.
 - Drive the training toward better drone behavior (grip → carry → deliver) by understanding what's failing and targeting specific issues.
 - Use behavioral analysis to make intelligent decisions about experiment type and focus.
 - Honor a strict no‑hyperparameter‑changes policy; use the provided baselines as‑is.
@@ -94,3 +94,19 @@ ENVIRONMENT CHANGE TRACKING (DREX Feature)
   • Collision rate spikes after physics change → revert/adjust.
   • Track which files were modified: `drone_pp.h`, `drone_pp.c`, bindings.
 Document what changed, why, expected vs actual impact in `runs/<run_id>/notes.txt`.
+
+NOTES.MD DISCIPLINE (Curated, Concise)
+- Purpose: `autopilot/journal/notes.md` is the single source of stable intent and learnings. It is not a dump log.
+- Edit‑in‑place rules:
+  • Update or replace outdated bullets; prune stale hypotheses.
+  • Keep it short (aim ≤ 150 lines). Prefer crisp bullets over paragraphs.
+  • Reference concrete run IDs when relevant (e.g., 2025‑09‑20T233055Z).
+- Recommended structure:
+  1) Current Baseline: env header commit, config profile, device, vec/env concurrency.
+  2) Stable Learnings: 5–10 bullets of proven heuristics that should persist.
+  3) Header Evolution: `drone_pp.h` summary (keep high‑level; update only when upstream changes).
+  4) Open Questions & Next Hypotheses: ≤5 bullets you intend to test next.
+  5) Decisions Log: terse dated bullets linking to runs (decision → rationale → outcome).
+- Division of labor:
+  • Put detailed, per‑run narratives in `labbook.md` and `runs/<run_id>/notes.txt`.
+  • Keep `notes.md` focused on what must guide future iterations at a glance.
