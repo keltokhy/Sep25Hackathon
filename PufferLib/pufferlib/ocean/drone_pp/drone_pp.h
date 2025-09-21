@@ -739,7 +739,10 @@ void c_step(DronePP *env) {
             // configs set an aggressive value (e.g., 0.02). Target ~200k global steps
             // to go from k_max to k_min: max_decay = (k_max - k_min) / 200_000.
             float sched_t = (float)env->global_tick;
-            float max_decay = (env->grip_k_max - env->grip_k_min) / 200000.0f;
+            // Slow down curriculum: keep k high for much longer so
+            // agents can reliably learn hover/descend/grip before
+            // gates tighten. Previously ~200k steps; now ~50M.
+            float max_decay = (env->grip_k_max - env->grip_k_min) / 50000000.0f;
             float decay = fminf(env->grip_k_decay, max_decay);
             env->grip_k = clampf(sched_t * -decay + env->grip_k_max, env->grip_k_min, 100.0f);
             env->box_k = clampf(sched_t * env->box_k_growth + env->box_k_min, env->box_k_min, env->box_k_max);
@@ -790,6 +793,17 @@ void c_step(DronePP *env) {
                     if (DEBUG > 0) printf("    z_dist_above_box = %.3f\n", z_dist_above_box);
                     if (DEBUG > 0) printf("    speed = %.3f\n", speed);
                     if (DEBUG > 0) printf("    agent->state.vel.z = %.3f\n", agent->state.vel.z);
+                    // Near-miss diagnostics: count an attempted grip when the
+                    // agent is close and descending but misses strict gates.
+                    // This is logging-only; no reward change.
+                    bool near_xy = (xy_dist_to_box < k * 0.25f);
+                    bool near_z  = (z_dist_above_box < k * 0.25f && z_dist_above_box > -0.05f);
+                    bool near_v  = (speed < k * 0.6f);
+                    bool desc_z  = (agent->state.vel.z <= 0.0f);
+                    if (near_xy && near_z && near_v && desc_z) {
+                        env->log.attempt_grip += 1.0f;
+                    }
+
                     if (
                         xy_dist_to_box < k * 0.1f &&
                         z_dist_above_box < k * 0.1f && z_dist_above_box > 0.0f &&

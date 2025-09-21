@@ -1,0 +1,29 @@
+Run 2025-09-21T195318Z (iteration 8)
+
+Problem
+- No gripping or deliveries despite large increases in hover (ho_pickup) and descent (de_pickup) rates; OOB still high but improved.
+
+Observations (final snapshot)
+- oob≈0.805 (prev 0.952)
+- ho_pickup≈24.18, de_pickup≈24.10 (prev ≈0.004/0.004)
+- ho_drop≈0.108; to_drop≈0.000
+- attempt_grip=0.000; perfect_grip=0.000; perfect_deliv=0.000
+- mean_reward≈64.44 (prev 31.14); episode_len≈200.97; coll_rate≈0.0102; sps≈1.63M; epoch=85
+
+Root Cause Hypothesis
+- Pickup gates scale with grip_k; k decays from ~17.9→1.0 over ~200k global steps, far faster than total training (200M). Strict gates dominate nearly all training, suppressing grip attempts.
+
+Change Applied (for next iteration)
+- Env: PufferLib/pufferlib/ocean/drone_pp/drone_pp.h
+  • Curriculum: cap effective decay to (k_max−k_min)/50,000,000 (was /200,000) to keep lenient gates much longer.
+  • Diagnostics: add logging-only near-miss detection to increment attempt_grip when close to a valid grip during descent.
+
+Expected Impact
+- attempt_grip > 0; first non-zero gripping events; OOB ≤ 0.82; ho/de_pickup remain high; collisions ~1%.
+
+Interactions To Watch
+- Slower k schedule with relaxed hover gate: expect more stable descents; verify collisions don’t creep up.
+- If attempts rise but grips stay 0, consider slightly widening pickup descent thresholds at k≈1 (XY/z and vertical velocity bands).
+
+Next Steps
+- Warm-start training: {"autopilot": {"resume_mode": "continue", "resume_from": "latest", "save_strategy": "best"}}.

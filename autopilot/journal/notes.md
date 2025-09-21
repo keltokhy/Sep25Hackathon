@@ -134,3 +134,9 @@ Note (reverts applied after Run 2025-09-21T061611Z):
   • Change: Increase PP2 spawn edge_margin 17→20 for box/drop and drone spawns (no soft walls). Rationale: reduce immediate boundary fly‑offs; centralize early experience near pickup.
   • Expected: OOB↓; ho/de_pickup↑; collisions ↔. Interactions: complements mild boundary proximity penalty (−0.15) without introducing helper forces.
   • Next config: {autopilot.resume=continue latest, save=best}.
+ - 2025‑09‑21T19:58:05Z (iter 8, run 2025‑09‑21T195318Z)
+  • Result: oob≈0.805 (Δ vs prev −0.147), ho/de_pickup≈24.18/24.10 (≫), ho_drop≈0.108, attempt_grip=0, perfect_grip/deliv=0; mean_reward≈64.44 (Δ +33.30), ep_len≈200.97 (Δ +150.03), coll_rate≈0.0102.
+  • Diagnosis: Phase emergence (hover/descend) without gripping → pickup gates too strict given k decays to 1.0 within ~200k global steps vs 200M total.
+  • Change: In `drone_pp.h`, slow curriculum cap to (k_max−k_min)/50M (from /200k) so lenient gates persist far longer; add logging-only near‑miss counter (`attempt_grip`).
+  • Expected: attempt_grip>0 and first grips; OOB stays ≤0.82; collisions stable.
+  • Next config: {autopilot.resume=continue latest, save=best}.
