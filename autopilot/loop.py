@@ -40,7 +40,7 @@ def load_config(path: Path) -> Dict[str, Any]:
 
 
 def extract_metrics(log_path: Path) -> Dict[str, Optional[float]]:
-    metrics = {
+    metrics: Dict[str, Optional[float]] = {
         # Core objectives (Dan's focus)
         "grip_success": None,          # perfect_grip
         "delivery_success": None,      # perfect_deliv
@@ -55,6 +55,26 @@ def extract_metrics(log_path: Path) -> Dict[str, Optional[float]]:
         "mean_reward": None,
         "episode_length": None,
         "collision_rate": None,
+        "oob_rate": None,
+        # Attempts and events (for conversion calculations)
+        "gripping_events": None,
+        "delivered_events": None,
+        # System/throughput
+        "SPS": None,
+        "performance_env": None,
+        "performance_learn": None,
+        # Optimizer health
+        "policy_loss": None,
+        "value_loss": None,
+        "entropy": None,
+        "approx_kl": None,
+        "clipfrac": None,
+        "explained_variance": None,
+        "importance": None,
+        # Derived conversions (filled after parse if possible)
+        "grip_conv_rate": None,
+        "deliv_conv_rate": None,
+        "e2e_conv_rate": None,
     }
     if not log_path.exists():
         return metrics
@@ -85,6 +105,10 @@ def extract_metrics(log_path: Path) -> Dict[str, Optional[float]]:
                     metrics["delivery_attempts"] = data.get("environment/to_drop")
                 if metrics["hover_efficiency"] is None:
                     metrics["hover_efficiency"] = data.get("environment/ho_pickup")
+                if metrics["gripping_events"] is None:
+                    metrics["gripping_events"] = data.get("environment/gripping")
+                if metrics["delivered_events"] is None:
+                    metrics["delivered_events"] = data.get("environment/delivered")
 
                 # Performance metrics
                 if metrics["mean_reward"] is None:
@@ -93,6 +117,30 @@ def extract_metrics(log_path: Path) -> Dict[str, Optional[float]]:
                     metrics["episode_length"] = data.get("environment/episode_length")
                 if metrics["collision_rate"] is None:
                     metrics["collision_rate"] = data.get("environment/collision_rate")
+                if metrics["oob_rate"] is None:
+                    metrics["oob_rate"] = data.get("environment/oob")
+                if metrics["SPS"] is None:
+                    metrics["SPS"] = data.get("SPS")
+                if metrics["performance_env"] is None:
+                    metrics["performance_env"] = data.get("performance/env")
+                if metrics["performance_learn"] is None:
+                    metrics["performance_learn"] = data.get("performance/learn")
+
+                # Optimizer health
+                if metrics["policy_loss"] is None:
+                    metrics["policy_loss"] = data.get("losses/policy_loss")
+                if metrics["value_loss"] is None:
+                    metrics["value_loss"] = data.get("losses/value_loss")
+                if metrics["entropy"] is None:
+                    metrics["entropy"] = data.get("losses/entropy")
+                if metrics["approx_kl"] is None:
+                    metrics["approx_kl"] = data.get("losses/approx_kl")
+                if metrics["clipfrac"] is None:
+                    metrics["clipfrac"] = data.get("losses/clipfrac")
+                if metrics["explained_variance"] is None:
+                    metrics["explained_variance"] = data.get("losses/explained_variance")
+                if metrics["importance"] is None:
+                    metrics["importance"] = data.get("losses/importance")
 
                 # Check if we have all essential metrics
                 essential = ["grip_success", "delivery_success", "mean_reward", "episode_length"]
@@ -100,6 +148,22 @@ def extract_metrics(log_path: Path) -> Dict[str, Optional[float]]:
                     break
     except UnicodeDecodeError:
         pass
+
+    # Derived conversions (safe division)
+    def _safe_div(n, d):
+        try:
+            if n is None or d is None:
+                return None
+            d = float(d)
+            return float(n) / d if d > 0 else None
+        except Exception:
+            return None
+
+    metrics["grip_conv_rate"] = _safe_div(metrics["grip_success"], metrics["grip_attempts"])  # perfect_grip / to_pickup
+    # Delivery conversion uses achieved grips as denominator if available; fallback to attempts to_drop
+    denom_deliv = metrics["gripping_events"] if metrics["gripping_events"] not in (None, 0) else metrics["delivery_attempts"]
+    metrics["deliv_conv_rate"] = _safe_div(metrics["delivery_success"], denom_deliv)
+    metrics["e2e_conv_rate"] = _safe_div(metrics["end_to_end_success"], metrics["grip_attempts"])  # perfect_now / to_pickup
 
     return metrics
 
@@ -290,6 +354,8 @@ def run_training(script: Path, run_dir: Path) -> Path:
     env["PUFFER_AUTOPILOT_SUMMARY"] = str(summary_file)
     env["PUFFER_AUTOPILOT_RUN_ID"] = run_dir.name
     env["PUFFER_AUTOPILOT_RUN_DIR"] = str(run_dir)
+    # Enforce exact upstream config usage (no normalization) each run
+    env["EXACT_CONFIG"] = os.environ.get("EXACT_CONFIG", "1")
 
     subprocess.run(
         ["codex", "exec", prompt, "--dangerously-bypass-approvals-and-sandbox"],
@@ -452,6 +518,7 @@ def summarize(
 
     env_comparison = compare_environment_changes(run_dir, prev_run)
 
+    # Build summary with core and extended metrics (parse-only additions)
     summary = {
         "run_id": run_dir.name,
         "timestamp": timestamp(),
@@ -461,6 +528,29 @@ def summarize(
         "end_to_end_success": merged_metrics.get("end_to_end_success"),
         "mean_reward": merged_metrics.get("mean_reward"),
         "episode_length": merged_metrics.get("episode_length"),
+        # Extended metrics: funnel, stability, throughput, optimizer
+        "metrics_extended": {
+            "grip_attempts": merged_metrics.get("grip_attempts"),
+            "delivery_attempts": merged_metrics.get("delivery_attempts"),
+            "gripping_events": merged_metrics.get("gripping_events"),
+            "delivered_events": merged_metrics.get("delivered_events"),
+            "grip_conv_rate": merged_metrics.get("grip_conv_rate"),
+            "deliv_conv_rate": merged_metrics.get("deliv_conv_rate"),
+            "e2e_conv_rate": merged_metrics.get("e2e_conv_rate"),
+            "hover_efficiency": merged_metrics.get("hover_efficiency"),
+            "collision_rate": merged_metrics.get("collision_rate"),
+            "oob_rate": merged_metrics.get("oob_rate"),
+            "SPS": merged_metrics.get("SPS"),
+            "performance_env": merged_metrics.get("performance_env"),
+            "performance_learn": merged_metrics.get("performance_learn"),
+            "policy_loss": merged_metrics.get("policy_loss"),
+            "value_loss": merged_metrics.get("value_loss"),
+            "entropy": merged_metrics.get("entropy"),
+            "approx_kl": merged_metrics.get("approx_kl"),
+            "clipfrac": merged_metrics.get("clipfrac"),
+            "explained_variance": merged_metrics.get("explained_variance"),
+            "importance": merged_metrics.get("importance"),
+        },
         "behavioral_analysis": behavior,  # Add behavioral insights
         "environment_changes": has_env_changes,  # Flag if environment was modified
         "environment_comparison": env_comparison,  # Comparison with previous run
@@ -680,7 +770,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Autopilot orchestrator loop")
     parser.add_argument("--runs", type=int, default=1, help="Number of iterations to execute")
     parser.add_argument(
-        "--mode", choices=("quick", "full"), default="quick", help="Run smoke test or full training"
+        "--mode", choices=("quick", "full"), default="full", help="Run smoke test or full training"
     )
     return parser.parse_args()
 
