@@ -419,10 +419,17 @@ void compute_derivatives(State* state, Params* params, float* actions, StateDeri
         F_soft.z -= ceil_k * (state->pos.z - (GRID_Z - ceil_band));
     }
 
+    // Gentle centralizing field (XY only)
+    // Adds a weak spring-like pull toward the arena center to curb
+    // early boundary exits while policy is untrained. Vertical dynamics
+    // are untouched. Tuned well below thrust/gravity magnitudes.
+    const float center_k = 0.08f; // N/m -> ~2.4N at edges (|x|,|y|≈30)
+    Vec3 F_center = { -center_k * state->pos.x, -center_k * state->pos.y, 0.0f };
+
     // velocity rates, a = F/m
     Vec3 v_dot;
-    v_dot.x = (F_prop.x + F_aero.x + F_soft.x) / params->mass;
-    v_dot.y = (F_prop.y + F_aero.y + F_soft.y) / params->mass;
+    v_dot.x = (F_prop.x + F_aero.x + F_soft.x + F_center.x) / params->mass;
+    v_dot.y = (F_prop.y + F_aero.y + F_soft.y + F_center.y) / params->mass;
     v_dot.z = ((F_prop.z + F_aero.z + F_soft.z) / params->mass) - params->gravity;
 
     // quaternion rates
