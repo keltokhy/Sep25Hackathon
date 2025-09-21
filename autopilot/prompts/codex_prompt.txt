@@ -87,6 +87,11 @@ RECORDKEEPING
 - Use behavioral analysis to make intelligent decisions about experiment type and focus.
 - Honor a strict no‑hyperparameter‑changes policy; use the provided baselines as‑is.
 
+RUN NAMING STANDARD
+- Run directories live under `autopilot/runs/<run_id>` where `<run_id>` is a UTC timestamp in ISO‑8601 Zulu without colons: `YYYY-MM-DDTHHMMSSZ` (e.g., `2025-09-21T012845Z`).
+- Do not rename run folders. Always reference the exact `<run_id>` in commit messages, labbook entries, and notes.
+- Logs follow the training script’s naming and are not committed; all other artifacts in the run folder are committed each iteration.
+
 COMMIT DISCIPLINE (Atomic Per Iteration)
 - After the single training run and your analysis, make exactly one commit capturing:
   • Any environment code edits (e.g., `PufferLib/pufferlib/ocean/drone_pp/drone_pp.h` and adjacent files).
