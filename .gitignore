@@ -12,3 +12,31 @@ dist/
 
 # macOS
 .DS_Store
+
+# Virtual envs and editor settings
+.venv/
+.env
+.vscode/
+.idea/
+
+# Logs, runs, models
+autopilot/logs/
+autopilot/models/
+autopilot/runs/*
+!autopilot/runs/.gitkeep
+PufferLib/experiments/
+*.log
+*.pt
+
+# Python tooling caches
+.pytest_cache/
+.mypy_cache/
+.hypothesis/
+coverage.xml
+.coverage*
+htmlcov/
+
+# Compiled artifacts
+*.so
+*.dylib
+*.o
