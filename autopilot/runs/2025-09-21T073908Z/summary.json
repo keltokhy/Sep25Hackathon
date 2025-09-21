@@ -1,0 +1,90 @@
+{
+  "run_id": "2025-09-21T073908Z",
+  "timestamp": "2025-09-21T07:52:22Z",
+  "seed": 42,
+  "grip_success": null,
+  "delivery_success": null,
+  "end_to_end_success": null,
+  "mean_reward": 10.786754647890726,
+  "episode_length": 139.8229300181071,
+  "metrics_extended": {
+    "grip_attempts": null,
+    "delivery_attempts": null,
+    "gripping_events": null,
+    "delivered_events": null,
+    "grip_conv_rate": null,
+    "deliv_conv_rate": null,
+    "e2e_conv_rate": null,
+    "hover_efficiency": null,
+    "collision_rate": 0.02308940390745799,
+    "oob_rate": null,
+    "SPS": null,
+    "performance_env": null,
+    "performance_learn": null,
+    "policy_loss": null,
+    "value_loss": null,
+    "entropy": null,
+    "approx_kl": null,
+    "clipfrac": null,
+    "explained_variance": null,
+    "importance": null
+  },
+  "behavioral_analysis": {
+    "insights": [
+      "\ud83d\udea8 Drone not attempting to grip objects at all"
+    ],
+    "severity": "critical",
+    "next_focus": "diagnostic_grip",
+    "grip_efficiency": 0,
+    "metrics_summary": {
+      "grip_success": "0.0%",
+      "delivery_success": "0.0%",
+      "end_to_end": "0.0%",
+      "collision_rate": "2.3%"
+    }
+  },
+  "environment_changes": false,
+  "environment_comparison": {
+    "has_changes": false,
+    "description": "",
+    "files_changed": []
+  },
+  "base_commit": "b4ea023e6b53dfdbca05196ed0c80e1499a6f428",
+  "modified_files": "",
+  "artifacts": [],
+  "notes": "auto-generated run summary",
+  "trainer_summary": {
+    "timestamp": "2025-09-21T07:48:30Z",
+    "run_id": "2025-09-21T073908Z",
+    "train": {
+      "seed": 42,
+      "learning_rate": 0.006047018496816363,
+      "entropy_coef": 0.07123566778619919,
+      "batch_size": "auto",
+      "minibatch_size": 16384,
+      "max_minibatch_size": 32768,
+      "bptt_horizon": 64,
+      "total_timesteps": 200000000
+    },
+    "env": {
+      "num_envs": 24,
+      "num_drones": 64
+    },
+    "vec": {
+      "num_envs": 24,
+      "num_workers": 24
+    },
+    "metrics": {
+      "success_rate": 0.12676286425751945,
+      "mean_reward": 10.786754647890726,
+      "episode_length": 139.8229300181071,
+      "collision_rate": 0.02308940390745799,
+      "sps": 1391690.1031208537,
+      "agent_steps": 276037632,
+      "epoch": 85
+    }
+  },
+  "resume_mode": "fresh",
+  "resume_from": null,
+  "save_strategy": "best"
+}

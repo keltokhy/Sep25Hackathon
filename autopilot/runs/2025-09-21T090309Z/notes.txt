@@ -1,0 +1,28 @@
+Run 2025-09-21T090309Z
+
+Problem
+- OOB remains high (oob≈0.826 final), collisions low (~2.7%). Attempts and subgoal metrics improved vs earlier critical run but still weak carry/drop (to_drop≈433, ho_drop≈94). perfect_grip non‑zero but perfect_deliv very low (~5.61 aggregated), indicating pickup occurs occasionally but carry→drop rarely completes.
+
+Root Cause (hypothesis)
+- Phase gates scale linearly with k with no cap, so early high‑k phases permit far‑field hover/descent (e.g., XY ≤ 0.40·k ≈ 7 m initially). This enables descending while still far from the box/drop, promoting drift near the floor and exits at XY boundaries. Spawn near box helps but wide gates still leak.
+
+Change (env/drone_pp.h)
+- Cap k in gate checks: k_eff = min(k, 2.0) used for hover/descent/grip/drop XY/Z tolerances.
+- Tighten descent XY alignment: require XY ≤ min(0.20·k_eff, 0.8 m) before allowing vertical descent (pickup); analogous cap for drop descent.
+- Hover gates: revert hidden hover to dist<1.8 m & speed<1.2 m; clamp lateral hover acceptance to XY ≤ min(0.35·k_eff, 1.5 m) and speed<1.8 m with z>0.3 m.
+- Grip gates: use capped k_eff in XY/Z windows and speed gate.
+- Drop hover/descent and delivery success gates similarly capped with k_eff (slightly wider than pickup due to carry jitter).
+- Spawn: increase box/drop edge_margin 6→8 m; tighten spawn radius r_xy 0.5–1.2→0.4–1.0 m; raise start altitude 2.0–3.0 m (unchanged) to reduce early floor strikes.
+
+Expected Impact
+- OOB↓ (primary) by preventing far‑field descent and reducing large initial traversals.
+- ho_pickup/de_pickup↑ (cleaner hover acquisition and controlled descent near the box).
+- attempt_grip↔/↑; first grips should convert more often; to_drop/ho_drop↑ as carry starts closer to center.
+- Collisions stable (~2–3%).
+
+Outcome (this run)
+- Baseline before change: success_rate≈5.61, mean_reward≈25.32, episode_len≈179.52, collision_rate≈0.0274, SPS≈1.97M; UI final: oob≈0.826; perfect_grip≈574; perfect_deliv≈5.61; to_pickup≈11.38k; ho_pickup≈11.38k; de_pickup≈11.31k; to_drop≈433; ho_drop≈94; attempt_grip≈1.99; attempt_drop≈0.013.
+
+Next
+- Re‑evaluate OOB and subgoal metrics after gating clamp. If OOB still >0.6, consider increasing edge_margin further and/or tightening descent XY caps slightly (e.g., 0.15·k_eff, max 0.6 m). If ho_drop remains low while to_drop rises, widen drop hover window marginally (keeping k_eff cap) and verify carry stability.
+

@@ -498,8 +498,10 @@ float compute_reward(DronePP* env, Drone *agent, bool collision) {
 }
 
 void reset_pp2(DronePP* env, Drone *agent, int idx) {
-    // Keep box/drop spawns farther from hard XY boundaries to reduce early OOB
-    float edge_margin = 6.0f;
+    // Keep box/drop spawns farther from hard XY boundaries to reduce early OOB.
+    // Slightly increase margin based on observed high OOB rates so random
+    // wandering is less likely to cross boundaries before stabilization.
+    float edge_margin = 8.0f;
     agent->box_pos = (Vec3){
         rndf(-MARGIN_X + edge_margin, MARGIN_X - edge_margin),
         rndf(-MARGIN_Y + edge_margin, MARGIN_Y - edge_margin),
@@ -530,11 +532,11 @@ void reset_pp2(DronePP* env, Drone *agent, int idx) {
     agent->hidden_pos.z += 0.8f;
     agent->hidden_vel = (Vec3){0.0f, 0.0f, 0.0f};
 
-    // Spawn the drone near its assigned box to reduce early OOB
-    // and encourage immediate hover/grip attempts (diagnostic_grip focus)
-    // Spawn closer laterally to the box to ease early hover acquisition
-    // and reduce OOB from large initial traversals
-    float r_xy = rndf(0.5f, 1.2f);
+    // Spawn the drone near its assigned box to reduce early OOB and
+    // encourage immediate hover/grip attempts (diagnostic_grip focus).
+    // Use a tighter lateral radius based on prior runs to further
+    // reduce large initial traversals that often lead to OOB.
+    float r_xy = rndf(0.4f, 1.0f);
     float theta = rndf(0.0f, 2.0f * (float)M_PI);
     Vec3 spawn_pos = {
         agent->box_pos.x + r_xy * cosf(theta),
@@ -767,20 +769,22 @@ void c_step(DronePP *env) {
                     if (DEBUG > 0) printf("    dist_to_hidden = %.3f\n", dist_to_hidden);
                     if (DEBUG > 0) printf("    xy_dist_to_box = %.3f\n", xy_dist_to_box);
                     if (DEBUG > 0) printf("    z_dist_above_box = %.3f\n", z_dist_above_box);
-                    // Relax hover gate: admit earlier stabilization near the hidden point.
-                    // Hypothesis (diagnostic_grip): strict hover gating blocks descent → no grips.
-                    // Loosen distance/speed modestly; descent remains XY-gated.
-                    // Make hover acquisition easier to register so descent gating can engage
-                    bool hover_ok_hidden = (dist_to_hidden < 2.4f && speed < 1.6f);
+                    // Hover gate: admit stabilization near the hidden point, but keep
+                    // thresholds tight enough to avoid accepting very loose hovers that
+                    // later descend far from the box. Based on notes, use 1.8m/1.2m.
+                    bool hover_ok_hidden = (dist_to_hidden < 1.8f && speed < 1.2f);
                     // New fallback: if laterally near the box and safely above it,
                     // allow hover acquisition even if not precisely at the hidden point.
                     // This increases ho/de_pickup and enables earlier descent,
                     // while descent itself remains XY-gated and gentle.
                     float k_floor = fmaxf(k, 1.0f);
+                    // Cap k when computing XY tolerance so early high-k phases
+                    // don't allow extremely loose hovers far from the box.
+                    float k_eff = fminf(k_floor, 2.0f);
                     bool hover_ok_xy = (
-                        xy_dist_to_box <= k_floor * 0.75f &&
+                        xy_dist_to_box <= fminf(k_eff * 0.35f, 1.5f) &&
                         z_dist_above_box > 0.3f &&
-                        speed < 2.5f
+                        speed < 1.8f
                     );
                     if (hover_ok_hidden || hover_ok_xy) {
                         agent->hovering_pickup = true;
@@ -802,11 +806,10 @@ void c_step(DronePP *env) {
                     // Only allow descent when laterally aligned with the box.
                     // This reduces floor interactions and OOB from drifting during descent.
                     float k_floor = fmaxf(k, 1.0f);
-                    // Relax XY alignment threshold to match the grip gate
-                    // so descent can proceed whenever gripping could plausibly succeed.
-                    // Hypothesis: enabling earlier vertical motion converts hover/descent
-                    // time into actual grip attempts and first grips.
-                    if (xy_dist_to_box <= k_floor * 0.40f) {
+                    // Require stronger XY alignment before allowing descent. Cap the
+                    // effective k so early phases don't descend while still far away.
+                    float k_eff = fminf(k_floor, 2.0f);
+                    if (xy_dist_to_box <= fminf(k_eff * 0.20f, 0.8f)) {
                         // Even gentler descent to improve stability entering grip
                         agent->hidden_vel = (Vec3){0.0f, 0.0f, -0.06f};
                     } else {
@@ -823,11 +826,11 @@ void c_step(DronePP *env) {
                         // Further relax grip gates to convert descent attempts
                         // into actual grips. The goal is to secure first non‑zero
                         // grips under diagnostic_grip without raising collisions.
-                        xy_dist_to_box < k * 0.40f &&
-                        z_dist_above_box < k * 0.40f && z_dist_above_box > 0.0f &&
+                        xy_dist_to_box < fminf(k_floor, 2.0f) * 0.35f &&
+                        z_dist_above_box < fminf(k_floor, 2.0f) * 0.35f && z_dist_above_box > 0.0f &&
                         // Permit moderate approach speeds; enforce a minimum allowance
                         // so typical descent velocities are not rejected by a too‑small k.
-                        speed < fmaxf(0.8f, k * 0.40f) &&
+                        speed < fmaxf(0.8f, fminf(k_floor, 2.0f) * 0.35f) &&
                         // Loosen vertical descent gate at low k to admit reasonable
                         // approach speeds (diagnostic_grip). Cap strictness so
                         // vel.z > -0.20 m/s at minimum; scale with k otherwise.
@@ -884,12 +887,15 @@ void c_step(DronePP *env) {
                     // Align drop hover gate with pickup-style tolerance to admit stable hovers
                     // near the drop before descent (wider XY, speed-bounded). Carry dynamics are
                     // noisier than pickup, so allow a wider lateral tolerance here.
-                    if (xy_dist_to_drop < k * 1.25f && z_dist_above_drop > 0.3f && speed < 2.5f) {
-                        agent->hovering_drop = true;
-                        reward += 0.25;
-                        agent->color = (Color){0, 0, 255, 255}; // Blue
+                        // Use capped k for hover tolerance at drop to avoid overly
+                        // loose acceptance early. Slightly wider than pickup due to carry jitter.
+                        float k_eff = fminf(fmaxf(k, 1.0f), 2.0f);
+                        if (xy_dist_to_drop < fminf(k_eff * 0.55f, 1.1f) && z_dist_above_drop > 0.3f && speed < 2.2f) {
+                            agent->hovering_drop = true;
+                            reward += 0.25;
+                            agent->color = (Color){0, 0, 255, 255}; // Blue
+                        }
                     }
-                }
 
                 // Phase 4 Drop Descent
                 else {
@@ -898,10 +904,10 @@ void c_step(DronePP *env) {
                     agent->hidden_pos.y = agent->drop_pos.y;
                     // Only descend when laterally aligned with drop; otherwise hold altitude to correct drift
                     float k_floor = fmaxf(k, 1.0f);
-                    // Relax XY alignment threshold for drop descent to mirror pickup
-                    // (match grip/drop gates) and promote successful deliveries once grips occur.
-                    // Slightly wider than pickup to account for carry-induced jitter.
-                    if (xy_dist_to_drop <= k_floor * 0.55f) {
+                    float k_eff = fminf(k_floor, 2.0f);
+                    // Require stronger XY alignment for drop descent (slightly wider than pickup),
+                    // with a cap on k to prevent descending far from the target early on.
+                    if (xy_dist_to_drop <= fminf(k_eff * 0.30f, 0.9f)) {
                         // Gentler drop descent for stability, mirroring pickup descent tuning
                         agent->hidden_vel = (Vec3){0.0f, 0.0f, -0.06f};
                     } else {
@@ -912,7 +918,8 @@ void c_step(DronePP *env) {
                     // (match XY/Z windows used for gripping). Hypothesis: carry is noisier;
                     // aligning drop gates with pickup reduces false negatives and converts
                     // sustained hovers near the drop into successful deliveries.
-                    if (xy_dist_to_drop < fmaxf(k, 1.0f) * 0.40f && z_dist_above_drop < fmaxf(k, 1.0f) * 0.40f) {
+                    if (xy_dist_to_drop < fminf(fmaxf(k, 1.0f), 2.0f) * 0.35f &&
+                        z_dist_above_drop < fminf(fmaxf(k, 1.0f), 2.0f) * 0.35f) {
                         agent->hovering_pickup = false;
                         agent->gripping = false;
                         update_gripping_physics(agent);
