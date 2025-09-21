@@ -1,24 +1,24 @@
 {
   "run_id": "2025-09-21T181559Z",
-  "timestamp": "2025-09-21T18:21:15Z",
+  "timestamp": "2025-09-21T18:26:19Z",
   "seed": 42,
-  "grip_success": 0.0,
-  "delivery_success": 0.0,
-  "end_to_end_success": 0.0,
+  "grip_success": null,
+  "delivery_success": null,
+  "end_to_end_success": null,
   "mean_reward": 0.07911758447880857,
   "episode_length": 34.909099419911705,
   "metrics_extended": {
-    "grip_attempts": 0.012,
-    "delivery_attempts": 0.012,
+    "grip_attempts": null,
+    "delivery_attempts": null,
     "gripping_events": null,
     "delivered_events": null,
-    "grip_conv_rate": 0.0,
-    "deliv_conv_rate": 0.0,
-    "e2e_conv_rate": 0.0,
+    "grip_conv_rate": null,
+    "deliv_conv_rate": null,
+    "e2e_conv_rate": null,
     "hover_efficiency": null,
-    "collision_rate": 0.000,
-    "oob_rate": 0.968,
-    "SPS": 1736492.1000797744,
+    "collision_rate": 0.034964338721086584,
+    "oob_rate": null,
+    "SPS": null,
     "performance_env": null,
     "performance_learn": null,
     "policy_loss": null,
@@ -31,62 +31,59 @@
   },
   "behavioral_analysis": {
     "insights": [
-      "Critical: OOB remains extremely high (~0.968). No grips or deliveries registered.",
-      "Hover/descend counters are non-zero (ho/de_pickup present) but conversion collapses before grip."
+      "\ud83d\udea8 Drone not attempting to grip objects at all"
     ],
     "severity": "critical",
-    "next_focus": "fix_stability",
+    "next_focus": "diagnostic_grip",
     "grip_efficiency": 0,
     "metrics_summary": {
       "grip_success": "0.0%",
       "delivery_success": "0.0%",
       "end_to_end": "0.0%",
-      "collision_rate": "0.0%"
+      "collision_rate": "3.5%"
     }
   },
-  "environment_changes": true,
+  "environment_changes": false,
   "environment_comparison": {
-    "has_changes": true,
-    "description": "Add mild early action scaling ramp (0.7→1.0 over ~100k global steps) to curb early saturation and reduce OOB without adding soft walls.",
-    "files_changed": [
-      "PufferLib/pufferlib/ocean/drone_pp/drone_pp.h"
-    ]
+    "has_changes": false,
+    "description": "",
+    "files_changed": []
   },
-  "base_commit": null,
+  "base_commit": "d5f5e8a78563bb9bc9dfafa10df4f991a16e2305",
   "modified_files": "",
-  "artifacts": ["train.log", "trainer_summary.json", "config.json"],
+  "artifacts": [],
   "notes": "auto-generated run summary",
   "trainer_summary": {
-  "timestamp": "2025-09-21T18:21:15Z",
-  "run_id": "2025-09-21T181559Z",
-  "train": {
-    "seed": 42,
-    "learning_rate": 0.006047018496816363,
-    "entropy_coef": 0.07123566778619919,
-    "batch_size": 2359296,
-    "minibatch_size": 2359296,
-    "max_minibatch_size": 2359296,
-    "bptt_horizon": 64,
-    "total_timesteps": 200000000
+    "timestamp": "2025-09-21T18:21:15Z",
+    "run_id": "2025-09-21T181559Z",
+    "train": {
+      "seed": 42,
+      "learning_rate": 0.006047018496816363,
+      "entropy_coef": 0.07123566778619919,
+      "batch_size": 2359296,
+      "minibatch_size": 2359296,
+      "max_minibatch_size": 2359296,
+      "bptt_horizon": 64,
+      "total_timesteps": 200000000
+    },
+    "env": {
+      "num_envs": 24,
+      "num_drones": 64
+    },
+    "vec": {
+      "num_envs": 24,
+      "num_workers": 24
+    },
+    "metrics": {
+      "success_rate": 0.0,
+      "mean_reward": 0.07911758447880857,
+      "episode_length": 34.909099419911705,
+      "collision_rate": 0.034964338721086584,
+      "sps": 1736492.1000797744,
+      "agent_steps": 276037632,
+      "epoch": 85
+    }
   },
-  "env": {
-    "num_envs": 24,
-    "num_drones": 64
-  },
-  "vec": {
-    "num_envs": 24,
-    "num_workers": 24
-  },
-  "metrics": {
-    "success_rate": 0.0,
-    "mean_reward": 0.07911758447880857,
-    "episode_length": 34.909099419911705,
-    "collision_rate": 0.034964338721086584,
-    "sps": 1736492.1000797744,
-    "agent_steps": 276037632,
-    "epoch": 85
-  }
-},
   "resume_mode": "fresh",
   "resume_from": null,
   "save_strategy": "best"

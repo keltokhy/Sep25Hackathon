@@ -214,7 +214,12 @@ RECORDKEEPING
 - Notes (`autopilot/journal/notes.md`): curated long-term memory, edit in place, keep concise
 - Run directories: `autopilot/runs/<run_id>` where `<run_id>` = `YYYY-MM-DDTHHMMSSZ`
 - Always reference exact run_id in commits and notes
- - The harness pre-fills `runs/<run_id>/notes.txt` with a comparison + interaction template; complete it after each run.
+- The harness pre-fills `runs/<run_id>/notes.txt` with a comparison + interaction template; complete it after each run.
+
+GEMINI DIGEST (Large-Context Summary)
+- Optionally generate an executive digest of Notes+Labbook using the Gemini CLI (≈1M token context) to maintain long-horizon memory:
+  • `cat autopilot/journal/notes.md autopilot/journal/labbook.md | gemini -y -p "Summarize notes+labbook into 200–250 words with sections: Executive Summary; Key Trends and Deltas; Interaction Effects; Risks; Next Actions." --session-summary autopilot/logs/gemini_session_{run_id}.json > autopilot/logs/gemini_summary_{run_id}.md`
+- Skim the digest for consistency before proposing the next override.
 
 COMMIT DISCIPLINE (MANDATORY)
 - After EVERY single training run, make exactly one commit capturing:
