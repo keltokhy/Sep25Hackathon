@@ -758,7 +758,10 @@ void c_step(DronePP *env) {
                         xy_dist_to_box < k * 0.20f &&
                         z_dist_above_box < k * 0.20f && z_dist_above_box > 0.0f &&
                         speed < k * 0.20f &&
-                        agent->state.vel.z > k * -0.06f && agent->state.vel.z < 0.0f
+                        // Loosen vertical descent gate at low k to admit reasonable
+                        // approach speeds (diagnostic_grip). Cap strictness so
+                        // vel.z > -0.15 m/s at minimum; scale with k otherwise.
+                        agent->state.vel.z > -fmaxf(0.15f, 0.06f * k) && agent->state.vel.z < 0.0f
                     ) {
                         if (k < 1.01 && env->box_k > 0.99f) {
                             agent->perfect_grip = true;
