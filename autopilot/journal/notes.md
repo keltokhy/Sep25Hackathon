@@ -38,6 +38,9 @@ Purpose: concise long‑term memory that guides future iterations at a glance. U
  - Relax pickup hover gate further: admit hovering when `dist_to_hidden < 1.8` and `speed < 1.2` (was 1.0/0.8). Rationale: agents struggle to satisfy hover gate at typical spawn offsets; descent remains XY‑gated and gentle (−0.06 m/s). Expect ho/de_pickup↑ and attempt_grip↑ without increasing collisions.
 - New: Relax grip vertical descent gate — require `vel.z > -max(0.15, 0.06·k)` (still `< 0`) during pickup grip. Rationale: at k≈1 the −0.06 m/s cap is too strict and blocks legitimate grips; allowing moderate descent should yield first non‑zero grips and `to_drop > 0` without increasing collisions.
 
+## 5) Decisions Log
+- 2025-09-21T085023Z: Relax drop success gates to match pickup (XY,Z ≤ 0.40·k). Rationale: to_drop and ho_drop are non‑trivial but perfect_deliv is low; carry is noisier than pickup. Expect delivery_success↑ and OOB↔/↓ without impacting collisions.
+
 Note (reverts applied after Run 2025-09-21T061611Z):
 - Physics damping test (REVERTED): Increasing BASE_B_DRAG/BASE_K_ANG_DAMP degraded behavior (OOB≈0.95). Reverted to BASE_B_DRAG≈0.10 and BASE_K_ANG_DAMP≈0.20 per failsafe. Avoid reintroducing unless strong evidence.
 - Soft boundary fields (REVERTED): Removed soft walls/ceil/floor and XY centralizing field; they likely fought control and increased OOB.

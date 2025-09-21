@@ -909,9 +909,10 @@ void c_step(DronePP *env) {
                         agent->hidden_pos.z = fmaxf(agent->hidden_pos.z, agent->drop_pos.z + 0.6f);
                     }
                     // Relax delivery success gates to mirror pickup success tolerance
-                    // to encourage first deliveries once grips occur. Slightly wider laterally
-                    // to reflect reduced precision while carrying.
-                    if (xy_dist_to_drop < fmaxf(k, 1.0f) * 0.35f && z_dist_above_drop < fmaxf(k, 1.0f) * 0.30f) {
+                    // (match XY/Z windows used for gripping). Hypothesis: carry is noisier;
+                    // aligning drop gates with pickup reduces false negatives and converts
+                    // sustained hovers near the drop into successful deliveries.
+                    if (xy_dist_to_drop < fmaxf(k, 1.0f) * 0.40f && z_dist_above_drop < fmaxf(k, 1.0f) * 0.40f) {
                         agent->hovering_pickup = false;
                         agent->gripping = false;
                         update_gripping_physics(agent);

@@ -131,3 +131,7 @@
 - 2025-09-21T06:47:06Z | run complete | Run 2025-09-21T063752Z (iteration 6) | metrics captured | 
 - 2025-09-21T07:19:08Z | run complete | Run 2025-09-21T070501Z (iteration 1) | metrics captured | 
 - 2025-09-21T07:39:08Z | run complete | Run 2025-09-21T072610Z (iteration 1) | metrics captured | 
+- 2025-09-21T07:52:22Z | run complete | Run 2025-09-21T073908Z (iteration 2) | metrics captured | 
+- 2025-09-21T08:02:18Z | run complete | Run 2025-09-21T075222Z (iteration 3) | metrics captured | 
+- 2025-09-21T08:02:19Z | run failed | 2025-09-21T080218Z: Codex run did not produce a new log in autopilot/logs/ | halt | 
+\- 2025-09-21T08:58:27Z | run complete | Run 2025-09-21T085023Z (iteration 1) | trainer_summary: success_rate≈12.63, mean_reward≈30.98, episode_len≈191.35, coll_rate≈0.0283, SPS≈1.87M; UI: oob≈0.801–0.814, perfect_grip≈851, perfect_deliv≈12.6, to_pickup/ho/de_pickup≫, to_drop≈612, ho_drop≈127, attempt_grip≈3.02, attempt_drop≈0.019 | Change for next run (env/drone_pp.h): relax drop success gates to match pickup tolerance (XY<0.40·k, Z<0.40·k; was 0.35/0.30). Hypothesis: convert sustained hovers near drop into deliveries; expect delivery_success↑, ho_drop↑ or ↔, OOB↔/↓; collisions stable. Proposals `{}`.
