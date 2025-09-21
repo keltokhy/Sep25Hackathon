@@ -1,0 +1,22 @@
+Run 2025-09-21T012845Z — diagnostic_grip analysis and next-step env change
+
+Problem observed (from train.log and summary):
+- SPS ≈ 1.7M; CPU ≈ 330%; GPU 0%.
+- oob ≈ 0.87; collision_rate ≈ 0.005.
+- ho_pickup ≈ 0.007; de_pickup ≈ 0.007; perfect_grip = 0; perfect_deliv = 0; to_drop = 0; ho_drop = 0.
+- Failure mode: Agents rarely meet the pickup hover gate, so they almost never enter descent; grips/deliveries are effectively zero.
+
+Change (applied for NEXT iteration):
+- File: PufferLib/pufferlib/ocean/drone_pp/drone_pp.h
+- Phase: PP2 Phase 1 (pickup hover gate)
+- Edit: Relax hover gate from `dist_to_hidden < 0.6 && speed < 0.5` to `dist_to_hidden < 1.0 && speed < 0.8`.
+- Context: Descent remains gated on XY alignment (`xy_dist <= 0.20*max(k,1)`) and gentle vertical rate (−0.06 m/s), so early hover admission should not induce unstable descents.
+
+Historical alignment:
+- Follows “Gate descent on XY alignment; add near‑miss counters” (2025‑09‑21) and “Raise pickup hover + spawn z” adjustments; avoids re‑introducing any low‑altitude penalties removed earlier.
+
+Expected effect (next run):
+- ho/de_pickup increase; attempt_grip increases; OOB modestly decreases due to fewer prolonged lateral adjustments near floor; first non‑zero gripping as k→1.
+
+Proposals for next run:
+- autopilot/proposals/next_config.json = {} (no hparam changes per policy); run fresh.

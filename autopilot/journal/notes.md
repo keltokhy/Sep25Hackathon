@@ -40,8 +40,9 @@ Purpose: concise long‑term memory that guides future iterations at a glance. U
 - 2025‑09‑20: Prompt refactor — remove hparam contradictions; add workflow/constraints/checklist.
 - 2025‑09‑21: Adopt box2 INI hparams in `baseline_full.json`; add EXACT_CONFIG passthrough.
 - 2025‑09‑21: Remove personal names from prompt/notes; prefer “latest committed environment code”.
-- 2025‑09‑21: Enforce single‑run per iteration; add Notes.md discipline (curated, concise, edit‑in‑place).
+- 2025-09-21: Enforce single‑run per iteration; add Notes.md discipline (curated, concise, edit‑in‑place).
  - 2025-09-21: Grip diagnostic patch — lower hover offset (+0.6m), slower descent (−0.06 m/s), relax grip gates to 0.20·k; goal: convert hover attempts into grips, reduce OOB modestly; verify ho/de_pickup↑ and any non‑zero deliveries next run (fresh).
 - 2025-09-21: Spawn near box — in PP2 reset, spawn 1.0–2.5 m laterally and 1.5–2.5 m above box; clamp to grid and zero initial vel/omega; goal: reduce early OOB and raise hover/grip attempts.
  - 2025-09-21: Raise pickup hover + spawn z — increase hidden pickup hover to +0.9 m (from +0.6) and raise spawn altitude to 2.0–3.0 m above box; rationale: OOB remained ~0.80 with near‑floor starts; aligns with fix_stability without re‑introducing low‑altitude penalties; expect OOB↓ and ho/de_pickup↑ next run.
  - 2025-09-21: Gate descent on XY alignment; add near‑miss counters — descend only when `xy_dist <= 0.20·max(k,1)` for pickup/drop; otherwise hold altitude. Added `attempt_grip/attempt_drop` logging and exported in binding. Rationale: high OOB with misaligned descents; expected OOB↓ and better grip attempts.
+ - 2025-09-21: Relax pickup hover gate — admit hovering when `dist_to_hidden < 1.0` and `speed < 0.8` (was 0.6/0.5). Rationale: strict hover gate prevents descent → no grips. Descent remains XY‑gated and gentle. Expect ho/de_pickup↑, attempt_grip↑, modest OOB↓ in next run (fresh). | 2025-09-21T012845Z

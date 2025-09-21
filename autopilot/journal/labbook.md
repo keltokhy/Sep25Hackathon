@@ -28,3 +28,15 @@
 - 2025-09-21T01:15:40Z | run complete | Run 2025-09-21T010347Z (iteration 4) | metrics captured | 
  - 2025-09-21T01:15:40Z | run baseline_full | launched autopilot/scripts/run_training.sh → run 2025-09-21T011540Z; device=mps; EXACT_CONFIG=1 | User Stats (final): oob≈0.858, collision_rate≈0.005, perfect_grip=0.0, perfect_deliv=0.0, ho_pickup≈0.073, de_pickup≈0.073, to_drop=0.0, ho_drop=0.0; SPS≈1.7M; CPU≈332% | failure: diagnostic_grip with high OOB; agents descend while laterally misaligned and clip floor
  - 2025-09-21T01:26:20Z | gate descent on XY alignment; add attempts | in PufferLib/pufferlib/ocean/drone_pp/drone_pp.h: only descend in pickup/drop when xy_dist <= 0.20·max(k,1); otherwise hold altitude; add env->log.attempt_grip/attempt_drop near‑miss counters; export in binding | Hypothesis: reduce OOB by preventing drift‑descent; convert more hovers into stable grips; expect oob↓, ho/de_pickup↑, first non‑zero gripping; deliveries may remain 0 until grips improve | staged next_config {} (no hparam changes); rebuilt bindings
+- 2025-09-21T01:27:09Z | run complete | Run 2025-09-21T011540Z (iteration 5) | metrics captured | 
+2025-09-21T012845Z — Run + env tweak: relax pickup hover gate
+
+- Action: Launched autopilot/scripts/run_training.sh (single run, EXACT_CONFIG=1). Analyzed trainer_summary and train.log.
+- Observations:
+  - SPS ≈ 1.7M; CPU ≈ 330%; GPU 0%.
+  - oob ≈ 0.87 (high), collision_rate ≈ 0.005.
+  - ho_pickup ≈ 0.007; de_pickup ≈ 0.007; perfect_grip = 0; perfect_deliv = 0; to_drop = 0; ho_drop = 0.
+  - Failure mode: diagnostic_grip — agents rarely meet the pickup hover gate, so descent/grip almost never occur; OOB remains high.
+- Change (for next iteration): In PufferLib/pufferlib/ocean/drone_pp/drone_pp.h, relax the Phase 1 pickup hover gate from dist_to_hidden < 0.6 and speed < 0.5 to dist_to_hidden < 1.0 and speed < 0.8. Descent remains guarded by XY-alignment and gentle descent rate (−0.06 m/s).
+- Hypothesis: Earlier admission into “hovering_pickup” enables descent attempts; expect ho/de_pickup↑, attempt_grip↑, modest oob↓; eventual non‑zero gripping under k≈1.
+- Next: Keep proposals as {} (no hparam changes). Resume fresh next run; reassess attempt_grip, ho/de_pickup, and oob trends.

@@ -713,8 +713,10 @@ void c_step(DronePP *env) {
                     if (DEBUG > 0) printf("    dist_to_hidden = %.3f\n", dist_to_hidden);
                     if (DEBUG > 0) printf("    xy_dist_to_box = %.3f\n", xy_dist_to_box);
                     if (DEBUG > 0) printf("    z_dist_above_box = %.3f\n", z_dist_above_box);
-                    // Relax hover gate: allow slightly larger radius and speed
-                    if (dist_to_hidden < 0.6f && speed < 0.5f) {
+                    // Relax hover gate further: admit earlier stabilization near the hidden point
+                    // Hypothesis (diagnostic_grip): strict hover gating blocks descent → no grips.
+                    // Loosen distance/speed slightly; descent still guarded by XY-alignment gate.
+                    if (dist_to_hidden < 1.0f && speed < 0.8f) {
                         agent->hovering_pickup = true;
                         agent->color = (Color){255, 255, 255, 255}; // White
                     } else {
