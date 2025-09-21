@@ -303,6 +303,15 @@ def best_record_path() -> Path:
     return AUTOPILOT_DIR / "runs" / "best.json"
 
 
+def baseline_record_path() -> Path:
+    """Optional named baseline; falls back to best.json if not set.
+    Create autopilot/runs/baseline.json with at least {"run_id": "..."}
+    to pin comparisons to a specific run.
+    """
+    candidate = AUTOPILOT_DIR / "runs" / "baseline.json"
+    return candidate if candidate.exists() else best_record_path()
+
+
 def read_best_score() -> tuple[Optional[float], Optional[float], Optional[str]]:
     bp = best_record_path()
     if not bp.exists():
@@ -580,7 +589,7 @@ def summarize(
     summary["save_strategy"] = ap.get("save_strategy", "best")
     write_summary(run_dir, summary)
 
-    # Compute deltas vs previous run and vs best.json (if available)
+    # Compute deltas vs previous run and vs baseline.json/best.json (if available)
     def _load_snapshot_from_summary(path: Path) -> Dict[str, Optional[float]]:
         try:
             data = json.loads(path.read_text())
@@ -620,27 +629,40 @@ def summarize(
         prev_run_dir = runs[-2] if runs and runs[-1] == run_dir else runs[-1]
     prev_snap = _load_snapshot_from_summary((prev_run_dir / "summary.json") if prev_run_dir else Path("/dev/null")) if prev_run_dir else {}
 
-    # Best snapshot from best.json (may have partial metrics)
-    best_path = AUTOPILOT_DIR / "runs" / "best.json"
-    best_snap: Dict[str, Optional[float]] = {}
-    best_run_id: Optional[str] = None
-    if best_path.exists():
+    # Baseline snapshot from baseline.json (or best.json) and, if possible, its summary
+    baseline_path = baseline_record_path()
+    baseline_snap: Dict[str, Optional[float]] = {}
+    baseline_run_id: Optional[str] = None
+    if baseline_path.exists():
         try:
-            best = json.loads(best_path.read_text())
-            best_run_id = best.get("run_id")
-            best_snap = {
-                "end_to_end_success": best.get("end_to_end_success"),
-                "delivery_success": best.get("delivery_success"),
-                "grip_success": best.get("grip_success"),
-                "mean_reward": best.get("mean_reward"),
+            base = json.loads(baseline_path.read_text())
+            baseline_run_id = base.get("run_id")
+            # Load from the baseline run's summary if available to include extended metrics
+            base_summary: Dict[str, Any] = {}
+            if baseline_run_id:
+                base_sum_path = AUTOPILOT_DIR / "runs" / baseline_run_id / "summary.json"
+                if base_sum_path.exists():
+                    try:
+                        base_summary = json.loads(base_sum_path.read_text())
+                    except Exception:
+                        base_summary = {}
+            # Build snapshot preferring summary.json fields, falling back to record
+            ext = base_summary.get("metrics_extended", {}) if isinstance(base_summary.get("metrics_extended"), dict) else {}
+            baseline_snap = {
+                "end_to_end_success": base_summary.get("end_to_end_success", base.get("end_to_end_success")),
+                "delivery_success": base_summary.get("delivery_success", base.get("delivery_success")),
+                "grip_success": base_summary.get("grip_success", base.get("grip_success")),
+                "mean_reward": base_summary.get("mean_reward", base.get("mean_reward")),
+                "oob_rate": ext.get("oob_rate"),
+                "SPS": ext.get("SPS"),
             }
         except Exception:
             pass
 
     deltas = {
         "vs_previous": _delta(curr_snap, prev_snap) if prev_snap else {},
-        "vs_best": _delta(curr_snap, best_snap) if best_snap else {},
-        "baseline_run_id": best_run_id,
+        "vs_baseline": _delta(curr_snap, baseline_snap) if baseline_snap else {},
+        "baseline_run_id": baseline_run_id,
         "previous_run_id": prev_run_dir.name if prev_run_dir else None,
     }
     # Update summary with deltas
@@ -677,6 +699,97 @@ def summarize(
             if env_state.get("modified_files"):
                 print(f"   Files: {env_state['modified_files']}")
         print(f"   See {run_dir}/env_uncommitted.diff for full details")
+
+
+def _format_pct(value: Optional[float]) -> str:
+    try:
+        if value is None:
+            return "—"
+        return f"{float(value):.2%}"
+    except Exception:
+        return "—"
+
+
+def _format_num(value: Optional[float]) -> str:
+    try:
+        if value is None:
+            return "—"
+        return f"{float(value):.3f}"
+    except Exception:
+        return "—"
+
+
+def generate_notes_template(run_dir: Path) -> None:
+    """Create or update a structured notes template with comparisons and interactions."""
+    try:
+        summary = json.loads((run_dir / "summary.json").read_text())
+    except Exception:
+        summary = {}
+
+    # Core metrics
+    grip = summary.get("grip_success")
+    deliv = summary.get("delivery_success")
+    e2e = summary.get("end_to_end_success")
+    ext = summary.get("metrics_extended", {}) if isinstance(summary.get("metrics_extended"), dict) else {}
+    oob = ext.get("oob_rate")
+    sps = ext.get("SPS")
+    coll = ext.get("collision_rate")
+
+    deltas = summary.get("deltas", {}) if isinstance(summary.get("deltas"), dict) else {}
+    dvp = deltas.get("vs_previous", {})
+    dvb = deltas.get("vs_baseline", {})
+    prev_id = deltas.get("previous_run_id")
+    base_id = deltas.get("baseline_run_id")
+
+    env_cmp = summary.get("environment_comparison", {}) if isinstance(summary.get("environment_comparison"), dict) else {}
+    files_changed = env_cmp.get("files_changed", []) if isinstance(env_cmp.get("files_changed"), list) else []
+    change_desc = env_cmp.get("description") or ("Uncommitted changes present" if summary.get("environment_changes") else "None detected")
+
+    template = f"""
+Run: {run_dir.name}
+Snapshot
+- Grip: {_format_pct(grip)} | Delivery: {_format_pct(deliv)} | E2E: {_format_pct(e2e)}
+- OOB: {_format_pct(oob)} | Collisions: {_format_pct(coll)} | SPS: {_format_num(sps)}
+
+Comparisons
+- Δ vs previous ({prev_id or '—'}):
+  • Grip {_format_num(dvp.get('grip_success'))} | Deliv {_format_num(dvp.get('delivery_success'))} | E2E {_format_num(dvp.get('end_to_end_success'))}
+  • OOB {_format_num(dvp.get('oob_rate'))} | SPS {_format_num(dvp.get('SPS'))} | Reward {_format_num(dvp.get('mean_reward'))}
+- Δ vs baseline ({base_id or '—'}):
+  • Grip {_format_num(dvb.get('grip_success'))} | Deliv {_format_num(dvb.get('delivery_success'))} | E2E {_format_num(dvb.get('end_to_end_success'))}
+  • OOB {_format_num(dvb.get('oob_rate'))} | SPS {_format_num(dvb.get('SPS'))} | Reward {_format_num(dvb.get('mean_reward'))}
+
+Environment Changes
+- {change_desc}
+{chr(10).join(f'- {p}' for p in files_changed[:8])}
+
+Interaction Effects Review
+- Systems touched (mark): [ ] gates  [ ] rewards  [ ] physics  [ ] curriculum(k)  [ ] spawns
+- Predicted side‑effects to monitor:
+  • Hover/descent attempts (ho/de_pickup, ho_drop)
+  • Stability (OOB, collisions) and throughput (SPS)
+- Observed side‑effects this run:
+  • ...
+
+Decision
+- Keep / Modify / Revert: ...
+- Rationale: ...
+- Next hypothesis: ...
+
+Next Override (autopilot.* only)
+{{
+  "autopilot": {{
+    "resume_mode": "fresh",
+    "resume_from": "latest",
+    "save_strategy": "best"
+  }}
+}}
+""".strip() + "\n"
+
+    # Only write if missing or contains placeholder
+    path = run_dir / "notes.txt"
+    if not path.exists() or path.read_text().strip() in {"", "Notes: pending entry"}:
+        path.write_text(template, encoding="utf-8")
 
 
 def load_previous_config() -> Optional[Dict[str, Any]]:
@@ -841,6 +954,9 @@ def run_iteration(iteration: int, use_quick: bool, prev_config: Optional[Dict[st
         f"Run {run_dir.name} (iteration {iteration})",
         "metrics captured",
     )
+
+    # Prefill a structured notes template for this run
+    generate_notes_template(run_dir)
 
     return {
         "config": effective_config,

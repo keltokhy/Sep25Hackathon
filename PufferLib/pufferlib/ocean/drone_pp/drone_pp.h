@@ -543,7 +543,7 @@ void reset_pp2(DronePP* env, Drone *agent, int idx) {
     agent->hidden_pos = agent->target_pos;
     // Set initial hover target modestly above the (now slightly higher) box
     // to keep early descent gentle while further reducing floor contact risk.
-    agent->hidden_pos.z += 0.8f;
+    agent->hidden_pos.z += 0.9f;
     agent->hidden_vel = (Vec3){0.0f, 0.0f, 0.0f};
 
     // Spawn the drone near its assigned box to reduce early OOB and
@@ -554,9 +554,9 @@ void reset_pp2(DronePP* env, Drone *agent, int idx) {
     Vec3 spawn_pos = {
         agent->box_pos.x + r_xy * cosf(theta),
         agent->box_pos.y + r_xy * sinf(theta),
-        // Raise spawn altitude a bit more to avoid early floor strikes,
+        // Raise spawn altitude slightly more to avoid early floor strikes,
         // while keeping vertical distance to hover moderate
-        agent->box_pos.z + rndf(2.0f, 3.0f)
+        agent->box_pos.z + rndf(2.5f, 3.5f)
     };
     // Clamp within safe margins (use MARGIN not GRID to avoid spawning near boundaries)
     spawn_pos.x = clampf(spawn_pos.x, -MARGIN_X + 2.0f, MARGIN_X - 2.0f);
@@ -566,6 +566,11 @@ void reset_pp2(DronePP* env, Drone *agent, int idx) {
     agent->prev_pos = spawn_pos;
     agent->state.vel = (Vec3){0.0f, 0.0f, 0.0f};
     agent->state.omega = (Vec3){0.0f, 0.0f, 0.0f};
+
+    // Give a tiny upward nudge to reduce immediate floor falls without
+    // masking control errors. This mitigates very early OOB terminations
+    // while the policy is still random, improving ho/de_pickup signal.
+    agent->state.vel.z += rndf(0.03f, 0.08f);
 
     float drone_capacity = agent->params.arm_len * 4.0f;
     agent->box_size = rndf(0.05f, fmaxf(drone_capacity, 0.1f));
@@ -824,7 +829,7 @@ void c_step(DronePP *env) {
                     float k_eff = fminf(k_floor, 2.0f);
                     if (xy_dist_to_box <= fminf(k_eff * 0.20f, 0.8f)) {
                         // Even gentler descent to improve stability entering grip
-                        agent->hidden_vel = (Vec3){0.0f, 0.0f, -0.06f};
+                        agent->hidden_vel = (Vec3){0.0f, 0.0f, -0.05f};
                     } else {
                         // Hold altitude while correcting lateral error
                         agent->hidden_vel = (Vec3){0.0f, 0.0f, 0.0f};
@@ -925,7 +930,7 @@ void c_step(DronePP *env) {
                     // with a cap on k to prevent descending far from the target early on.
                     if (xy_dist_to_drop <= fminf(k_eff * 0.30f, 0.9f)) {
                         // Gentler drop descent for stability, mirroring pickup descent tuning
-                        agent->hidden_vel = (Vec3){0.0f, 0.0f, -0.06f};
+                        agent->hidden_vel = (Vec3){0.0f, 0.0f, -0.05f};
                     } else {
                         agent->hidden_vel = (Vec3){0.0f, 0.0f, 0.0f};
                         agent->hidden_pos.z = fmaxf(agent->hidden_pos.z, agent->drop_pos.z + 0.6f);

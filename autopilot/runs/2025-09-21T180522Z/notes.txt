@@ -1,0 +1,38 @@
+Run: 2025-09-21T180522Z
+Snapshot
+- Grip: 10.00% | Delivery: 0.00% | E2E: 0.00%
+- OOB: 90.00% | Collisions: — | SPS: 1.200
+
+Comparisons
+- Δ vs previous (—):
+  • Grip — | Deliv — | E2E —
+  • OOB — | SPS — | Reward —
+- Δ vs baseline (—):
+  • Grip — | Deliv — | E2E —
+  • OOB — | SPS — | Reward —
+
+Environment Changes
+- None detected
+
+
+Interaction Effects Review
+- Systems touched (mark): [ ] gates  [ ] rewards  [ ] physics  [ ] curriculum(k)  [ ] spawns
+- Predicted side‑effects to monitor:
+  • Hover/descent attempts (ho/de_pickup, ho_drop)
+  • Stability (OOB, collisions) and throughput (SPS)
+- Observed side‑effects this run:
+  • ...
+
+Decision
+- Keep / Modify / Revert: ...
+- Rationale: ...
+- Next hypothesis: ...
+
+Next Override (autopilot.* only)
+{
+  "autopilot": {
+    "resume_mode": "fresh",
+    "resume_from": "latest",
+    "save_strategy": "best"
+  }
+}

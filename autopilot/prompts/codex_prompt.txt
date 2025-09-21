@@ -70,7 +70,7 @@ COMPARISON CHECKLIST (Per Run)
   • Throughput: sps, cpu/gpu utilization (if available)
 - Write two deltas:
   • Δ vs previous run
-  • Δ vs named baseline (last known-good)
+  • Δ vs named baseline (last known-good). You can pin a baseline by creating `autopilot/runs/baseline.json` with `{ "run_id": "<run_id>" }`; otherwise the harness uses `best.json`.
 - Briefly note suspected cause of change (if any) and whether it matches the prior hypothesis.
 
 DECISION FRAMEWORK
@@ -206,6 +206,7 @@ RECORDKEEPING
 - Notes (`autopilot/journal/notes.md`): curated long-term memory, edit in place, keep concise
 - Run directories: `autopilot/runs/<run_id>` where `<run_id>` = `YYYY-MM-DDTHHMMSSZ`
 - Always reference exact run_id in commits and notes
+ - The harness pre-fills `runs/<run_id>/notes.txt` with a comparison + interaction template; complete it after each run.
 
 COMMIT DISCIPLINE (MANDATORY)
 - After EVERY single training run, make exactly one commit capturing:

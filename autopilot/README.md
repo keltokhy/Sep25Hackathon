@@ -73,6 +73,11 @@ Workflow expectations:
 - Encourage reviewing recent `runs/<run_id>/summary.json` and `notes.txt` files so proposals account for trends across iterations, not just the latest metrics.
 - Best/latest artifacts: the orchestrator maintains `autopilot/models/latest.pt` and (when improved) `autopilot/models/best.pt` plus `autopilot/runs/best.json`. Summaries stamp `resume_mode`/`resume_from` so you can audit warm starts.
 
+Comparisons and notes template:
+- Summaries now include `deltas.vs_previous` and `deltas.vs_baseline` (baseline defaults to `runs/best.json`).
+- To pin a specific baseline, create `autopilot/runs/baseline.json` with at least `{ "run_id": "<run_id>" }`.
+- The orchestrator pre-fills `runs/<run_id>/notes.txt` with a structured template (snapshot, comparisons, interaction effects, decision, next override). Fill it after each run.
+
 Troubleshooting tips:
 - If the trainer “sticks” after a brief CPU spike, check divisibility (`vec.num_envs % vec.num_workers`) and the batch rule above.
 - First MPS use per process can appear idle for 30–60s during kernel compilation — tee logs and wait before assuming a hang.
