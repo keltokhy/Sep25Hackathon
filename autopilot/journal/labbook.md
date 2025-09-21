@@ -76,3 +76,4 @@
 - 2025-09-21T03:09:44Z | run complete | Run 2025-09-21T025654Z (iteration 1) | metrics captured | 
 
 - 2025-09-21T03:18:26Z | run baseline_full | Run 2025-09-21T030944Z; perfect_grip=0, perfect_deliv=0; ho/de_pickup low; to_drop=0; oob≈0.85; coll≈0.005–0.009; ep_len≈136–404; SPS≈1.65M | bump reward shaping (w_approach→3.0, w_hover→2.0, reward_hover→0.35) to encourage XY alignment and hover before descent; no gate changes; no rebuild | next: {}
+- 2025-09-21T03:22:05Z | run complete | Run 2025-09-21T030944Z (iteration 2) | metrics captured | 

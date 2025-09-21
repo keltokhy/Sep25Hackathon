@@ -43,7 +43,7 @@ OPERATING PRINCIPLES (Thoughtful, Memory‑Driven)
 - For non‑trivial work, write a brief 2–4 step plan, then execute and verify against constraints (divisibility, batch math).
 - Always state the behavioral hypothesis you are testing and the expected effect on grip/hover/carry/deliver metrics.
 - If guidance conflicts, prefer the latest committed environment code and the Notes file.
- - Be introspective: do not make assumptions—check yourself. Verify claims against the current code, config, and logs before acting; re‑read constraints after changes. If a hypothesis shows no measurable improvement after 2–3 iterations, consider exploring a different dimension of the problem space—sometimes a fresh angle reveals overlooked opportunities.
+ - Be introspective: do not make assumptions—check yourself. Verify claims against the current code, config, and logs before acting; re‑read constraints after changes. If a hypothesis shows no measurable improvement after a few iterations, consider exploring a different dimension of the problem space—sometimes a fresh angle reveals overlooked opportunities.
 - Track patterns: If performance consistently degrades at similar points in training, suspect training dynamics not environment. Consider: exploration decay, entropy bonus, or curriculum pacing changes. Track which 'dimensions' you've tried (gates/physics/rewards/spawn/curriculum) and systematically explore untouched dimensions before revisiting old ones.
 
 SINGLE‑RUN PER ITERATION (Strict)
@@ -55,7 +55,7 @@ WORKFLOW (Numbered Core Loop)
 1) Execute {script} (autopilot/scripts/run_training.sh) with ≥15‑minute timeout. Do not skip.
 2) Read the fresh run’s `summary.json` for behavioral_analysis (note: this field is not printed in train.log “User Stats”). Use `trainer_summary.json` or `train.log` for raw metrics.
 3) Identify the specific failure mode from behavioral_analysis and metrics. Cross‑check against the "Header evolution: `drone_pp.h`" notes to avoid re‑introducing patterns previously removed.
-4) Make minimal, targeted environment code changes to address the failure, aligned with the historical intent captured in Notes. Maintain hypothesis diversity: Keep a list of 3-5 different approaches. Don't test same hypothesis type (e.g., "relax gates") more than 2x in a row without trying something orthogonal.
+4) Make minimal, targeted environment code changes to address the failure, aligned with the historical intent captured in Notes. Maintain hypothesis diversity: Keep a list of several different approaches. Don't repeatedly test the same hypothesis type (e.g., "relax gates") without trying something orthogonal.
 5) Rebuild bindings and smoke‑test import.
 6) Configure the next run using only `autopilot.*` overrides (or `{}`) in `autopilot/proposals/next_config.json`.
 7) Record actions/observations/outcomes/next steps in labbook and notes; repeat.
@@ -82,10 +82,10 @@ DECISION FRAMEWORK (Diagnose by metrics)
     - Improve throughput/observability, add logging, keep environment stable
 
 CREATIVE ESCALATION (When progress stalls)
-- Iteration 1-2: Focus on PRIORITY 1 (.ini tweaks) and PRIORITY 2 (drone_pp.h gates/logic)
-- Iteration 3-4: If no progress, try different dimension in same priority level
-- Iteration 5+: Escalate to PRIORITY 3 (observation space, new metrics)
-- After 3 iterations with <10% improvement, try orthogonal approaches:
+- Early iterations: Focus on PRIORITY 1 (.ini tweaks) and PRIORITY 2 (drone_pp.h gates/logic)
+- Mid iterations: If limited progress, try different dimension in same priority level
+- Later iterations: Escalate to PRIORITY 3 (observation space, new metrics)
+- After several iterations with minimal improvement, try orthogonal approaches:
   • Reward shaping: Modify reward weights in .ini first, then computation in .h
   • Physics tuning: Adjust box mass, drone thrust, gravity constants
   • Curriculum design: Change k decay rates or initial values
@@ -135,21 +135,22 @@ ENVIRONMENT DEBUGGING CHECKLIST
 
 SUCCESS METRICS (Define thresholds)
 - Baseline environment "working" when, over a stable eval slice:
-  • grip_success ≥ 60% and delivery_success ≥ 40% across agents/episodes.
-  • end_to_end_success shows an upward trend across 2–3 consecutive runs.
-  • OOB/crash resets ≤ 10% of steps; collision‑induced terminations ≤ 5% episodes.
+  • grip_success shows majority success across agents/episodes
+  • delivery_success shows significant success rate
+  • end_to_end_success shows consistent upward trend
+  • OOB/crash rates remain low and stable
 - Intermediate milestones (reassess approach if not met):
-  • By iteration 3: ho_pickup > 0.05 (some hovering behavior)
-  • By iteration 5: de_pickup > 0.05 (attempting descent)
-  • By iteration 7: perfect_grip > 0.01 (at least 1% grip success)
-  • By iteration 10: perfect_grip > 0.10 (10% grip success)
-  If milestones missed, switch to different approach dimension
+  • Early: ho_pickup showing improvement (hovering behavior emerging)
+  • Mid: de_pickup increasing (attempting descent more often)
+  • Later: perfect_grip becoming non-zero (first successful grips)
+  • Eventually: perfect_grip showing consistent growth
+  If milestones stagnate, switch to different approach dimension
 - Stop environment debugging when thresholds are met and metrics are stable; shift to performance/observability improvements only (no hparam tuning).
 
 FAILSAFES
 - No behavioral_analysis in summary: fall back to `train.log` inspection; compute basic rates (grips, deliveries, OOB). Remember that train.log “User Stats” never includes behavioral_analysis; it only appears in `runs/<run_id>/summary.json`. If absent, add logging counters in env and rerun.
 - Build fails: revert the last env patch, rebuild clean, and re‑apply a smaller, testable change.
-- Metrics regress for ≥2 runs after a change: revert to previous known‑good env state (use git restore to last good commit) and document rollback.
+- Metrics regress for multiple runs after a change: revert to previous known‑good env state (use git restore to last good commit) and document rollback.
 - When in doubt, prefer smaller env edits and clearer logging over larger refactors.
 
 TECHNICAL DETAILS
