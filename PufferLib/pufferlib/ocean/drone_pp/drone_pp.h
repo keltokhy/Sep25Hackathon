@@ -686,10 +686,9 @@ void c_step(DronePP *env) {
         float k_cur = env->grip_k;
         float scale = 1.0f;
         if (k_cur > 1.0f) {
-            // Linearly reduce towards 0.35 at high k; clamp to [0.35, 1.0]
-            // Example: k≈18 → scale≈0.46; k≤1 → 1.0
-            scale = 1.0f - 0.03f * (k_cur - 1.0f);
-            if (scale < 0.35f) scale = 0.35f;
+            // Stronger early governor to curb OOB while untrained
+            scale = 1.0f - 0.05f * (k_cur - 1.0f);
+            if (scale < 0.25f) scale = 0.25f;
             if (scale > 1.0f) scale = 1.0f;
         }
         atn_scaled[0] = atn[0] * scale;

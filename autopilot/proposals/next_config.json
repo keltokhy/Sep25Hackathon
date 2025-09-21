@@ -1,1 +1,4 @@
-{}
+{
+  "autopilot.resume_mode": "fresh",
+  "autopilot.save_strategy": "best"
+}
