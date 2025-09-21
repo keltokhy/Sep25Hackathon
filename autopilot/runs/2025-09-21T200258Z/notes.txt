@@ -1,0 +1,32 @@
+Run 2025-09-21T200258Z (iteration 9)
+
+Summary
+- mean_reward: 201.9368
+- episode_length: 625.4140
+- collision_rate: 0.02108
+- SPS: 1.77M, epoch: 85
+- oob: ~0.39 (final snapshot)
+- perfect_grip: 0.0, perfect_deliv: 0.0
+- ho_pickup: ~5293, de_pickup: ~5278, ho_drop: ~88–97
+- to_drop: 0.0 (logging gap), attempt_grip: 0.0
+
+Deltas
+- vs prev (2025-09-21T195318Z): oob 0.805 -> 0.390 (-0.415), mean_reward +137.5, ep_len +424.4, coll_rate +0.0109; ho/de_pickup ↑↑, ho_drop ↑.
+- vs baseline (2025-09-21T193424Z): oob 0.955 -> 0.390 (-0.565), mean_reward +175.4, ep_len +577.6.
+
+Diagnosis
+- Stability breakthrough and strong phase emergence. Still no grips/deliveries.
+- Likely too‑strict pickup grip gate at k≈1.0; `to_drop` under‑reported due to missing `approaching_drop` flag.
+
+Change (staged for next run)
+- Relax pickup grip gate with floors (XY/Z/speed/vel_z) for k≈1.0.
+- Apply gripped mass/drag immediately on grip (update_gripping_physics at grip).
+- Set `approaching_drop` during carry/drop and log `attempt_drop` near‑misses.
+
+Expected Impact
+- attempt_grip > 0 and first non‑zero grips.
+- to_drop > 0 with ho_drop increasing.
+- OOB ≤ 0.45; collisions ~2–3%.
+
+Overrides for next run
+- { "autopilot": { "resume_mode": "continue", "resume_from": "latest", "save_strategy": "best" } }

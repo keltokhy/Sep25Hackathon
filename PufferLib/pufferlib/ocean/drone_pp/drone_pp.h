@@ -796,25 +796,38 @@ void c_step(DronePP *env) {
                     // Near-miss diagnostics: count an attempted grip when the
                     // agent is close and descending but misses strict gates.
                     // This is logging-only; no reward change.
-                    bool near_xy = (xy_dist_to_box < k * 0.25f);
-                    bool near_z  = (z_dist_above_box < k * 0.25f && z_dist_above_box > -0.05f);
-                    bool near_v  = (speed < k * 0.6f);
+                    float near_xy_tol = fmaxf(0.35f, k * 0.30f);
+                    float near_z_tol  = fmaxf(0.30f, k * 0.30f);
+                    bool near_xy = (xy_dist_to_box < near_xy_tol);
+                    bool near_z  = (z_dist_above_box < near_z_tol && z_dist_above_box > -0.05f);
+                    bool near_v  = (speed < fmaxf(0.6f, k * 0.6f));
                     bool desc_z  = (agent->state.vel.z <= 0.0f);
                     if (near_xy && near_z && near_v && desc_z) {
                         env->log.attempt_grip += 1.0f;
                     }
 
+                    // Relax pickup grip gate with minimum floors so learning persists
+                    // even once k decays to ~1.0. This should convert frequent
+                    // hover/descend events into occasional grips to bootstrap carry.
+                    float grip_xy_tol = fmaxf(0.20f, k * 0.15f);
+                    float grip_z_tol  = fmaxf(0.20f, k * 0.15f);
+                    float grip_v_tol  = fmaxf(0.20f, k * 0.20f);
+                    float grip_vz_tol = fmaxf(0.08f, k * 0.06f);
                     if (
-                        xy_dist_to_box < k * 0.1f &&
-                        z_dist_above_box < k * 0.1f && z_dist_above_box > 0.0f &&
-                        speed < k * 0.1f &&
-                        agent->state.vel.z > k * -0.05f && agent->state.vel.z < 0.0f
+                        xy_dist_to_box < grip_xy_tol &&
+                        z_dist_above_box < grip_z_tol && z_dist_above_box > 0.02f &&
+                        speed < grip_v_tol &&
+                        agent->state.vel.z > -grip_vz_tol && agent->state.vel.z <= 0.0f
                     ) {
                         if (k < 1.01 && env->box_k > 0.99f) {
                             agent->perfect_grip = true;
                             agent->color = (Color){100, 100, 255, 255}; // Light Blue
                         }
                         agent->gripping = true;
+                        // Apply gripped mass/drag immediately so carry dynamics
+                        // are reflected during the transport phase, not only
+                        // when ascending toward drop.
+                        update_gripping_physics(agent);
                         reward += env->reward_grip;
                         random_bump(agent);
                     } else if (dist_to_hidden > 0.4f || speed > 0.4f) {
@@ -827,6 +840,7 @@ void c_step(DronePP *env) {
                 agent->box_pos = agent->state.pos;
                 agent->box_pos.z -= 0.5f;
                 agent->target_pos = agent->drop_pos;
+                agent->approaching_drop = true;
                 float xy_dist_to_drop = sqrtf(powf(agent->state.pos.x - agent->drop_pos.x, 2) +
                                             powf(agent->state.pos.y - agent->drop_pos.y, 2));
                 float z_dist_above_drop = agent->state.pos.z - agent->drop_pos.z;
@@ -853,6 +867,12 @@ void c_step(DronePP *env) {
                     agent->hidden_pos.y = agent->drop_pos.y;
                     // Slow descent for stability during drop
                     agent->hidden_vel = (Vec3){0.0f, 0.0f, -0.05f};
+                    // Near-miss diagnostics for drops
+                    float near_drop_xy_tol = fmaxf(0.40f, k * 0.30f);
+                    float near_drop_z_tol  = fmaxf(0.30f, k * 0.30f);
+                    if (xy_dist_to_drop < near_drop_xy_tol && fabsf(z_dist_above_drop) < near_drop_z_tol) {
+                        env->log.attempt_drop += 1.0f;
+                    }
                     if (xy_dist_to_drop < k * 0.2f && z_dist_above_drop < k * 0.2f) {
                         agent->hovering_pickup = false;
                         agent->gripping = false;

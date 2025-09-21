@@ -137,6 +137,11 @@ Note (reverts applied after Run 2025-09-21T061611Z):
  - 2025‑09‑21T19:58:05Z (iter 8, run 2025‑09‑21T195318Z)
   • Result: oob≈0.805 (Δ vs prev −0.147), ho/de_pickup≈24.18/24.10 (≫), ho_drop≈0.108, attempt_grip=0, perfect_grip/deliv=0; mean_reward≈64.44 (Δ +33.30), ep_len≈200.97 (Δ +150.03), coll_rate≈0.0102.
   • Diagnosis: Phase emergence (hover/descend) without gripping → pickup gates too strict given k decays to 1.0 within ~200k global steps vs 200M total.
-  • Change: In `drone_pp.h`, slow curriculum cap to (k_max−k_min)/50M (from /200k) so lenient gates persist far longer; add logging-only near‑miss counter (`attempt_grip`).
-  • Expected: attempt_grip>0 and first grips; OOB stays ≤0.82; collisions stable.
+ • Change: In `drone_pp.h`, slow curriculum cap to (k_max−k_min)/50M (from /200k) so lenient gates persist far longer; add logging-only near‑miss counter (`attempt_grip`).
+ • Expected: attempt_grip>0 and first grips; OOB stays ≤0.82; collisions stable.
+ • Next config: {autopilot.resume=continue latest, save=best}.
+ - 2025‑09‑21T20:02:58Z (iter 9, run 2025‑09‑21T200258Z)
+  • Result: oob≈0.390 (Δ vs 195318Z −0.415), mean_reward≈201.94 (Δ +137.50), ep_len≈625.41 (Δ +424.44), coll_rate≈0.0211; ho/de_pickup≫ (≈5.29k/5.28k), ho_drop≈88–97; perfect_grip/deliv=0; attempt_grip=0; to_drop=0 due to missing flag.
+  • Change: Relax pickup grip gate with floors (XY/Z/speed/vel_z) to allow grips at k≈1; apply gripped mass/drag immediately upon grip; set `approaching_drop` during carry/drop and log `attempt_drop` near‑misses.
+  • Expected: attempt_grip>0 and first grips; `to_drop`>0 with ho_drop↗; OOB ≤0.45; collisions 2–3%.
   • Next config: {autopilot.resume=continue latest, save=best}.
