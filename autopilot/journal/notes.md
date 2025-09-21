@@ -65,3 +65,5 @@ Note (reverts applied after Run 2025-09-21T061611Z):
 ## 5) Decisions Log
 - 2025-09-21 (Run 2025-09-21T062450Z): OOB ≈ 0.952 remains primary. Clamp dynamics to curb drift/spin and widen spawn margins: BASE_MAX_VEL 50→20 m/s; BASE_MAX_OMEGA 50→25 rad/s (dronelib.h). Increase PP2 edge_margin 3→6 m for box/drop spawns. Hypothesis: OOB↓, longer episodes, hover stability↑; grips convert; deliveries follow once OOB under control.
  - 2025-09-21T06:43:20Z (Run 2025-09-21T063752Z): OOB ≈ 0.953 persists with some grips, zero deliveries. Decision: reduce floor OOB by raising pickup/drop altitude in `drone_pp.h/reset_pp2` (z: −GRID_Z+0.5→−GRID_Z+1.5) and increase initial hover target offset (+0.6→+0.8 m). Hypothesis: OOB↓ (fewer floor strikes), ho/de_pickup stable or ↑, collisions ~2.2%; delivery gates unchanged. Next: if OOB still >0.9, consider lateral spawn band tightening before any physics helpers.
+
+- 2025-09-21T070501Z: Remove proximity gating from velocity_penalty (drone_pp.h:compute_reward). Rationale: OOB≈0.95 from far-field runaways; penalize speed globally to curb drift while keeping approach shaping. Expect OOB↓, ho_drop↑, first deliveries as k→1.

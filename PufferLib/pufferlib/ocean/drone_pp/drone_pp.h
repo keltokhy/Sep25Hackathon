@@ -433,8 +433,13 @@ float compute_reward(DronePP* env, Drone *agent, bool collision) {
 
     float position_reward = clampf(expf(-dist / (env->reward_dist * env->pos_const)), -env->pos_penalty, 1.0f);
 
-    // slight reward for 0.05 for example, large penalty for over 0.4
-    float velocity_penalty = clampf(proximity_factor * (2.0f * expf(-(vel_magnitude - 0.05f) * 10.0f) - 1.0f), -1.0f, 1.0f);
+    // Penalize excessive speed globally (not only near the target).
+    // Rationale: With OOB ~0.95, far-field acceleration is unchecked because
+    // the old penalty was gated by proximity_factor. Removing that gate keeps
+    // a mild preference for slower, more stable motion everywhere, reducing
+    // boundary runaways while preserving approach shaping via approach_reward.
+    // slight reward for ~0.05 m/s, large penalty for >0.4 m/s
+    float velocity_penalty = clampf((2.0f * expf(-(vel_magnitude - 0.05f) * 10.0f) - 1.0f), -1.0f, 1.0f);
     if (DEBUG > 0) printf("    velocity_penalty = %.3f\n", velocity_penalty);
 
     float stability_reward = -angular_vel_magnitude / agent->params.max_omega;
