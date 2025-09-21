@@ -739,10 +739,12 @@ void c_step(DronePP *env) {
             // configs set an aggressive value (e.g., 0.02). Target ~200k global steps
             // to go from k_max to k_min: max_decay = (k_max - k_min) / 200_000.
             float sched_t = (float)env->global_tick;
-            // Slow down curriculum: keep k high for much longer so
-            // agents can reliably learn hover/descend/grip before
-            // gates tighten. Previously ~200k steps; now ~50M.
-            float max_decay = (env->grip_k_max - env->grip_k_min) / 50000000.0f;
+            // Curriculum schedule:
+            // Revert to a ~200k-step decay so k reaches its strict
+            // regime within a single run. This allows perfect_grip/
+            // perfect_deliv to register instead of staying at zero
+            // when k remains near k_max across resumed runs.
+            float max_decay = (env->grip_k_max - env->grip_k_min) / 200000.0f;
             float decay = fminf(env->grip_k_decay, max_decay);
             env->grip_k = clampf(sched_t * -decay + env->grip_k_max, env->grip_k_min, 100.0f);
             env->box_k = clampf(sched_t * env->box_k_growth + env->box_k_min, env->box_k_min, env->box_k_max);
@@ -819,19 +821,21 @@ void c_step(DronePP *env) {
                     // Rationale: logs show ho/de_pickup high and attempt_grip>0
                     // but perfect_grip=0. Widen XY/Z and speed/vertical-velocity
                     // tolerances modestly to bootstrap carry without physics hacks.
-                    // Relax pickup acceptance thresholds modestly to convert
+                    // Relax pickup acceptance thresholds further to convert
                     // frequent near-misses (hover/descend) into occasional grips
                     // at k≈1 without introducing physics hacks. Floors ensure
-                    // persistence when k decays.
-                    float grip_xy_tol = fmaxf(0.50f, k * 0.30f);
-                    float grip_z_tol  = fmaxf(0.45f, k * 0.30f);
-                    float grip_v_tol  = fmaxf(0.60f, k * 0.40f);
-                    float grip_vz_tol = fmaxf(0.28f, k * 0.12f);
+                    // persistence when k decays. Slightly widen XY/Z position
+                    // window and velocity bounds while keeping a cap on upward
+                    // motion to avoid false positives from bounce.
+                    float grip_xy_tol = fmaxf(0.60f, k * 0.30f);
+                    float grip_z_tol  = fmaxf(0.55f, k * 0.30f);
+                    float grip_v_tol  = fmaxf(0.75f, k * 0.40f);
+                    float grip_vz_tol = fmaxf(0.35f, k * 0.12f);
                     if (
                         xy_dist_to_box < grip_xy_tol &&
-                        z_dist_above_box < grip_z_tol && z_dist_above_box > -0.12f &&
+                        z_dist_above_box < grip_z_tol && z_dist_above_box > -0.20f &&
                         speed < grip_v_tol &&
-                        agent->state.vel.z > -grip_vz_tol && agent->state.vel.z <= 0.15f
+                        agent->state.vel.z > -grip_vz_tol && agent->state.vel.z <= 0.20f
                     ) {
                         if (k < 1.01 && env->box_k > 0.99f) {
                             agent->perfect_grip = true;

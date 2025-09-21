@@ -1,0 +1,37 @@
+Run: 2025-09-21T211342Z
+Snapshot
+- Grip: 0.0% | Delivery: 0.0% | E2E: 0.0%
+- OOB: 50.0% | Collisions: 4.47% | SPS: 1.80M
+
+Comparisons
+- Δ vs previous (2025-09-21T210327Z):
+  • Grip 0.0pp | Deliv 0.0pp | E2E 0.0pp
+  • OOB −22.6pp | SPS +0.02M | Reward −3.0
+- Δ vs baseline (2025-09-21T180522Z):
+  • Grip 0.0pp | Deliv 0.0pp | E2E 0.0pp
+  • OOB — | SPS — | Reward —
+
+Environment Changes
+- Applied in this run: curriculum cap reverted to ~200k‑step decay for grip_k; hover gate slightly widened (dist 1.0, speed 0.8).
+- Staged for next run: relax pickup acceptance floors (XY 0.60, Z 0.55, speed 0.75, |vz|≤0.35, allow z>−0.20, vz≤0.20).
+
+Interaction Effects Review
+- Systems touched (mark): [x] gates  [ ] rewards  [ ] physics  [x] curriculum(k)  [ ] spawns
+- Predicted side‑effects to monitor:
+  • attempt_grip↗, to_drop/ho_drop↗; check collision_rate stays ≤8% and OOB ≤55%
+- Observed side‑effects this run:
+  • OOB improved (−22.6pp); attempts dropped; still no grips/deliveries
+
+Decision
+- Modify: relax pickup acceptance as staged to convert near‑misses at k≈1
+- Rationale: ho/de_pickup present; descent happens but gates too strict for grip; curriculum schedule now allows strict phase to occur within a single run
+- Next hypothesis: With wider XY/Z and velocity bounds, near‑misses convert to first grips without regressing OOB
+
+Next Override (autopilot.* only)
+{
+  "autopilot": {
+    "resume_mode": "continue",
+    "resume_from": "latest",
+    "save_strategy": "best"
+  }
+}
