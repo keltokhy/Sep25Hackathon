@@ -1,0 +1,44 @@
+Run ID: 2025-09-21T203215Z | Iteration 12
+
+Problem
+- No perfect grips/deliveries despite strong hover/descend signals; OOB elevated (~0.72), collisions ~0.10
+- Near-miss signals high: attempt_grip ~0.379, to_drop ~2646, ho_drop ~420 → carrier flow not converting to success
+
+Observations (key metrics)
+- perfect_grip=0.000, perfect_deliv=0.000, end_to_end=0.000
+- ho_pickup=2843.556, de_pickup=2811.850, to_pickup=18121.156
+- to_drop=2645.701, ho_drop=419.629, attempt_drop=4.133
+- oob=0.723, collision_rate=0.0977, episode_return≈0.087, mean_reward≈31.68
+- sps≈1.79M, epoch=85
+
+Comparisons
+- Δ vs previous (2025-09-21T202241Z): mean_reward +37.47, episode_length −265.84, collision_rate +0.055, SPS +290.6k
+- Δ vs baseline (best.json→2025-09-21T202241Z): same as above (baseline pointer missing → fallback to best)
+
+Behavioral Analysis
+- diagnostic_grip: Hover and descent gates are being reached frequently; grips remain zero → pickup grip gate still too strict at k≈1
+- improve_carrying: High to_drop/ho_drop without deliveries suggests drop release gate also too tight at k≈1
+- fix_stability: OOB high but under 0.90 threshold, do not prioritize physics changes
+
+Environment Change (staged for NEXT run)
+- Pickup grip: widen acceptance window slightly
+  • z lower bound: −0.06 (was −0.02)
+  • speed tol: max(0.55, 0.35·k) (was max(0.50, 0.30·k))
+  • vertical vel tol: |vz| ≤ 0.22 and vz ≤ 0.08 (was 0.18 and 0.05)
+- Drop release: relax XY/Z tolerances and prevent undercut
+  • drop_xy_tol: max(0.30, 0.25·k); drop_z_tol: max(0.30, 0.25·k)
+  • require z_above_drop > −0.10 to avoid under-floor releases
+
+Expected Impact
+- attempt_grip ↗ and first non-zero grips; delivery attempts ↗; eventual first deliveries
+- OOB ↔ to slight ↑ near pickup zone; collisions ≤ 0.12
+
+Interaction Effects
+- Gates: Looser pickup and drop windows interact with existing slow k-decay; monitor for premature grips at higher k
+- Rewards: Slightly increased event frequency should assist credit assignment without changing reward weights
+- Physics: Unchanged; no soft walls/centralizing drag added
+
+Next
+- Continue from latest checkpoint (accumulate epochs)
+- Verify grip events (not just perfect_grip) show up in logs; if grips occur without deliveries, widen drop hover gate next
+

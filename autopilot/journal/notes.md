@@ -157,3 +157,9 @@ Note (reverts applied after Run 2025-09-21T061611Z):
   • Change staged (env/drone_pp.h): widen near‑miss window and relax pickup grip floors further: near_xy 0.40, near_z 0.35 (allow z>−0.10), grip_xy≥0.40, grip_z≥0.35, speed<0.50, |vz|≤0.18. No physics helpers; spawn/curriculum unchanged.
   • Expected: attempt_grip↑ and first non‑zero grips; to_drop/ho_drop↗; OOB stays ≤0.50; collisions ≤0.06.
   • Next config: {autopilot.resume=continue latest, save=best}.
+ - 2025‑09‑21T20:38:40Z (iter 12, run 2025‑09‑21T203215Z)
+   • Result: oob≈0.723 (Δ vs prev +0.260), collision_rate≈0.098 (Δ +0.055), ep_len≈284.96 (Δ −265.84); mean_reward≈31.68 (Δ +37.47); attempt_grip≈0.379; to_drop≈2646; ho_drop≈420; perfect_grip=0, perfect_deliv=0.
+   • Diagnosis: Hover/descend established; pickup grip gate still too strict at k≈1; drop release tolerances too tight.
+   • Change: Relax pickup grip acceptance (z > −0.06; speed<max(0.55, 0.35·k); |vz|≤0.22, vz≤0.08). Relax drop release (XY/Z < max(0.30, 0.25·k), z>−0.10). No physics helpers.
+   • Expected: attempt_grip↗ and first grips; delivery attempts↗; early deliveries possible; OOB ≤0.78; collisions ≤0.12.
+   • Next config: {autopilot.resume=continue latest, save=best}.

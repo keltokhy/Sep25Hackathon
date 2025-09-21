@@ -818,13 +818,13 @@ void c_step(DronePP *env) {
                     // tolerances modestly to bootstrap carry without physics hacks.
                     float grip_xy_tol = fmaxf(0.40f, k * 0.25f);
                     float grip_z_tol  = fmaxf(0.35f, k * 0.25f);
-                    float grip_v_tol  = fmaxf(0.50f, k * 0.30f);
-                    float grip_vz_tol = fmaxf(0.18f, k * 0.10f);
+                    float grip_v_tol  = fmaxf(0.55f, k * 0.35f);
+                    float grip_vz_tol = fmaxf(0.22f, k * 0.10f);
                     if (
                         xy_dist_to_box < grip_xy_tol &&
-                        z_dist_above_box < grip_z_tol && z_dist_above_box > -0.02f &&
+                        z_dist_above_box < grip_z_tol && z_dist_above_box > -0.06f &&
                         speed < grip_v_tol &&
-                        agent->state.vel.z > -grip_vz_tol && agent->state.vel.z <= 0.05f
+                        agent->state.vel.z > -grip_vz_tol && agent->state.vel.z <= 0.08f
                     ) {
                         if (k < 1.01 && env->box_k > 0.99f) {
                             agent->perfect_grip = true;
@@ -880,7 +880,9 @@ void c_step(DronePP *env) {
                     if (xy_dist_to_drop < near_drop_xy_tol && fabsf(z_dist_above_drop) < near_drop_z_tol) {
                         env->log.attempt_drop += 1.0f;
                     }
-                    if (xy_dist_to_drop < k * 0.2f && z_dist_above_drop < k * 0.2f) {
+                    float drop_xy_tol = fmaxf(0.30f, k * 0.25f);
+                    float drop_z_tol  = fmaxf(0.30f, k * 0.25f);
+                    if (xy_dist_to_drop < drop_xy_tol && z_dist_above_drop < drop_z_tol && z_dist_above_drop > -0.10f) {
                         agent->hovering_pickup = false;
                         agent->gripping = false;
                         update_gripping_physics(agent);
