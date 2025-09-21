@@ -38,6 +38,10 @@ Purpose: concise long‑term memory that guides future iterations at a glance. U
  - Relax pickup hover gate further: admit hovering when `dist_to_hidden < 1.8` and `speed < 1.2` (was 1.0/0.8). Rationale: agents struggle to satisfy hover gate at typical spawn offsets; descent remains XY‑gated and gentle (−0.06 m/s). Expect ho/de_pickup↑ and attempt_grip↑ without increasing collisions.
 - New: Relax grip vertical descent gate — require `vel.z > -max(0.15, 0.06·k)` (still `< 0`) during pickup grip. Rationale: at k≈1 the −0.06 m/s cap is too strict and blocks legitimate grips; allowing moderate descent should yield first non‑zero grips and `to_drop > 0` without increasing collisions.
  - Physics damping test: Increase BASE_B_DRAG (0.1→0.2) and BASE_K_ANG_DAMP (0.2→0.3) to reduce drift/overshoot during hover and descent. Hypothesis: OOB↓; ho/de_pickup↑; attempt_grip↑; first grips emerge without raising collisions. If ineffective, consider action clamping next (keep observation space stable).
+ - Soft boundary fields (current): Add gentle repulsive forces near XY walls and floor/ceiling in `dronelib.h` to prevent immediate OOB resets while untrained. Hypothesis: oob↓↓, episode_length↑, ho/de_pickup↑; keep collisions stable. Escalate by tuning constants only if OOB remains >0.5 after this change.
+
+## 5) Decisions Log (terse, dated)
+- 2025-09-21T03:58Z | Soft walls/floor in physics → reduce OOB; enable hover | Run 2025-09-21T034634Z showed ho/de_pickup≈0.015–0.035 and oob≈0.88 with zero grips; added `F_soft` near boundaries in `dronelib.h` (no gate/reward changes). Expect oob↓↓ and ho/de_pickup↑ next.
 
 ## 5) Decisions Log (terse, dated)
 - 2025‑09‑20: Restore header to upstream commit `552502e`; revert local edits; baseline re‑established.

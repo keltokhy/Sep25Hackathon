@@ -381,11 +381,48 @@ void compute_derivatives(State* state, Params* params, float* actions, StateDeri
     F_aero.y = -params->b_drag * state->vel.y;
     F_aero.z = -params->b_drag * state->vel.z;
 
+    // Soft boundary forces (stability aid)
+    // Apply gentle repulsive forces near the arena walls and floor/ceiling to
+    // reduce early out-of-bounds terminations while policy is untrained.
+    // Tuned to be much smaller than thrust/gravity so normal flight remains unchanged.
+    const float wall_band = 1.0f;   // start pushing back within 1m of XY walls
+    const float wall_k = 2.0f;      // N per meter into the band
+    const float floor_band = 0.8f;  // start pushing up within 0.8m of the floor
+    const float floor_k = 8.0f;     // stronger vertical push to avoid floor strikes
+    const float ceil_band = 0.8f;   // gentle ceiling push
+    const float ceil_k = 4.0f;
+
+    Vec3 F_soft = {0.0f, 0.0f, 0.0f};
+    // +X wall
+    if (state->pos.x > GRID_X - wall_band) {
+        F_soft.x -= wall_k * (state->pos.x - (GRID_X - wall_band));
+    }
+    // -X wall
+    if (state->pos.x < -GRID_X + wall_band) {
+        F_soft.x += wall_k * ((-GRID_X + wall_band) - state->pos.x);
+    }
+    // +Y wall
+    if (state->pos.y > GRID_Y - wall_band) {
+        F_soft.y -= wall_k * (state->pos.y - (GRID_Y - wall_band));
+    }
+    // -Y wall
+    if (state->pos.y < -GRID_Y + wall_band) {
+        F_soft.y += wall_k * ((-GRID_Y + wall_band) - state->pos.y);
+    }
+    // Floor (z = -GRID_Z)
+    if (state->pos.z < -GRID_Z + floor_band) {
+        F_soft.z += floor_k * ((-GRID_Z + floor_band) - state->pos.z);
+    }
+    // Ceiling (z = +GRID_Z)
+    if (state->pos.z > GRID_Z - ceil_band) {
+        F_soft.z -= ceil_k * (state->pos.z - (GRID_Z - ceil_band));
+    }
+
     // velocity rates, a = F/m
     Vec3 v_dot;
-    v_dot.x = (F_prop.x + F_aero.x) / params->mass;
-    v_dot.y = (F_prop.y + F_aero.y) / params->mass;
-    v_dot.z = ((F_prop.z + F_aero.z) / params->mass) - params->gravity;
+    v_dot.x = (F_prop.x + F_aero.x + F_soft.x) / params->mass;
+    v_dot.y = (F_prop.y + F_aero.y + F_soft.y) / params->mass;
+    v_dot.z = ((F_prop.z + F_aero.z + F_soft.z) / params->mass) - params->gravity;
 
     // quaternion rates
     Quat omega_q = {0.0f, state->omega.x, state->omega.y, state->omega.z};

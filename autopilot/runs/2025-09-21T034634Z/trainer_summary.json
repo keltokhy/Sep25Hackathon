@@ -1,0 +1,31 @@
+{
+  "timestamp": "2025-09-21T03:54:59Z",
+  "run_id": "2025-09-21T034634Z",
+  "train": {
+    "seed": 42,
+    "learning_rate": 0.006047018496816363,
+    "entropy_coef": 0.07123566778619919,
+    "batch_size": "auto",
+    "minibatch_size": 16384,
+    "max_minibatch_size": 32768,
+    "bptt_horizon": 64,
+    "total_timesteps": 200000000
+  },
+  "env": {
+    "num_envs": 24,
+    "num_drones": 64
+  },
+  "vec": {
+    "num_envs": 24,
+    "num_workers": 24
+  },
+  "metrics": {
+    "success_rate": 0.0,
+    "mean_reward": 5.422229041655858,
+    "episode_length": 116.01663478215535,
+    "collision_rate": 0.004969981188575427,
+    "sps": 1728451.2975176303,
+    "agent_steps": 276037632,
+    "epoch": 85
+  }
+}

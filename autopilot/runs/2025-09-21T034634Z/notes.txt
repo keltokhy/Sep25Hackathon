@@ -1,0 +1,24 @@
+Run: 2025-09-21T034634Z (iteration 5)
+
+Problem observed (behavioral_analysis fallback to train.log):
+- perfect_grip = 0.000, perfect_deliv = 0.000
+- ho_pickup ~ 0.015–0.035, de_pickup ~ 0.014–0.034 (very low)
+- to_drop = 0.000, ho_drop = 0.000
+- oob ≈ 0.874–0.888 (dominant resets), collision_rate ≈ 0.005
+- episode_return ≈ -0.36, episode_length ≈ 116–131
+
+Diagnosis:
+- Diagnostic grip: drone rarely reaches hover; descent/grip never triggered.
+- Fix stability: extremely high OOB suggests drift/overshoot dominates before hover gates can engage, despite relaxed gates and spawn-near-box.
+
+Change (environment-only):
+- PufferLib/pufferlib/ocean/drone_pp/dronelib.h: add soft boundary forces (F_soft) — gentle repulsion within 1.0m of XY walls and 0.8m of floor/ceiling; summed into linear acceleration. No gate/reward/hparam edits.
+  • Rationale: reduce early OOB terminations so agents can stabilize and attempt hover; aligns with Notes ‘fix_stability’ and avoids re‑introducing low‑altitude penalties.
+  • Dimension: physics (stability); orthogonal to prior gate tweaks.
+
+Expected impact (next run):
+- oob↓↓, episode_length↑, ho_pickup↑ and de_pickup↑; collisions unchanged.
+- With more stable approach, first near‑grip attempts should register (attempt_grip↑), enabling first grips.
+
+References:
+- Notes: “Header evolution: drone_pp.h” and Open Hypotheses → soft‑floor consideration; avoid penalty re‑introductions; use physics mitigations first.
