@@ -1,0 +1,60 @@
+{
+  "run_id": "2025-09-21T215341Z",
+  "iteration": 20,
+  "baseline_run_id": "2025-09-21T214439Z",
+  "previous_run_id": "2025-09-21T214439Z",
+  "config_pointers": {
+    "config": "autopilot/runs/2025-09-21T215341Z/config.json",
+    "trainer_summary": "autopilot/runs/2025-09-21T215341Z/trainer_summary.json",
+    "override": "autopilot/runs/2025-09-21T215341Z/override.json"
+  },
+  "metrics_final": {
+    "perf": 0.272,
+    "score": 35.961,
+    "oob": 0.647,
+    "collision_rate": 0.058,
+    "episode_return": 0.014,
+    "episode_length": 362.276,
+    "sps": 1682804.339,
+    "epoch": 85,
+    "perfect_grip": 0.000,
+    "perfect_deliv": 0.000,
+    "to_pickup": 23079.878,
+    "ho_pickup": 3294.949,
+    "de_pickup": 3261.132,
+    "to_drop": 3221.771,
+    "ho_drop": 323.479,
+    "attempt_grip": 0.386,
+    "attempt_drop": 2.085
+  },
+  "deltas": {
+    "vs_previous": {
+      "oob": -0.021,
+      "collision_rate": -0.003,
+      "perf": -0.023,
+      "score": -10.128,
+      "ho_pickup": 1051.427,
+      "de_pickup": 1055.574,
+      "to_pickup": 1381.645,
+      "to_drop": 1163.589,
+      "ho_drop": 3.517,
+      "attempt_grip": -0.004,
+      "attempt_drop": -0.004,
+      "perfect_grip": 0.0,
+      "perfect_deliv": 0.0
+    },
+    "vs_baseline": {
+      "note": "Using best.json (2025-09-21T214439Z) as baseline pointer for this window"
+    }
+  },
+  "behavioral_analysis": "Hover and descent quality clearly improved (ho/de_pickup and to_drop up), while OOB and collisions trended slightly down. However, perfect_grip and perfect_deliv remain at 0 and grip attempts are essentially flat vs prior. Diagnosis: agent descends toward the box but fails acceptance checks, so carry never reliably starts. Root cause is overly strict pickup acceptance/\"perfect\" envelope under current k regime. Solution staged for next run: relax pickup floors (XY/Z/speed/|vz|) and slightly relax the strict perfect envelope to allow the first successful grips to register without physics helpers.",
+  "systems_touched_next": [
+    "gates: pickup grip acceptance floors",
+    "metrics: perfect_grip envelope"
+  ],
+  "resume_policy": {
+    "mode": "continue",
+    "from": "latest",
+    "save": "best"
+  }
+}

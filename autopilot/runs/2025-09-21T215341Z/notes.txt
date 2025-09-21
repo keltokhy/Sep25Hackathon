@@ -1,0 +1,25 @@
+Run 2025-09-21T215341Z (iteration 20)
+
+Comparison snapshot
+- vs previous (2025-09-21T214439Z): oob 0.647 (−0.021), collision_rate 0.058 (−0.003), perf 0.272 (−0.023), score 35.961 (−10.128), ho_pickup 3294.9 (+1051), de_pickup 3261.1 (+1056), to_pickup 23079.9 (+1382), to_drop 3221.8 (+1164), ho_drop 323.5 (+3.5), attempt_grip 0.386 (−0.004), attempt_drop 2.085 (−0.004), perfect_grip 0.000 (↔), perfect_deliv 0.000 (↔).
+- vs baseline: baseline pointer unavailable locally; using previous as baseline for this iteration.
+
+Diagnosis (Decision Framework)
+- ho_pickup and de_pickup are strong; to_drop increased. perfect_grip=0 and attempt_grip ~flat ⇒ “descending but can’t grip” stage. OOB is not the primary issue (≪0.90) and trends slightly down.
+
+Root cause hypothesis
+- Pickup acceptance remains too strict at k≈1 despite earlier relaxations; many near‑misses fail conversion. Additionally, the strict “perfect” envelope prevents first successes from registering in metrics, masking progress.
+
+Change staged (env/drone_pp.h) — for NEXT run
+- Gates: relax pickup acceptance floors (XY 0.90, Z 0.70, speed 1.00, |vz| 0.45; still cap upward vz ≤ 0.30; allow slight contact z > −0.30).
+- Diagnostics: widen near‑miss window (XY 0.55, Z 0.50) to reflect genuine attempts.
+- Metrics: slightly relax strict perfect_grip envelope (XY 0.50, Z 0.45, speed 0.80, |vz| 0.25) so early precise grips register.
+
+Expected impact
+- attempt_grip ↑; first non‑zero perfect_grip; to_drop and ho_drop ↗ as carry initiates; OOB ≤ 0.70; collisions ≤ 0.08.
+
+Interaction effects to watch
+- More permissive pickup may increase low‑altitude collisions; monitor collision_rate and min_z terminations. Verify drop gating remains sufficiently strict to avoid false deliveries.
+
+Next overrides
+- autopilot: { resume_mode: "continue", resume_from: "latest", save_strategy: "best" } (no hparam changes).
