@@ -1,0 +1,27 @@
+Run 2025-09-21T054645Z — analysis and next steps
+
+Problem
+- diagnostic_grip improved to first non-zero grips, but deliveries still 0.
+- OOB remains very high (~0.954). Collision rate acceptable (~2.2%).
+
+Key metrics (final UI snapshot)
+- perfect_grip ≈ 0.12; perfect_deliv = 0.00
+- ho_pickup ≫ 0; de_pickup ≫ 0; attempt_grip ≈ 0.015
+- to_drop large; ho_drop very low (~31), attempt_drop ~0.002–0.003
+- oob ≈ 0.954; collision_rate ≈ 0.022; episode_length ≈ 48.9; SPS ≈ 1.37M
+
+Root cause hypothesis
+- Drop hover and delivery success gates are too strict relative to pickup gates.
+- After enabling grips (slower grip_k decay), the policy reaches/descends to pickup but cannot satisfy narrow drop hover and success thresholds, preventing deliveries.
+
+Change applied (for next run)
+- Relaxed drop hover and delivery gates in `drone_pp.h` to mirror pickup tolerances:
+  • Hovering for drop: XY < 0.75·k and z > 0.3 with speed < 2.5 (was XY < 0.4·k and 0.3–0.6m window).
+  • Delivery success: XY < 0.30·k_floor and z < 0.30·k_floor (was 0.20·k for both).
+
+Expected impact
+- ho_drop↑ and attempt_drop↑ once grips occur; first non‑zero deliveries.
+- OOB should not worsen; collisions stay < 0.05.
+
+Notes
+- No trainer/env/vec hparam changes. Proposal left as `{}` per policy.

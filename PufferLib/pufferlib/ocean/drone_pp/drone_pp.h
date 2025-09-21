@@ -854,8 +854,9 @@ void c_step(DronePP *env) {
                     // Lower hidden hover point to reduce overshoot before descent (mirrors pickup phase)
                     agent->hidden_pos = (Vec3){agent->drop_pos.x, agent->drop_pos.y, agent->drop_pos.z + 0.6f};
                     agent->hidden_vel = (Vec3){0.0f, 0.0f, 0.0f};
-                    // Align drop hover gate with target hover height (~0.4m above drop)
-                    if (xy_dist_to_drop < k * 0.4f && z_dist_above_drop > 0.3f && z_dist_above_drop < 0.6f) {
+                    // Align drop hover gate with pickup-style tolerance to admit stable hovers
+                    // near the drop before descent (wider XY, speed-bounded)
+                    if (xy_dist_to_drop < k * 0.75f && z_dist_above_drop > 0.3f && speed < 2.5f) {
                         agent->hovering_drop = true;
                         reward += 0.25;
                         agent->color = (Color){0, 0, 255, 255}; // Blue
@@ -878,7 +879,9 @@ void c_step(DronePP *env) {
                         agent->hidden_vel = (Vec3){0.0f, 0.0f, 0.0f};
                         agent->hidden_pos.z = fmaxf(agent->hidden_pos.z, agent->drop_pos.z + 0.6f);
                     }
-                    if (xy_dist_to_drop < k * 0.2f && z_dist_above_drop < k * 0.2f) {
+                    // Relax delivery success gates to mirror pickup success tolerance
+                    // to encourage first deliveries once grips occur
+                    if (xy_dist_to_drop < fmaxf(k, 1.0f) * 0.30f && z_dist_above_drop < fmaxf(k, 1.0f) * 0.30f) {
                         agent->hovering_pickup = false;
                         agent->gripping = false;
                         update_gripping_physics(agent);
