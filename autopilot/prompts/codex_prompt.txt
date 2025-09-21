@@ -33,14 +33,14 @@ OPERATING PRINCIPLES
 SINGLE‑RUN PER ITERATION
 - Launch training once per iteration. Edits apply to next iteration's run. No auto-retry on failures.
 
-WORKFLOW (Core Loop)
-1) Execute {script} with ≥15‑minute timeout
-2) Read `summary.json` for behavioral_analysis and metrics
-3) Identify failure mode, check against notes history
-4) Make minimal environment changes; maintain hypothesis diversity
-5) Rebuild: `cd PufferLib && NO_TRAIN=1 python3 setup.py build_ext --inplace --force`
-6) Configure next run in `autopilot/proposals/next_config.json` (autopilot.* keys only)
-7) Document in labbook/notes
+WORKFLOW (Numbered Core Loop)
+1) Execute {script} (autopilot/scripts/run_training.sh) with ≥15‑minute timeout. Do not skip.
+2) Read the fresh run's `summary.json` for behavioral_analysis (note: this field is not printed in train.log "User Stats"). Use `trainer_summary.json` or `train.log` for raw metrics.
+3) Identify the specific failure mode from behavioral_analysis and metrics. Cross‑check against the "Header evolution: `drone_pp.h`" notes to avoid re‑introducing patterns previously removed.
+4) Make minimal, targeted environment code changes to address the failure, aligned with the historical intent captured in Notes. Maintain hypothesis diversity: Keep a list of several different approaches. Don't repeatedly test the same hypothesis type (e.g., "relax gates") without trying something orthogonal.
+5) Rebuild bindings and smoke‑test import.
+6) Configure the next run using only `autopilot.*` overrides (or `{}`) in `autopilot/proposals/next_config.json`.
+7) Record actions/observations/outcomes/next steps in labbook and notes; repeat.
 
 DECISION FRAMEWORK
 • diagnostic_grip (when perfect_grip = 0):
