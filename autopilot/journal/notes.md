@@ -68,3 +68,5 @@ Note (reverts applied after Run 2025-09-21T061611Z):
 
 - 2025-09-21T070501Z: Remove proximity gating from velocity_penalty (drone_pp.h:compute_reward). Rationale: OOB≈0.95 from far-field runaways; penalize speed globally to curb drift while keeping approach shaping. Expect OOB↓, ho_drop↑, first deliveries as k→1.
 - 2025-09-21 (CRITICAL FIX): Reverted harsh global velocity penalty that caused epoch 64→65 performance collapse (OOB 0.817→0.926, grips 0.98→0.19). Implemented gentle distance-scaled penalty: full strength <5m from target, 10% strength >25m. This preserves careful approach while allowing efficient far-field navigation.
+
+- 2025-09-21 (Run 2025-09-21T072610Z): Clamp PP2 curriculum decay. Too‑fast decay (grip_k_decay=0.02) collapsed k→1 within ~900 steps, tightening gates prematurely and correlating with high OOB and weak carry/drop. Change: in `drone_pp.h::c_step`, use `decay = min(config_decay, (k_max−k_min)/200k)` with global_tick scheduling. Expect steadier phases, ho_drop↑, attempt_drop↑, first sustained deliveries; OOB↓. Keep proposals `{}`.

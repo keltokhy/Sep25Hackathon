@@ -732,9 +732,14 @@ void c_step(DronePP *env) {
             }
             agent->approaching_pickup = true;
             float speed = norm3(agent->state.vel);
-            // Use global_tick to schedule curriculum so k evolves smoothly across training
+            // Use global_tick to schedule curriculum so k evolves smoothly across training.
+            // Clamp the effective decay to avoid collapsing difficulty too quickly when
+            // configs set an aggressive value (e.g., 0.02). Target ~200k global steps
+            // to go from k_max to k_min: max_decay = (k_max - k_min) / 200_000.
             float sched_t = (float)env->global_tick;
-            env->grip_k = clampf(sched_t * -env->grip_k_decay + env->grip_k_max, env->grip_k_min, 100.0f);
+            float max_decay = (env->grip_k_max - env->grip_k_min) / 200000.0f;
+            float decay = fminf(env->grip_k_decay, max_decay);
+            env->grip_k = clampf(sched_t * -decay + env->grip_k_max, env->grip_k_min, 100.0f);
             env->box_k = clampf(sched_t * env->box_k_growth + env->box_k_min, env->box_k_min, env->box_k_max);
             agent->box_mass = env->box_k * agent->box_base_mass;
             float k = env->grip_k;

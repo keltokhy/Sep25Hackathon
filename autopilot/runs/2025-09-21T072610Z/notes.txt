@@ -1,0 +1,29 @@
+Run 2025-09-21T072610Z notes
+
+Problem observed (improve_carrying + fix_stability):
+- OOB ≈ 0.79–0.81 (still high, though improved from ~0.95 prior).
+- perfect_grip ≫ 0 but perfect_deliv very low (~14 aggregate in UI panel).
+- to_pickup/ho_pickup/de_pickup are large; to_drop/ho_drop much smaller; attempt_drop ~0.02.
+- Episode length ≈ 198; collision_rate ≈ 0.028.
+
+Root cause hypothesis:
+- Curriculum is collapsing too quickly: grip_k_decay = 0.02 (from config) drives k from ~17.9 → 1.0 within ~900 global steps.
+- Gates tighten early, converting hover/descent into near‑miss resets; agent drifts → OOB before learning carry/drop.
+
+Change (for next iteration):
+- PufferLib/pufferlib/ocean/drone_pp/drone_pp.h (c_step): clamp effective decay to a safe maximum targeting ~200k global steps:
+  decay = min(env->grip_k_decay, (grip_k_max − grip_k_min) / 200000).
+  Then use global_tick to schedule k: k = clamp(-decay * t + k_max, k_min, ...).
+
+Historical alignment:
+- Matches Notes → “Header evolution: PP2 curriculum via global steps; slower decay to avoid early collapse.”
+- Avoids re‑adding soft walls/centralizing fields; retains stabilized hover/descent logic and lenient drop gates added earlier.
+
+Expected impact:
+- Stabilize phase progression; ho_drop↑ and attempt_drop↑ as carry becomes feasible longer at high k.
+- First sustained deliveries; OOB trending lower as fewer early strict‑gate resets.
+- Collision rate unchanged (≈2–3%).
+
+Overrides for next run:
+- autopilot/proposals/next_config.json = {} (no hparam changes; resume fresh, save best).
+
