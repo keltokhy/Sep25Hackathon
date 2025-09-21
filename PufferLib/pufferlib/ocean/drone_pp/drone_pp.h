@@ -740,7 +740,9 @@ void c_step(DronePP *env) {
                     // Only allow descent when laterally aligned with the box.
                     // This reduces floor interactions and OOB from drifting during descent.
                     float k_floor = fmaxf(k, 1.0f);
-                    if (xy_dist_to_box <= k_floor * 0.20f) {
+                    // Relax XY alignment threshold slightly to allow descent
+                    // sooner and increase grip interactions (diagnostic_grip).
+                    if (xy_dist_to_box <= k_floor * 0.30f) {
                         // Even gentler descent to improve stability entering grip
                         agent->hidden_vel = (Vec3){0.0f, 0.0f, -0.06f};
                     } else {
@@ -755,9 +757,9 @@ void c_step(DronePP *env) {
                     if (DEBUG > 0) printf("    agent->state.vel.z = %.3f\n", agent->state.vel.z);
                     if (
                         // Relax grip gates further to register more legitimate attempts
-                        xy_dist_to_box < k * 0.20f &&
-                        z_dist_above_box < k * 0.20f && z_dist_above_box > 0.0f &&
-                        speed < k * 0.20f &&
+                        xy_dist_to_box < k * 0.30f &&
+                        z_dist_above_box < k * 0.30f && z_dist_above_box > 0.0f &&
+                        speed < k * 0.30f &&
                         // Loosen vertical descent gate at low k to admit reasonable
                         // approach speeds (diagnostic_grip). Cap strictness so
                         // vel.z > -0.15 m/s at minimum; scale with k otherwise.
@@ -816,7 +818,9 @@ void c_step(DronePP *env) {
                     agent->hidden_pos.y = agent->drop_pos.y;
                     // Only descend when laterally aligned with drop; otherwise hold altitude to correct drift
                     float k_floor = fmaxf(k, 1.0f);
-                    if (xy_dist_to_drop <= k_floor * 0.20f) {
+                    // Relax XY alignment threshold for drop descent to mirror pickup
+                    // changes and promote successful deliveries once grips occur.
+                    if (xy_dist_to_drop <= k_floor * 0.30f) {
                         // Gentler drop descent for stability, mirroring pickup descent tuning
                         agent->hidden_vel = (Vec3){0.0f, 0.0f, -0.06f};
                     } else {
