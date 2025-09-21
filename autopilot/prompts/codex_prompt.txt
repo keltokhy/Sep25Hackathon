@@ -44,7 +44,7 @@ OPERATING PRINCIPLES (Thoughtful, Memory‑Driven)
 - Always state the behavioral hypothesis you are testing and the expected effect on grip/hover/carry/deliver metrics.
 - If guidance conflicts, prefer the latest committed environment code and the Notes file.
  - Be introspective: do not make assumptions—check yourself. Verify claims against the current code, config, and logs before acting; re‑read constraints after changes. If a hypothesis shows no measurable improvement after a few iterations, consider exploring a different dimension of the problem space—sometimes a fresh angle reveals overlooked opportunities.
-- Track patterns: If performance consistently degrades at similar points in training, suspect training dynamics not environment. Consider: exploration decay, entropy bonus, or curriculum pacing changes. Track which 'dimensions' you've tried (gates/physics/rewards/spawn/curriculum) and systematically explore untouched dimensions before revisiting old ones.
+- Track patterns: If performance consistently degrades at similar points in training, suspect training dynamics not environment. The k parameter (difficulty) decay might be too aggressive - consider making it configurable in .ini files or implementing success-gated progression. Track which 'dimensions' you've tried (gates/physics/rewards/spawn/curriculum) and systematically explore untouched dimensions before revisiting old ones.
 
 SINGLE‑RUN PER ITERATION (Strict)
 - Launch training exactly once at the start of the iteration, then do analysis and documentation only. Do not relaunch training again within the same iteration.
@@ -67,7 +67,8 @@ DECISION FRAMEWORK (Diagnose by metrics)
     - If ho_pickup < 0.1: Drone can't reach hover position → relax hover gates or adjust spawn
     - If ho_pickup > 0.1 but de_pickup < 0.1: Hover works but won't descend → check descent gates
     - If de_pickup > 0.1 but perfect_grip = 0: Descending but can't grip → relax grip conditions
-    Try different approaches each iteration: gates OR rewards OR physics OR exploration
+    - If metrics improve then degrade at consistent epoch: Curriculum too aggressive → control k decay
+    Try different approaches each iteration: gates OR rewards OR physics OR curriculum
 
   • improve_carrying (when perfect_grip > 0 but perfect_deliv = 0):
     - Check to_drop: If low, navigation issue → adjust carry rewards
@@ -88,7 +89,8 @@ CREATIVE ESCALATION (When progress stalls)
 - After several iterations with minimal improvement, try orthogonal approaches:
   • Reward shaping: Modify reward weights in .ini first, then computation in .h
   • Physics tuning: Adjust box mass, drone thrust, gravity constants
-  • Curriculum design: Change k decay rates or initial values
+  • Curriculum control: Make k decay configurable via .ini or implement adaptive difficulty based on success rate
+  • Anti-collapse mechanisms: Add exploration bonuses or success-gated progression when performance degrades
   • Spawn strategy: Alter initial positions/orientations fundamentally
   • Observation space: Add/remove observations to change what policy sees
 - Document which dimension you're exploring and why previous approach plateaued
@@ -117,9 +119,11 @@ ENVIRONMENT DEBUGGING CHECKLIST
 3) Choose the right file to edit (in priority order):
    PRIORITY 1 (Try first - no rebuild needed):
    • `drone_pp.ini` - Reward weights, episode_length, env params
+     Consider: Can curriculum parameters (k decay) be made configurable here?
 
    PRIORITY 2 (Most impactful - requires rebuild):
    • `drone_pp.h` - Main logic, state machines, reward computation, physics
+     Consider: Environment-side solutions to training dynamics issues
 
    PRIORITY 3 (When deeper changes needed):
    • `drone_pp.py` - To change observation/action spaces
@@ -145,6 +149,7 @@ SUCCESS METRICS (Define thresholds)
   • Later: perfect_grip becoming non-zero (first successful grips)
   • Eventually: perfect_grip showing consistent growth
   If milestones stagnate, switch to different approach dimension
+  Note: If performance degrades consistently around the same training point, the curriculum (k parameter) may need adjustment rather than gate relaxation
 - Stop environment debugging when thresholds are met and metrics are stable; shift to performance/observability improvements only (no hparam tuning).
 
 FAILSAFES
