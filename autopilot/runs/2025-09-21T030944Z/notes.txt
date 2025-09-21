@@ -1,0 +1,24 @@
+Run 2025-09-21T030944Z — iteration 2
+
+Problem observed (diagnostic_grip + stability):
+- perfect_grip=0.000, perfect_deliv=0.000, end_to_end_success=0.000
+- ho_pickup low by end (~0.018); de_pickup ~0.017; to_drop=0.000; ho_drop=0.000
+- oob very high (0.848–0.869 typical; dipped to ~0.607 mid-run)
+- collision_rate ~0.005–0.009; episode_length ~136–404; SPS ~1.65M (trainer_summary), CPU ~330%
+- Failsafe: summary.json missing; used train log snapshots + trainer_summary.json
+
+Change (environment config, no trainer/env/vec hparam changes):
+- PufferLib/pufferlib/config/ocean/drone_pp.ini
+  • w_approach: 2.4493 → 3.0
+  • w_hover: 1.643 → 2.0
+  • reward_hover: 0.25 → 0.35
+  Rationale: Strengthen shaping toward XY alignment and stable hover at the hidden waypoint before descent. Avoid another gate relaxation this iteration to keep hypothesis diversity. This aligns with Notes §3–4 (hover-first guidance; event rewards) and keeps descent XY-gated and gentle (−0.06 m/s) as already implemented.
+
+Expected effect (next run):
+- ho_pickup↑, de_pickup↑, attempt_grip↑; first to_drop>0 possible
+- oob↓ (fewer floor/OOB resets during approach due to stronger hover shaping)
+- collision_rate stable (no physics/gate loosenings this time)
+
+References:
+- Notes.md → Stable Learnings (event shaping), Header Evolution (reward aligned to hover waypoint)
+- Decision framework → diagnostic_grip when ho/de low and perfect_grip=0; prefer reward shaping over repeated gate relaxations

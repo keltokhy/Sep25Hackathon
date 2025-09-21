@@ -74,3 +74,5 @@
 - 2025-09-21T02:51:30Z | align reward to hover | `PufferLib/pufferlib/ocean/drone_pp/drone_pp.h` (PP2 pickup): set `agent->target_pos = agent->hidden_pos` during Phase‑1 hover and Phase‑2 descent so compute_reward shapes toward the hidden hover waypoint (which descends gently once XY‑aligned) | Hypothesis: better stabilization above box and controlled descent → ho/de_pickup↑, attempt_grip↑, OOB↓; first non‑zero grips possible without raising collisions | Rebuilt bindings (`NO_TRAIN=1 python3 setup.py build_ext --inplace --force`); smoke‑import OK | Next: `{}`
 - 2025-09-21T02:52:51Z | run complete | Run 2025-09-21T024025Z (iteration 7) | metrics captured | 
 - 2025-09-21T03:09:44Z | run complete | Run 2025-09-21T025654Z (iteration 1) | metrics captured | 
+
+- 2025-09-21T03:18:26Z | run baseline_full | Run 2025-09-21T030944Z; perfect_grip=0, perfect_deliv=0; ho/de_pickup low; to_drop=0; oob≈0.85; coll≈0.005–0.009; ep_len≈136–404; SPS≈1.65M | bump reward shaping (w_approach→3.0, w_hover→2.0, reward_hover→0.35) to encourage XY alignment and hover before descent; no gate changes; no rebuild | next: {}
