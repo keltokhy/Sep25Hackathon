@@ -489,8 +489,18 @@ float compute_reward(DronePP* env, Drone *agent, bool collision) {
 }
 
 void reset_pp2(DronePP* env, Drone *agent, int idx) {
-    agent->box_pos = (Vec3){rndf(-MARGIN_X, MARGIN_X), rndf(-MARGIN_Y, MARGIN_Y), -GRID_Z + 0.5f};
-    agent->drop_pos = (Vec3){rndf(-MARGIN_X, MARGIN_X), rndf(-MARGIN_Y, MARGIN_Y), -GRID_Z + 0.5f};
+    // Keep box/drop spawns away from hard XY boundaries to reduce early OOB
+    float edge_margin = 3.0f;
+    agent->box_pos = (Vec3){
+        rndf(-MARGIN_X + edge_margin, MARGIN_X - edge_margin),
+        rndf(-MARGIN_Y + edge_margin, MARGIN_Y - edge_margin),
+        -GRID_Z + 0.5f
+    };
+    agent->drop_pos = (Vec3){
+        rndf(-MARGIN_X + edge_margin, MARGIN_X - edge_margin),
+        rndf(-MARGIN_Y + edge_margin, MARGIN_Y - edge_margin),
+        -GRID_Z + 0.5f
+    };
     agent->gripping = false;
     agent->delivered = false;
     agent->grip_height = 0.0f;
@@ -510,7 +520,7 @@ void reset_pp2(DronePP* env, Drone *agent, int idx) {
 
     // Spawn the drone near its assigned box to reduce early OOB
     // and encourage immediate hover/grip attempts (diagnostic_grip focus)
-    float r_xy = rndf(1.0f, 2.5f);
+    float r_xy = rndf(0.8f, 2.0f);
     float theta = rndf(0.0f, 2.0f * (float)M_PI);
     Vec3 spawn_pos = {
         agent->box_pos.x + r_xy * cosf(theta),
