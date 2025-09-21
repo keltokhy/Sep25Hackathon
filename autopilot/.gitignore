@@ -3,16 +3,5 @@ models/
 __pycache__/
 .DS_Store
 
-# Track runs and its contents
-
-# Track only selected files under runs; ignore large logs
-runs/*
-!runs/best.json
-!runs/**/config.json
-!runs/**/summary.json
-!runs/**/trainer_summary.json
-!runs/**/run.json
-!runs/**/notes.txt
-!runs/**/config_diff.json
-!runs/**/override.json
-!runs/**/model_path.txt
+# Runs: keep everything except log files
+runs/**/*.log

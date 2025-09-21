@@ -1,0 +1,20 @@
+Run 2025-09-21T010347Z — Analysis and Patch Plan
+
+Problem
+- Behavioral snapshot shows high OOB (~0.80), zero perfect_grip and zero deliveries.
+- Hover/grip attempts are sparse; to_drop and ho_drop remain at 0.
+- Likely cause: pickup phase starts too close to the floor (spawn z 1.5–2.5 m above box; hover target +0.6 m), leaving little headroom and causing floor-induced resets before stable hover/descent.
+
+Change (Environment only)
+- PufferLib/pufferlib/ocean/drone_pp/drone_pp.h:
+  • Raise hidden pickup hover offset to +0.9 m (was +0.6 m).
+  • Raise spawn altitude to 2.0–3.0 m above the box (was 1.5–2.5 m).
+- Rebuilt native bindings (NO_TRAIN=1) and smoke-imported the binding successfully.
+
+Expected Outcome / Hypothesis
+- Reduce floor-proximity OOB during approach and descent; increase stable hover time (ho_pickup↑) and descent attempts (de_pickup↑).
+- Grip still gated at the same thresholds; anticipate first non-zero grips if hover stabilizes; deliveries may remain limited until grips increase.
+- Collision rate should remain low; SPS unaffected.
+
+Historical Context
+- Intentional deviation from the prior “lower hover offset (+0.6 m)” diagnostic patch after observing persistent high OOB. This aligns with the fix_stability path in Notes and does not reintroduce removed low-altitude penalties.

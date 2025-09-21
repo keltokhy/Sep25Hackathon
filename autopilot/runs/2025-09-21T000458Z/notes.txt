@@ -1,0 +1,23 @@
+Run: 2025-09-21T000458Z
+Baseline: baseline_full.json (EXACT_CONFIG=1)
+Device: mps; OMP/MKL threads 28
+
+Problem
+- No behavioral_analysis in summary; UI metrics indicate: oob ~0.86, collision_rate ~0.005, perfect_grip=0.0, perfect_deliv=0.0; hover_pickup ~0.0 in final window.
+- Failure mode: diagnostic_grip with high OOB (not collision-driven).
+
+Change (env only)
+- File: PufferLib/pufferlib/ocean/drone_pp/drone_pp.h
+  - Lower initial hidden hover height above box: +1.0m → +0.8m.
+  - Phase‑1 hover gate: dist_to_hidden < 0.6 (was 0.4), speed < 0.5 (was 0.4).
+  - Phase‑2 grip gate: gentler hidden descent −0.08 m/s (was −0.10); widen acceptance xy/z < 0.15·k (was 0.10·k), speed < 0.15·k (was 0.10·k), vz > −0.08·k and < 0.0 (was > −0.05·k and < 0.0).
+
+Historical reference
+- Aligns with “Header evolution: drone_pp.h” (Sep 11–20): maintain clear phases; adjust thresholds to make grip preconditions reachable; avoid re‑adding low‑altitude penalties.
+
+Expected outcome
+- Increase in ho_pickup and initial grips; some deliveries may follow; collision rate stable; OOB may remain elevated and will be targeted next (soft-wall or spawn spacing) if needed.
+
+Next steps
+- Rerun baseline; if hover/grip move upward but deliveries remain ~0, consider relaxing drop hover/descent gates similarly.
+- If OOB persists > 0.6, add soft boundary damping or expand spawn spacing to reduce boundary hits.

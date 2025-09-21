@@ -1,0 +1,70 @@
+{
+  "run_id": "2025-09-21T004041Z",
+  "timestamp": "2025-09-21T00:52:15Z",
+  "seed": 42,
+  "grip_success": null,
+  "delivery_success": null,
+  "end_to_end_success": null,
+  "mean_reward": 6.277062952518463,
+  "episode_length": 139.78416029612222,
+  "behavioral_analysis": {
+    "insights": [
+      "\ud83d\udea8 Drone not attempting to grip objects at all"
+    ],
+    "severity": "critical",
+    "next_focus": "diagnostic_grip",
+    "grip_efficiency": 0,
+    "metrics_summary": {
+      "grip_success": "0.0%",
+      "delivery_success": "0.0%",
+      "end_to_end": "0.0%",
+      "collision_rate": "0.5%"
+    }
+  },
+  "environment_changes": true,
+  "environment_comparison": {
+    "has_changes": true,
+    "description": "Environment code modified since last run",
+    "files_changed": [
+      "PufferLib/pufferlib/ocean/drone_pp/drone_pp.h"
+    ]
+  },
+  "base_commit": "987e7f1d5f7a9cf8a6e1afb15b777026eb5471d4",
+  "modified_files": "M PufferLib/pufferlib/ocean/drone_pp/drone_pp.h",
+  "artifacts": [],
+  "notes": "auto-generated run summary",
+  "trainer_summary": {
+    "timestamp": "2025-09-21T00:49:37Z",
+    "run_id": "2025-09-21T004041Z",
+    "train": {
+      "seed": 42,
+      "learning_rate": 0.006047018496816363,
+      "entropy_coef": 0.07123566778619919,
+      "batch_size": "auto",
+      "minibatch_size": 16384,
+      "max_minibatch_size": 32768,
+      "bptt_horizon": 64,
+      "total_timesteps": 200000000
+    },
+    "env": {
+      "num_envs": 24,
+      "num_drones": 64
+    },
+    "vec": {
+      "num_envs": 24,
+      "num_workers": 24
+    },
+    "metrics": {
+      "success_rate": 0.0,
+      "mean_reward": 6.277062952518463,
+      "episode_length": 139.78416029612222,
+      "collision_rate": 0.0053768479944362,
+      "sps": 1634043.3322777238,
+      "agent_steps": 276037632,
+      "epoch": 85
+    }
+  },
+  "resume_mode": "fresh",
+  "resume_from": null,
+  "save_strategy": "best"
+}

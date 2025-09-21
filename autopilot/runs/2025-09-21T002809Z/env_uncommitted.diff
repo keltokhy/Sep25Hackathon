@@ -1,0 +1,49 @@
+diff --git a/PufferLib/pufferlib/ocean/drone_pp/drone_pp.h b/PufferLib/pufferlib/ocean/drone_pp/drone_pp.h
+index d728644..5403292 100644
+--- a/PufferLib/pufferlib/ocean/drone_pp/drone_pp.h
++++ b/PufferLib/pufferlib/ocean/drone_pp/drone_pp.h
+@@ -495,7 +495,8 @@ void reset_pp2(DronePP* env, Drone *agent, int idx) {
+     agent->hover_timer = 0.0f;
+     agent->target_pos = agent->box_pos;
+     agent->hidden_pos = agent->target_pos;
+-    agent->hidden_pos.z += 1.0f;
++    // Lower initial hover target slightly to reduce descent distance
++    agent->hidden_pos.z += 0.8f;
+     agent->hidden_vel = (Vec3){0.0f, 0.0f, 0.0f};
+ 
+     float drone_capacity = agent->params.arm_len * 4.0f;
+@@ -692,7 +693,8 @@ void c_step(DronePP *env) {
+                     if (DEBUG > 0) printf("    dist_to_hidden = %.3f\n", dist_to_hidden);
+                     if (DEBUG > 0) printf("    xy_dist_to_box = %.3f\n", xy_dist_to_box);
+                     if (DEBUG > 0) printf("    z_dist_above_box = %.3f\n", z_dist_above_box);
+-                    if (dist_to_hidden < 0.4f && speed < 0.4f) {
++                    // Relax hover gate: allow slightly larger radius and speed
++                    if (dist_to_hidden < 0.6f && speed < 0.5f) {
+                         agent->hovering_pickup = true;
+                         agent->color = (Color){255, 255, 255, 255}; // White
+                     } else {
+@@ -705,17 +707,19 @@ void c_step(DronePP *env) {
+                 // Phase 2 Box Descent
+                 else {
+                     agent->descent_pickup = true;
+-                    agent->hidden_vel = (Vec3){0.0f, 0.0f, -0.1f};
++                    // Gentler descent to improve stability entering grip
++                    agent->hidden_vel = (Vec3){0.0f, 0.0f, -0.08f};
+                     if (DEBUG > 0) printf("  GRIP\n");
+                     if (DEBUG > 0) printf("    xy_dist_to_box = %.3f\n", xy_dist_to_box);
+                     if (DEBUG > 0) printf("    z_dist_above_box = %.3f\n", z_dist_above_box);
+                     if (DEBUG > 0) printf("    speed = %.3f\n", speed);
+                     if (DEBUG > 0) printf("    agent->state.vel.z = %.3f\n", agent->state.vel.z);
+                     if (
+-                        xy_dist_to_box < k * 0.1f &&
+-                        z_dist_above_box < k * 0.1f && z_dist_above_box > 0.0f &&
+-                        speed < k * 0.1f &&
+-                        agent->state.vel.z > k * -0.05f && agent->state.vel.z < 0.0f
++                        // Relax grip gates slightly to increase early successes
++                        xy_dist_to_box < k * 0.15f &&
++                        z_dist_above_box < k * 0.15f && z_dist_above_box > 0.0f &&
++                        speed < k * 0.15f &&
++                        agent->state.vel.z > k * -0.08f && agent->state.vel.z < 0.0f
+                     ) {
+                         if (k < 1.01 && env->box_k > 0.99f) {
+                             agent->perfect_grip = true;
