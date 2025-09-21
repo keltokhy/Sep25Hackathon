@@ -1,0 +1,38 @@
+CRITICAL ANALYSIS - Run 2025-09-21T053033Z
+==========================================
+
+ROOT CAUSE ANALYSIS:
+The training has completely failed to make any progress. After 8+ iterations:
+- perfect_grip: 0.0 (no successful grips ever)
+- OOB rate: ~0.95 (agents immediately go out of bounds)
+- ho_pickup: ~0.015 (needs >0.1 to be meaningful)
+- Episode length: ~50 steps (immediate failure)
+
+WHY ALL CHANGES FAILED:
+1. The autopilot kept adding complexity instead of finding root cause
+2. Each "fix" made things worse by interfering with learning
+3. The real issue (curriculum too fast) was addressed too late
+
+HARMFUL CHANGES THAT MADE THINGS WORSE:
+- Action governor (scales actions to 25% when k>1) - PREVENTS LEARNING
+- Extreme physics damping (BASE_B_DRAG=0.50) - makes control sluggish
+- Soft walls + centralizing fields - artificial constraints that mask the real problem
+- Spawn too high (+2.0-3.0m) - increases difficulty
+
+THE ACTUAL SOLUTION:
+1. REVERT all the harmful additions (action governor, excessive damping, soft walls)
+2. Keep grip_k_decay at 0.02 (or even lower like 0.005)
+3. Let the agent learn naturally without artificial constraints
+
+EVIDENCE OF HARM:
+- Run 2025-09-21T040851Z: OOB ~0.86 (before action governor)
+- Run 2025-09-21T043409Z: OOB ~0.953 (after action governor added)
+- Run 2025-09-21T044717Z: OOB ~0.954 (after strengthening governor)
+- All subsequent runs: OOB stuck at ~0.953
+
+The action governor is literally preventing the drone from learning to fly.
+With k starting at 17.9 and action scaling at 0.25, the effective action is
+only 25% of what the policy outputs - no wonder it can't stay in bounds!
+
+RECOMMENDATION:
+Stop adding band-aids. Revert to clean baseline, keep only grip_k_decay=0.02.
