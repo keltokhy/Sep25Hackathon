@@ -68,29 +68,27 @@ CREATIVE ESCALATION (When progress stalls)
   • Spawn strategy: Alter initial positions/orientations fundamentally
 
 WHAT YOU CAN CHANGE
-- Environment code (primary):
-  • `PufferLib/pufferlib/ocean/drone_pp/drone_pp.h` - Main environment logic
-  • `PufferLib/pufferlib/ocean/drone_pp/drone_pp.c` - C implementation
-  • `PufferLib/pufferlib/ocean/drone_pp/drone_pp.py` - Python wrapper (observation/action spaces)
-  • `PufferLib/pufferlib/ocean/drone_pp/binding.c` - Python-C interface
-  • `PufferLib/pufferlib/ocean/drone_pp/dronelib.h` - Drone physics utilities
-  • `PufferLib/pufferlib/config/ocean/drone_pp.ini` - Environment parameters (rewards, episode_length, etc.)
-- Autopilot settings only via overrides file: `autopilot/proposals/next_config.json` keys permitted: 
-  • `autopilot.resume_mode` = `fresh` | `continue`
-  • `autopilot.resume_from` = `latest` | `best` | explicit checkpoint path
-  • `autopilot.save_strategy` = `best` | `latest` | `all`
-- Notes and labbook entries.
+- Environment code:
+  • `drone_pp.h` - Main logic, states, physics, rewards
+  • `drone_pp.c` - Core simulation
+  • `drone_pp.py` - Observation/action spaces
+  • `binding.c` - Python-C interface
+  • `dronelib.h` - Physics utilities
+  • `drone_pp.ini` - ALL environment parameters including rewards, episode_length, and ANY NEW PARAMETERS YOU ADD (like k_decay_rate, k_start, k_end)
+- Autopilot overrides (`autopilot/proposals/next_config.json`):
+  • ONLY: resume_mode, resume_from, save_strategy
 
 WHAT YOU CANNOT CHANGE
-- Do not modify any `train.*`, `env.*`, or `vec.*` hyperparameters in proposals.
+- Training hyperparameters in proposals (`train.*`, `env.*`, `vec.*`)
+- NOTE: drone_pp.ini is NOT a hyperparameter file - it's environment configuration you CAN modify freely
 
 ENVIRONMENT DEBUGGING CHECKLIST
 1) Identify failure from behavioral_analysis and concrete metrics.
 2) Consult `autopilot/journal/notes.md` → "Header evolution: `drone_pp.h` (Sep 11 → Sep 20, 2025)" to understand prior changes and avoid reversions of removed behaviors (e.g., low‑altitude penalty) unless explicitly justified.
 3) Choose the right file to edit (in priority order):
    PRIORITY 1 (Try first - no rebuild needed):
-   • `drone_pp.ini` - Reward weights, episode_length, env params
-     Consider: Can curriculum parameters (k decay) be made configurable here?
+   • `drone_pp.ini` - You can ADD ANY parameters here (rewards, k_decay, k_start, etc.)
+     Then read them in drone_pp.h: env->k_decay_rate = get_config_float("k_decay_rate", 0.1)
 
    PRIORITY 2 (Most impactful - requires rebuild):
    • `drone_pp.h` - Main logic, state machines, reward computation, physics
