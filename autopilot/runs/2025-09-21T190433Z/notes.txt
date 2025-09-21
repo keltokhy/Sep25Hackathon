@@ -1,0 +1,28 @@
+Run 2025-09-21T190433Z — Iteration 3
+
+Problem
+- OOB extremely high (0.960). No ho_pickup/de_pickup; zero grip/delivery. Score ~16.92; collisions low (~0.47%).
+
+Observations (Δ vs 2025-09-21T185523Z / 2025-09-21T184615Z)
+- oob: 0.960 (−0.002 / +0.001)
+- ho_pickup: 0.000 (−0.001 / 0.000) | de_pickup: 0.000 (−0.001 / 0.000)
+- perfect_grip: 0.000 (±0.000) | perfect_deliv: 0.000 (±0.000)
+- to_pickup: 2598.47 (+77.78 / −70.71)
+- episode_length: 42.53 (+1.21 / −1.10)
+- sps: 1.53M (−0.30M / −0.28M)
+
+Root Cause Hypothesis
+- Primary failure is boundary fly-offs before reaching hover: policy saturates actions → rapid outbound drift → early resets. Hover gates aren’t reached (ho_pickup≈0). Curriculum/gates secondary until OOB improves.
+
+Environment Changes (for next iteration)
+- c_step: boundary-aware action softening near XY walls (scale actions from 1.0→0.5 between 90–100% of GRID). No external forces added.
+- reset_pp2/reset_agent: increase edge margin from 10→17 to spawn drones/targets more centrally and reduce early wall interactions.
+
+Expected Impact
+- OOB: −20–30pp (target <0.75). ho_pickup: >0.005 emerging. de_pickup begins to register. Collisions unchanged.
+
+Interaction Effects to Watch
+- Potential underactuation near boundaries; ensure agents can still turn inward. Verify no regressions in SPS.
+
+Next Step
+- Run fresh with same baseline; if OOB still >0.90, extend action ramp horizon and/or slightly relax hover thresholds before touching curriculum.

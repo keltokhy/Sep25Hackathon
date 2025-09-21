@@ -1,0 +1,18 @@
+diff --git a/PufferLib/pufferlib/ocean/drone_pp/drone_pp.h b/PufferLib/pufferlib/ocean/drone_pp/drone_pp.h
+index 3d66632..ecf7c90 100644
+--- a/PufferLib/pufferlib/ocean/drone_pp/drone_pp.h
++++ b/PufferLib/pufferlib/ocean/drone_pp/drone_pp.h
+@@ -686,6 +686,13 @@ void c_step(DronePP *env) {
+         agent->perfect_now = false;
+ 
+         float* atn = &env->actions[4*i];
++        // Gentle early action scaling to curb saturation and OOB
++        // Ramp from 0.7 → 1.0 over ~100k global steps
++        float act_scale = 0.7f + 0.3f * fminf(1.0f, (float)env->global_tick / 100000.0f);
++        atn[0] *= act_scale;
++        atn[1] *= act_scale;
++        atn[2] *= act_scale;
++        atn[3] *= act_scale;
+         move_drone(agent, atn);
+ 
+         bool out_of_bounds = agent->state.pos.x < -GRID_X || agent->state.pos.x > GRID_X ||

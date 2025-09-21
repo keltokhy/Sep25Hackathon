@@ -510,7 +510,8 @@ float compute_reward(DronePP* env, Drone *agent, bool collision) {
 void reset_pp2(DronePP* env, Drone *agent, int idx) {
     // Keep box/drop spawns away from hard XY boundaries and slightly off the floor
     // to reduce early OOB and floor strikes while preserving pickup geometry.
-    float edge_margin = 10.0f;
+    // Increase margin to centralize initial tasks while OOB is high.
+    float edge_margin = 17.0f;
     agent->box_pos = (Vec3){
         rndf(-MARGIN_X + edge_margin, MARGIN_X - edge_margin),
         rndf(-MARGIN_Y + edge_margin, MARGIN_Y - edge_margin),
@@ -574,7 +575,8 @@ void reset_agent(DronePP* env, Drone *agent, int idx) {
 
     if (env->task == TASK_PP2) {
         // Spawn drones away from hard XY boundaries and above the floor for stability
-        float edge_margin = 10.0f;
+        // Increase margin to keep initial flight more central while policy stabilizes
+        float edge_margin = 17.0f;
         float z_min = -GRID_Z + 2.5f;
         float z_max = GRID_Z - 1.0f;
         agent->state.pos = (Vec3){
@@ -686,6 +688,28 @@ void c_step(DronePP *env) {
         agent->perfect_now = false;
 
         float* atn = &env->actions[4*i];
+        // Gentle early action scaling to curb saturation and OOB
+        // Ramp from 0.7 → 1.0 over ~100k global steps
+        float act_scale = 0.7f + 0.3f * fminf(1.0f, (float)env->global_tick / 100000.0f);
+        atn[0] *= act_scale;
+        atn[1] *= act_scale;
+        atn[2] *= act_scale;
+        atn[3] *= act_scale;
+
+        // Boundary-aware action softening (XY only): when close to hard walls,
+        // softly scale down actions to reduce fly-offs without adding external forces.
+        // Starts at 90% of GRID and scales to ~50% at the boundary.
+        float bx = fabsf(env->agents[i].state.pos.x) / GRID_X;
+        float by = fabsf(env->agents[i].state.pos.y) / GRID_Y;
+        float b = fmaxf(bx, by);
+        if (b > 0.90f) {
+            float t = fminf(1.0f, (b - 0.90f) / 0.10f); // 0 at 90%, 1 at 100%
+            float soft = 1.0f - 0.5f * t;               // 1.0 → 0.5
+            atn[0] *= soft;
+            atn[1] *= soft;
+            atn[2] *= soft;
+            atn[3] *= soft;
+        }
         move_drone(agent, atn);
 
         bool out_of_bounds = agent->state.pos.x < -GRID_X || agent->state.pos.x > GRID_X ||
