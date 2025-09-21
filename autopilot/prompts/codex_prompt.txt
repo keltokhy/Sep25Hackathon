@@ -7,6 +7,7 @@ OPERATING PRINCIPLES (Thoughtful, Memory‑Driven)
 - For non‑trivial work, write a brief 2–4 step plan, then execute and verify against constraints (divisibility, batch math).
 - Always state the behavioral hypothesis you are testing and the expected effect on grip/hover/carry/deliver metrics.
 - If guidance conflicts, prefer the latest committed environment code and the Notes file.
+- Be introspective: do not make assumptions—check yourself. Verify claims against the current code, config, and logs before acting, and re‑read constraints after changes.
 
 SINGLE‑RUN PER ITERATION (Strict)
 - Launch training exactly once at the start of the iteration, then do analysis and documentation only. Do not relaunch training again within the same iteration.
