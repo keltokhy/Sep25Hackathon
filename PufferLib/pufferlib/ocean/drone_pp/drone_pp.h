@@ -744,7 +744,10 @@ void c_step(DronePP *env) {
             // regime within a single run. This allows perfect_grip/
             // perfect_deliv to register instead of staying at zero
             // when k remains near k_max across resumed runs.
-            float max_decay = (env->grip_k_max - env->grip_k_min) / 200000.0f;
+            // Slow the curriculum: stretch k decay over ~5M global steps
+            // so the easier regime persists long enough to learn gripping.
+            // Keeping the min() preserves safety if configs set a very small decay.
+            float max_decay = (env->grip_k_max - env->grip_k_min) / 5000000.0f;
             float decay = fminf(env->grip_k_decay, max_decay);
             env->grip_k = clampf(sched_t * -decay + env->grip_k_max, env->grip_k_min, 100.0f);
             env->box_k = clampf(sched_t * env->box_k_growth + env->box_k_min, env->box_k_min, env->box_k_max);
@@ -833,15 +836,17 @@ void c_step(DronePP *env) {
                     // perfect_grip remains 0. Tight floors likely block
                     // acceptance at k≈1. So lower floors slightly while
                     // keeping k‑scaled terms for earlier phases.
-                    float grip_xy_tol = fmaxf(0.50f, k * 0.28f);
-                    float grip_z_tol  = fmaxf(0.50f, k * 0.28f);
-                    float grip_v_tol  = fmaxf(0.70f, k * 0.35f);
-                    float grip_vz_tol = fmaxf(0.30f, k * 0.10f);
+                    // Relax floors modestly to convert frequent near‑misses
+                    // into occasional successful grips at k≈1.
+                    float grip_xy_tol = fmaxf(0.70f, k * 0.28f);
+                    float grip_z_tol  = fmaxf(0.60f, k * 0.28f);
+                    float grip_v_tol  = fmaxf(0.85f, k * 0.35f);
+                    float grip_vz_tol = fmaxf(0.35f, k * 0.10f);
                     if (
                         xy_dist_to_box < grip_xy_tol &&
-                        z_dist_above_box < grip_z_tol && z_dist_above_box > -0.25f &&
+                        z_dist_above_box < grip_z_tol && z_dist_above_box > -0.30f &&
                         speed < grip_v_tol &&
-                        agent->state.vel.z > -grip_vz_tol && agent->state.vel.z <= 0.25f
+                        agent->state.vel.z > -grip_vz_tol && agent->state.vel.z <= 0.30f
                     ) {
                         if (k < 1.01 && env->box_k > 0.99f) {
                             agent->perfect_grip = true;
@@ -892,13 +897,13 @@ void c_step(DronePP *env) {
                     // Slow descent for stability during drop
                     agent->hidden_vel = (Vec3){0.0f, 0.0f, -0.05f};
                     // Near-miss diagnostics for drops
-                    float near_drop_xy_tol = fmaxf(0.40f, k * 0.30f);
-                    float near_drop_z_tol  = fmaxf(0.30f, k * 0.30f);
+                    float near_drop_xy_tol = fmaxf(0.50f, k * 0.30f);
+                    float near_drop_z_tol  = fmaxf(0.35f, k * 0.30f);
                     if (xy_dist_to_drop < near_drop_xy_tol && fabsf(z_dist_above_drop) < near_drop_z_tol) {
                         env->log.attempt_drop += 1.0f;
                     }
-                    float drop_xy_tol = fmaxf(0.30f, k * 0.25f);
-                    float drop_z_tol  = fmaxf(0.30f, k * 0.25f);
+                    float drop_xy_tol = fmaxf(0.40f, k * 0.25f);
+                    float drop_z_tol  = fmaxf(0.35f, k * 0.25f);
                     if (xy_dist_to_drop < drop_xy_tol && z_dist_above_drop < drop_z_tol && z_dist_above_drop > -0.10f) {
                         agent->hovering_pickup = false;
                         agent->gripping = false;

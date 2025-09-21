@@ -1,0 +1,36 @@
+Run 2025-09-21T191359Z (iteration 4)
+
+Summary
+- oob: 0.961 (prev 0.960 @ 2025-09-21T190433Z)
+- collision_rate: 0.00478 (prev 0.00471)
+- episode_length: 42.39 (prev 42.53)
+- mean_reward: 16.46 (prev 16.92)
+- perfect_grip: 0.000 (prev 0.000)
+- perfect_deliv: 0.000 (prev 0.000)
+- ho_pickup: 0.000; de_pickup: 0.000; to_pickup: ~2588
+- to_drop: 0.000; ho_drop: 0.000; attempt_grip/drop: 0.000
+- sps: ~1.79M; epoch: 85
+
+Deltas
+- vs previous (2025-09-21T190433Z): oob +0.001; mean_reward −0.46; ep_len −0.13; collisions +0.00007; no change in grip/deliv (still 0).
+- vs baseline (best pointer 2025-09-21T190433Z): same as above (no improvement).
+
+Diagnosis
+- Primary failure remains extreme OOB (~96%). No hover or descent attempts registered; grip and delivery remain zero. Recent boundary-aware action softening and stronger centralization did not reduce OOB.
+
+Change Implemented (for next run)
+- env/drone_pp.h:
+  • Remove XY boundary action softening (revert helper that didn’t help and may fight control near walls).
+  • Slow the early action ramp to curb early fly-offs: scale 0.5→1.0 over ~400k global steps (was 0.7→1.0 over 100k).
+  • Raise PP2 spawn altitude (+1.0 m; z_min −GRID_Z+3.5) and lift z-floor termination to −GRID_Z+1.0 (+0.3 if gripping) to reduce floor resets.
+
+Hypothesis & Expected Metrics
+- OOB decreases (primary) and episode_length increases; first non-zero ho_pickup (>0.005) should appear; collisions remain ≈0.5%.
+
+Interactions to Watch
+- Gates/Rewards: no change; hover/descent thresholds unchanged.
+- Physics: unchanged core constants (no soft walls, base drag 0.10, ang damp 0.20).
+- Curriculum: unchanged (decay clamped to ~200k steps in env logic).
+
+Next Steps
+- If OOB remains >0.90 after this change, consider modestly lowering BASE_MAX_VEL or widening XY edge margins further, but avoid adding soft walls/centralizing forces.

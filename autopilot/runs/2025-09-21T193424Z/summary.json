@@ -1,12 +1,12 @@
 {
-  "run_id": "2025-09-21T204227Z",
-  "timestamp": "2025-09-21T20:53:26Z",
+  "run_id": "2025-09-21T193424Z",
+  "timestamp": "2025-09-21T19:44:16Z",
   "seed": 42,
   "grip_success": null,
   "delivery_success": null,
   "end_to_end_success": null,
-  "mean_reward": 16.516453822453816,
-  "episode_length": 527.8092155456543,
+  "mean_reward": 26.50698173046112,
+  "episode_length": 47.81668265660604,
   "metrics_extended": {
     "grip_attempts": null,
     "delivery_attempts": null,
@@ -16,7 +16,7 @@
     "deliv_conv_rate": null,
     "e2e_conv_rate": null,
     "hover_efficiency": null,
-    "collision_rate": 0.037616005865857005,
+    "collision_rate": 0.005285776113548006,
     "oob_rate": null,
     "SPS": null,
     "performance_env": null,
@@ -40,7 +40,7 @@
       "grip_success": "0.0%",
       "delivery_success": "0.0%",
       "end_to_end": "0.0%",
-      "collision_rate": "3.8%"
+      "collision_rate": "0.5%"
     }
   },
   "environment_changes": false,
@@ -49,13 +49,13 @@
     "description": "",
     "files_changed": []
   },
-  "base_commit": "95d4b0e39d4b6ab148c0a07b52f3dc123d0e7ded",
+  "base_commit": "22f31cc4326a9d14644bc6e877239439254ca26f",
   "modified_files": "",
   "artifacts": [],
   "notes": "auto-generated run summary",
   "trainer_summary": {
-    "timestamp": "2025-09-21T20:47:51Z",
-    "run_id": "2025-09-21T204227Z",
+    "timestamp": "2025-09-21T19:39:21Z",
+    "run_id": "2025-09-21T193424Z",
     "train": {
       "seed": 42,
       "learning_rate": 0.006047018496816363,
@@ -76,10 +76,10 @@
     },
     "metrics": {
       "success_rate": 0.0,
-      "mean_reward": 16.516453822453816,
-      "episode_length": 527.8092155456543,
-      "collision_rate": 0.037616005865857005,
-      "sps": 1615371.2485888836,
+      "mean_reward": 26.50698173046112,
+      "episode_length": 47.81668265660604,
+      "collision_rate": 0.005285776113548006,
+      "sps": 1708758.417765063,
       "agent_steps": 276037632,
       "epoch": 85
     }
@@ -92,8 +92,8 @@
       "grip_success": null,
       "delivery_success": null,
       "end_to_end_success": null,
-      "mean_reward": -15.160231788953148,
-      "episode_length": 242.85412788391113,
+      "mean_reward": 2.5298363367716483,
+      "episode_length": -1.187554121017456,
       "oob_rate": null,
       "SPS": null
     },
@@ -107,6 +107,6 @@
       "SPS": null
     },
     "baseline_run_id": "2025-09-21T180522Z",
-    "previous_run_id": "2025-09-21T203215Z"
+    "previous_run_id": "2025-09-21T192339Z"
   }
 }

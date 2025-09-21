@@ -1,6 +1,6 @@
 {
   "run_id": "2025-09-21T211342Z",
-  "timestamp": "2025-09-21T21:19:50Z",
+  "timestamp": "2025-09-21T21:24:47Z",
   "seed": 42,
   "grip_success": null,
   "delivery_success": null,
@@ -45,8 +45,8 @@
   },
   "environment_changes": true,
   "environment_comparison": {
-    "has_changes": false,
-    "description": "",
+    "has_changes": true,
+    "description": "New environment modifications in this run",
     "files_changed": []
   },
   "base_commit": "33d9b87229e300f86799a0cc15e76ea5e4c2215d",
@@ -92,8 +92,8 @@
       "grip_success": null,
       "delivery_success": null,
       "end_to_end_success": null,
-      "mean_reward": 0.0,
-      "episode_length": 0.0,
+      "mean_reward": -2.9904476404190063,
+      "episode_length": 222.13858731587726,
       "oob_rate": null,
       "SPS": null
     },
@@ -107,6 +107,6 @@
       "SPS": null
     },
     "baseline_run_id": "2025-09-21T180522Z",
-    "previous_run_id": "2025-09-21T211342Z"
+    "previous_run_id": "2025-09-21T210327Z"
   }
 }

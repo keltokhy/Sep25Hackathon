@@ -188,4 +188,10 @@ Note (reverts applied after Run 2025-09-21T061611Z):
   • Result: oob≈0.50 (Δ vs 210327Z −0.23), collision_rate≈0.045 (Δ −0.041); ho/de_pickup dropped sharply; attempt_grip≈0.08; perfect_grip/deliv=0.
   • Diagnosis: Curriculum clamp back to ~200k improved stability, but pickup acceptance still too strict at k≈1 causing “descend without grip”.
   • Change: relax pickup floors again in `drone_pp.h` to convert near‑misses: XY 0.60, Z 0.55, speed 0.75, |vz|≤0.35, allow z>−0.20 and vz≤0.20. Physics/spawn unchanged; curriculum clamp unchanged.
-  • Next: continue from latest; expect attempt_grip↗ and first non‑zero grips with OOB ≤0.55.
+ • Next: continue from latest; expect attempt_grip↗ and first non‑zero grips with OOB ≤0.55.
+
+- 2025‑09‑21T21:40:11Z (iter 18, run 2025‑09‑21T213444Z)
+  • Result: mean_reward≈37.91 (Δ vs prev +3.88), ep_len≈390.15 (Δ +73.46), collision_rate≈0.074 (Δ −0.021), SPS≈1.63M; UI: oob≈0.620 (Δ −3.4pp vs prev tail); attempt_grip≈0.379; attempt_drop≈1.332; perfect_grip/deliv=0.
+  • Change: env/drone_pp.h — slow curriculum 25× (k_decay cap (k_max−k_min)/5M vs /200k) and relax acceptance floors: pickup (XY 0.70, Z 0.60, speed 0.85, |vz|≤0.35; z>−0.30, vz≤0.30); drop near/accept (near XY/Z 0.50/0.35; accept XY/Z 0.40/0.35).
+  • Expected: attempt_grip↑ and first non‑zero perfect_grip; to_drop/ho_drop↑; first deliveries plausible; OOB ≤0.70; collisions ≤0.10.
+  • Proposal: {autopilot.resume_mode="continue", resume_from="latest", save_strategy="best"}.

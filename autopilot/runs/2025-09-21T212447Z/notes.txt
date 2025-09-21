@@ -1,4 +1,4 @@
-Run 2025-09-21T212447Z (iteration 17)
+ Run 2025-09-21T212447Z (iteration 17)
 
 Problem
 - End-to-end success remains zero; perfect_grip=0, perfect_deliv=0.

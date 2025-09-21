@@ -1,0 +1,95 @@
+{
+  "run_id": "2025-09-21T213444Z",
+  "timestamp": "2025-09-21T21:40:11Z",
+  "seed": 42,
+  "grip_success": null,
+  "delivery_success": null,
+  "end_to_end_success": null,
+  "mean_reward": 37.90717649459839,
+  "episode_length": 390.149803797404,
+  "metrics_extended": {
+    "collision_rate": 0.07406611492236455,
+    "oob_rate": 0.620,
+    "SPS": 1632882.183340137
+  },
+  "behavioral_analysis": {
+    "insights": [
+      "Hover and descent phase established; frequent near-miss grips recorded",
+      "No perfect grips/deliveries yet; drop attempts present → carry sometimes engages"
+    ],
+    "severity": "high",
+    "next_focus": "diagnostic_grip",
+    "grip_efficiency": 0,
+    "metrics_summary": {
+      "grip_success": "0.0%",
+      "delivery_success": "0.0%",
+      "end_to_end": "0.0%",
+      "collision_rate": "7.4%",
+      "oob": "62.0%"
+    }
+  },
+  "environment_changes": true,
+  "environment_comparison": {
+    "has_changes": true,
+    "description": "Relax pickup/drop acceptance floors and substantially slow k-decay schedule (200k→5M global steps)",
+    "files_changed": [
+      "PufferLib/pufferlib/ocean/drone_pp/drone_pp.h"
+    ]
+  },
+  "trainer_summary": {
+    "timestamp": "2025-09-21T21:40:11Z",
+    "run_id": "2025-09-21T213444Z",
+    "train": {
+      "seed": 42,
+      "learning_rate": 0.006047018496816363,
+      "entropy_coef": 0.07123566778619919,
+      "batch_size": 2359296,
+      "minibatch_size": 2359296,
+      "max_minibatch_size": 2359296,
+      "bptt_horizon": 64,
+      "total_timesteps": 200000000
+    },
+    "env": {
+      "num_envs": 24,
+      "num_drones": 64
+    },
+    "vec": {
+      "num_envs": 24,
+      "num_workers": 24
+    },
+    "metrics": {
+      "success_rate": 0.0,
+      "mean_reward": 37.90717649459839,
+      "episode_length": 390.149803797404,
+      "collision_rate": 0.07406611492236455,
+      "sps": 1632882.183340137,
+      "agent_steps": 276037632,
+      "epoch": 85
+    }
+  },
+  "resume_mode": "continue",
+  "resume_from": "latest",
+  "save_strategy": "best",
+  "deltas": {
+    "vs_previous": {
+      "grip_success": null,
+      "delivery_success": null,
+      "end_to_end_success": null,
+      "mean_reward": 3.878561019897461,
+      "episode_length": 73.46016820271813,
+      "oob_rate": -0.034,
+      "SPS": -577805.49
+    },
+    "vs_baseline": {
+      "grip_success": null,
+      "delivery_success": null,
+      "end_to_end_success": null,
+      "mean_reward": null,
+      "episode_length": null,
+      "oob_rate": null,
+      "SPS": null
+    },
+    "baseline_run_id": "2025-09-21T180522Z",
+    "previous_run_id": "2025-09-21T212447Z"
+  }
+}

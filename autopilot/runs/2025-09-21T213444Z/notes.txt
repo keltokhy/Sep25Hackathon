@@ -1,0 +1,37 @@
+Run 2025-09-21T213444Z (iteration 18)
+
+Comparison Checklist
+- Key rates: grip_success=0.0, delivery_success=0.0, end_to_end_success=0.0
+- Attempts/events: attempt_grip≈0.379/ep, attempt_drop≈1.332/ep; to_pickup≈24.9k, ho_pickup≈3.14k, de_pickup≈3.10k; to_drop≈2.99k, ho_drop≈193
+- Stability: oob≈0.620, collision_rate≈0.074
+- Throughput: sps≈1.63M, epoch=85, agent_steps≈276.0M
+
+Δ vs previous (2025-09-21T212447Z)
+- mean_reward: +3.88 (34.03 → 37.91)
+- episode_length: +73.46 (316.69 → 390.15)
+- collision_rate: −2.05pp (9.45% → 7.41%)
+- oob: −3.4pp (65.4% → 62.0%)
+- attempts: attempt_grip rose from near-zero in prior summary to ~0.38/ep; drop attempts present → carry sometimes engages
+
+Δ vs baseline (2025-09-21T180522Z)
+- Baseline summary not available; using best.json pointer for context only.
+
+Diagnosis
+- Hover and descent phases are established (ho/de_pickup high). Near‑miss grips are frequent (attempt_grip>0), yet perfect_grip and perfect_deliv remain 0 due to strict acceptance floors at k≈1.
+- OOB remains the main headroom (62%), but improving vs prior run (−3.4pp) without physics crutches.
+
+Environment Change (for next iteration)
+- Curriculum: slow k‑decay by 25× (200k → 5M global steps) to keep the easy regime longer and avoid immediate collapse to strict gates.
+- Gates: relax pickup acceptance floors (XY 0.70, Z 0.60, speed 0.85, |vz|≤0.35; allow z > −0.30 and vz ≤ 0.30) to convert frequent near‑misses into occasional grips.
+- Drop: relax near‑miss and success floors (near XY 0.50, Z 0.35; accept XY 0.40, Z 0.35) to register deliveries when carry succeeds.
+
+Expected Impact (next run)
+- attempt_grip↑, first non‑zero perfect_grip; to_drop/ho_drop↑ and first non‑zero deliveries possible.
+- OOB ≤ 0.70 with collisions ≤ 0.10; SPS stable.
+
+Interactions
+- Systems touched: curriculum (k), gates (hover/descend/grip/drop), rewards unchanged, physics unchanged, spawn unchanged.
+- Watch for: false‑positive grips at high speed; if collisions/oob spike, revisit speed/vz floors.
+
+Autopilot Override for next run
+- { "autopilot": { "resume_mode": "continue", "resume_from": "latest", "save_strategy": "best" } }

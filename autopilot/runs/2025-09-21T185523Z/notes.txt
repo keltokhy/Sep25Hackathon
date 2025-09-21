@@ -1,0 +1,26 @@
+Run: 2025-09-21T185523Z | Iteration: 2
+
+Key metrics (final snapshot):
+- oob: 0.962
+- collision_rate: 0.005
+- episode_return: 0.146
+- perfect_grip: 0.000 | perfect_deliv: 0.000
+- to_pickup: 2520.686 | ho_pickup: 0.001 | de_pickup: 0.001
+- to_drop: 0.000 | ho_drop: 0.000 | attempt_grip: 0.000 | attempt_drop: 0.000
+- sps: ~1.83M | agent_steps: 276.0M | epoch: 85
+
+Deltas:
+- vs previous (2025-09-21T184615Z): oob +0.003, mean_reward −1.54, episode_len −2.32
+- vs baseline pointer (best/baseline): not comparable (no matching artifact files)
+
+Diagnosis:
+- Primary failure remains extreme OOB (~96%), preventing hover/descent and any grip/drop attempts. Spawn margins and boundary‑proximity shaping were not sufficient. to_pickup is inflated by a persistent flag; ho/de_pickup ≈ 0.
+
+Change (for next run):
+- Action ramp: scale actions by 0.7→1.0 over ~100k global steps before `move_drone` (env/drone_pp.h). No hyperparameter changes.
+
+Expected impact:
+- OOB ↓ materially; episode_length ↑; ho/de_pickup become non‑zero; collisions stable (~0.5%).
+
+Interactions to watch:
+- If OOB decreases but ho/de_pickup stay ≈0, consider slightly increasing PP2 edge_margin or raising boundary penalty weight (without adding soft walls).

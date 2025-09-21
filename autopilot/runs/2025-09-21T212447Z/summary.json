@@ -1,39 +1,46 @@
 {
   "run_id": "2025-09-21T212447Z",
-  "timestamp": "2025-09-21T21:29:36Z",
+  "timestamp": "2025-09-21T21:34:44Z",
   "seed": 42,
-  "grip_success": 0.0,
-  "delivery_success": 0.0,
-  "end_to_end_success": 0.0,
+  "grip_success": null,
+  "delivery_success": null,
+  "end_to_end_success": null,
   "mean_reward": 34.02861547470093,
   "episode_length": 316.68963559468585,
   "metrics_extended": {
+    "grip_attempts": null,
+    "delivery_attempts": null,
+    "gripping_events": null,
+    "delivered_events": null,
+    "grip_conv_rate": null,
+    "deliv_conv_rate": null,
+    "e2e_conv_rate": null,
+    "hover_efficiency": null,
     "collision_rate": 0.09452479565516114,
-    "oob_rate": 0.692,
-    "SPS": 1690687.66931999,
-    "agent_steps": 276037632,
-    "attempt_grip": 0.454,
-    "attempt_drop": 2.783,
-    "to_pickup": 20146.859,
-    "ho_pickup": 2605.599,
-    "de_pickup": 2562.470,
-    "to_drop": 2390.392,
-    "ho_drop": 409.424
+    "oob_rate": null,
+    "SPS": null,
+    "performance_env": null,
+    "performance_learn": null,
+    "policy_loss": null,
+    "value_loss": null,
+    "entropy": null,
+    "approx_kl": null,
+    "clipfrac": null,
+    "explained_variance": null,
+    "importance": null
   },
   "behavioral_analysis": {
     "insights": [
-      "Hover/descend established; near-miss grips frequent but no conversions",
-      "OOB regressed with higher activity; collisions ~9.5%",
-      "Pickup acceptance still too strict at k≈1"
+      "\ud83d\udea8 Drone not attempting to grip objects at all"
     ],
-    "severity": "high",
+    "severity": "critical",
     "next_focus": "diagnostic_grip",
     "grip_efficiency": 0,
     "metrics_summary": {
       "grip_success": "0.0%",
       "delivery_success": "0.0%",
       "end_to_end": "0.0%",
-      "collision_rate": "9.45%"
+      "collision_rate": "9.5%"
     }
   },
   "environment_changes": false,
@@ -42,6 +49,10 @@
     "description": "",
     "files_changed": []
   },
+  "base_commit": "12f07a183d2ad74e02cf63436b003a52b7e25925",
+  "modified_files": "",
+  "artifacts": [],
+  "notes": "auto-generated run summary",
   "trainer_summary": {
     "timestamp": "2025-09-21T21:29:36Z",
     "run_id": "2025-09-21T212447Z",
@@ -78,19 +89,24 @@
   "save_strategy": "best",
   "deltas": {
     "vs_previous": {
-      "previous_run_id": "2025-09-21T211342Z",
-      "mean_reward": 5.722925543785097,
-      "episode_length": -191.87710062662765,
-      "oob_rate": 0.188,
-      "collision_rate": 0.04978812423845132,
-      "SPS": -110420.4882691187
+      "grip_success": null,
+      "delivery_success": null,
+      "end_to_end_success": null,
+      "mean_reward": 5.722925543785095,
+      "episode_length": -191.87710062662762,
+      "oob_rate": null,
+      "SPS": null
     },
     "vs_baseline": {
-      "baseline_run_id": "2025-09-21T211342Z",
-      "mean_reward": 5.722925543785097,
-      "episode_length": -191.87710062662765,
-      "oob_rate": 0.188,
-      "SPS": -110420.4882691187
-    }
+      "grip_success": null,
+      "delivery_success": null,
+      "end_to_end_success": null,
+      "mean_reward": null,
+      "episode_length": null,
+      "oob_rate": null,
+      "SPS": null
+    },
+    "baseline_run_id": "2025-09-21T180522Z",
+    "previous_run_id": "2025-09-21T211342Z"
   }
 }

@@ -1,12 +1,12 @@
 {
-  "run_id": "2025-09-21T204227Z",
-  "timestamp": "2025-09-21T20:53:26Z",
+  "run_id": "2025-09-21T190433Z",
+  "timestamp": "2025-09-21T19:13:59Z",
   "seed": 42,
   "grip_success": null,
   "delivery_success": null,
   "end_to_end_success": null,
-  "mean_reward": 16.516453822453816,
-  "episode_length": 527.8092155456543,
+  "mean_reward": 16.924292008082073,
+  "episode_length": 42.52539006868998,
   "metrics_extended": {
     "grip_attempts": null,
     "delivery_attempts": null,
@@ -16,7 +16,7 @@
     "deliv_conv_rate": null,
     "e2e_conv_rate": null,
     "hover_efficiency": null,
-    "collision_rate": 0.037616005865857005,
+    "collision_rate": 0.00470870325807482,
     "oob_rate": null,
     "SPS": null,
     "performance_env": null,
@@ -40,22 +40,22 @@
       "grip_success": "0.0%",
       "delivery_success": "0.0%",
       "end_to_end": "0.0%",
-      "collision_rate": "3.8%"
+      "collision_rate": "0.5%"
     }
   },
-  "environment_changes": false,
+  "environment_changes": true,
   "environment_comparison": {
-    "has_changes": false,
-    "description": "",
+    "has_changes": true,
+    "description": "New environment modifications in this run",
     "files_changed": []
   },
-  "base_commit": "95d4b0e39d4b6ab148c0a07b52f3dc123d0e7ded",
-  "modified_files": "",
+  "base_commit": "e85e2a64465d50e9449e741e7034f40aa92a8192",
+  "modified_files": "M PufferLib/pufferlib/ocean/drone_pp/drone_pp.h",
   "artifacts": [],
   "notes": "auto-generated run summary",
   "trainer_summary": {
-    "timestamp": "2025-09-21T20:47:51Z",
-    "run_id": "2025-09-21T204227Z",
+    "timestamp": "2025-09-21T19:09:48Z",
+    "run_id": "2025-09-21T190433Z",
     "train": {
       "seed": 42,
       "learning_rate": 0.006047018496816363,
@@ -76,24 +76,24 @@
     },
     "metrics": {
       "success_rate": 0.0,
-      "mean_reward": 16.516453822453816,
-      "episode_length": 527.8092155456543,
-      "collision_rate": 0.037616005865857005,
-      "sps": 1615371.2485888836,
+      "mean_reward": 16.924292008082073,
+      "episode_length": 42.52539006868998,
+      "collision_rate": 0.00470870325807482,
+      "sps": 1532202.5613861892,
       "agent_steps": 276037632,
       "epoch": 85
     }
   },
-  "resume_mode": "continue",
-  "resume_from": "latest",
+  "resume_mode": "fresh",
+  "resume_from": null,
   "save_strategy": "best",
   "deltas": {
     "vs_previous": {
       "grip_success": null,
       "delivery_success": null,
       "end_to_end_success": null,
-      "mean_reward": -15.160231788953148,
-      "episode_length": 242.85412788391113,
+      "mean_reward": 1.1388087868690508,
+      "episode_length": 1.2136319478352817,
       "oob_rate": null,
       "SPS": null
     },
@@ -107,6 +107,6 @@
       "SPS": null
     },
     "baseline_run_id": "2025-09-21T180522Z",
-    "previous_run_id": "2025-09-21T203215Z"
+    "previous_run_id": "2025-09-21T185523Z"
   }
 }

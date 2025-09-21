@@ -1,0 +1,40 @@
+Run: 2025-09-21T210327Z (iteration 15)
+
+Summary (final window)
+- grip_success / perfect_grip: 0.000 (no change)
+- delivery_success / perfect_deliv: 0.000 (no change)
+- to_pickup: 18,214 (Δ vs prev −3,045)
+- ho_pickup: 2,520 (Δ −981)
+- de_pickup: 2,485 (Δ −986)
+- attempt_grip: 0.357 (Δ +0.006)
+- to_drop: 2,324 (Δ −1,040)
+- ho_drop: 506 (Δ +312)
+- attempt_drop: 3.326 (Δ +2.033)
+- oob: 0.722 (Δ +0.047)
+- collision_rate: 0.086 (Δ −0.011)
+- score: 31.296 (Δ +0.863)
+- episode_return: 0.144 (Δ +0.106)
+- epoch: 85; sps: ≈1.78M; agent_steps: ≈276M
+
+Interpretation
+- Hover and descent remain established but attempts → grips still do not convert (perfect_grip=0). to_drop/ho_drop activity indicates frequent carry/drop-phase transitions without “perfect” credit, consistent with k staying high during the run.
+- OOB ticked up (+4.7pp) while collisions eased slightly. Score/return edged up but without task completion.
+
+Root Cause Trace
+- Curriculum schedule in drone_pp.h clamps decay to ~50M steps via max_decay; with per-env global_tick ≈180k by epoch 85, k stays near ~17.8 for the entire run. “Perfect” metrics require k≈1; therefore perfect_grip/deliv remain zero even when grips/carry likely occur under lenient gates.
+- Because we resume the policy across iterations, but the env’s global_tick resets each run, the slow schedule never reaches the strict regime within a single run. This stalls measurable success.
+
+Change (staged for next run)
+- Revert curriculum clamp to ~200k-step decay so k reaches 1.0 within a single run: drone_pp.h — max_decay = (k_max − k_min) / 200000.0f (was / 50000000.0f). Keeps grip/drop acceptance floors intact.
+
+Expected Impact
+- k progresses to strict regime by the end of a run → perfect_grip and perfect_deliv can become non-zero if acceptance floors are sufficient. Attempt→grip conversion should appear in logs; OOB should not materially worsen; collisions stay ≤0.11.
+
+Interactions to Watch
+- Gates: With lower k, hover/drop hover windows tighten (k-scaled); floors preserve feasibility.
+- Metrics: Verify attempt_grip↑ → perfect_grip>0 and to_drop/ho_drop remain healthy.
+- Stability: Monitor OOB; if OOB jumps >0.90, reassess spawn margins and boundary penalty.
+
+Next Config
+- { "autopilot": { "resume_mode": "continue", "resume_from": "latest", "save_strategy": "best" } }
+

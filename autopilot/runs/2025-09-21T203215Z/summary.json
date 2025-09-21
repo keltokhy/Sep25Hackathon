@@ -1,6 +1,6 @@
 {
   "run_id": "2025-09-21T203215Z",
-  "timestamp": "2025-09-21T20:38:40Z",
+  "timestamp": "2025-09-21T20:42:27Z",
   "seed": 42,
   "grip_success": null,
   "delivery_success": null,
@@ -8,32 +8,39 @@
   "mean_reward": 31.676685611406963,
   "episode_length": 284.95508766174316,
   "metrics_extended": {
+    "grip_attempts": null,
+    "delivery_attempts": null,
+    "gripping_events": null,
+    "delivered_events": null,
+    "grip_conv_rate": null,
+    "deliv_conv_rate": null,
+    "e2e_conv_rate": null,
+    "hover_efficiency": null,
     "collision_rate": 0.0977180163996915,
-    "oob_rate": 0.723,
-    "SPS": 1790300.4279072646,
-    "attempt_grip": 0.379,
-    "attempt_drop": 4.133,
-    "to_pickup": 18121.156,
-    "ho_pickup": 2843.556,
-    "de_pickup": 2811.850,
-    "to_drop": 2645.701,
-    "ho_drop": 419.629
+    "oob_rate": null,
+    "SPS": null,
+    "performance_env": null,
+    "performance_learn": null,
+    "policy_loss": null,
+    "value_loss": null,
+    "entropy": null,
+    "approx_kl": null,
+    "clipfrac": null,
+    "explained_variance": null,
+    "importance": null
   },
   "behavioral_analysis": {
     "insights": [
-      "Hover and descent present; near-miss grips frequent (attempt_grip ~0.38)",
-      "No perfect grips/deliveries yet; drop near-misses high",
-      "OOB elevated (~0.72), collisions near 0.10"
+      "\ud83d\udea8 Drone not attempting to grip objects at all"
     ],
-    "severity": "high",
+    "severity": "critical",
     "next_focus": "diagnostic_grip",
     "grip_efficiency": 0,
     "metrics_summary": {
       "grip_success": "0.0%",
       "delivery_success": "0.0%",
       "end_to_end": "0.0%",
-      "collision_rate": "9.8%",
-      "oob": "72.3%"
+      "collision_rate": "9.8%"
     }
   },
   "environment_changes": false,
@@ -42,6 +49,10 @@
     "description": "",
     "files_changed": []
   },
+  "base_commit": "afbdbed363b17c843df9f8d3b3edad4df85bea96",
+  "modified_files": "",
+  "artifacts": [],
+  "notes": "auto-generated run summary",
   "trainer_summary": {
     "timestamp": "2025-09-21T20:38:04Z",
     "run_id": "2025-09-21T203215Z",
@@ -81,22 +92,21 @@
       "grip_success": null,
       "delivery_success": null,
       "end_to_end_success": null,
-      "mean_reward": 37.47476268808047,
-      "episode_length": -265.84020296732674,
-      "collision_rate": 0.0550690038750569,
+      "mean_reward": 37.474762688080475,
+      "episode_length": -265.8402029673258,
       "oob_rate": null,
-      "SPS": 290.6318457509,
-      "previous_run_id": "2025-09-21T202241Z"
+      "SPS": null
     },
     "vs_baseline": {
-      "baseline_run_id": "2025-09-21T202241Z",
       "grip_success": null,
       "delivery_success": null,
       "end_to_end_success": null,
-      "mean_reward": 37.47476268808047,
-      "episode_length": -265.84020296732674,
+      "mean_reward": null,
+      "episode_length": null,
       "oob_rate": null,
-      "SPS": 290.6318457509
-    }
+      "SPS": null
+    },
+    "baseline_run_id": "2025-09-21T180522Z",
+    "previous_run_id": "2025-09-21T202241Z"
   }
 }
