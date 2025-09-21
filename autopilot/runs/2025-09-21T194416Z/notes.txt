@@ -1,0 +1,34 @@
+Run 2025-09-21T194416Z (iteration 7)
+
+Summary
+- SPS: ~1.79M; agent_steps: 276.0M; epoch: 85
+- User Stats (final UI):
+  • oob 0.952; collision_rate 0.006; episode_length 50.94; episode_return 0.632
+  • perfect_grip 0.000; perfect_deliv 0.000; perfect_now 0.000
+  • to_pickup 3137.943; ho_pickup 0.004; de_pickup 0.004
+  • to_drop 0.000; ho_drop 0.000; attempt_grip 0.000; attempt_drop 0.000
+
+Comparisons
+- Δ vs previous (2025-09-21T193424Z):
+  • mean_reward +4.64; episode_length +3.13; SPS +0.08M
+  • oob −0.003; collision_rate +0.00026
+  • ho_pickup −0.009; de_pickup −0.008; to_pickup +200.3; attempts 0 → 0
+- Δ vs baseline (best 2025-09-21T193424Z): same as above
+
+Diagnosis
+- Primary failure remains extreme OOB (~95%); zero grips/deliveries.
+- Slight regression in ho/de_pickup despite higher reward/longer episodes suggests spawn geometry still exposes agents to walls early; action ramp alone insufficient.
+
+Environment Change Staged (for next run)
+- PufferLib/pufferlib/ocean/drone_pp/drone_pp.h:
+  • Increase PP2 spawn edge_margin 17 → 20 for box/drop and drone spawns (more central starts; no soft walls/centralizing forces).
+- Hypothesis: OOB decreases; ho/de_pickup increases; collisions stable.
+
+Interactions / Systems Touched
+- Spawns (box/drop/drone); keeps boundary proximity penalty (−0.15) and current hover/descent gates; physics constants unchanged (BASE_B_DRAG=0.10, BASE_K_ANG_DAMP=0.20).
+
+Next Overrides
+- autopilot/proposals/next_config.json: { "autopilot": { "resume_mode": "continue", "resume_from": "latest", "save_strategy": "best" } }
+
+Next Step
+- Re-run; if OOB remains >0.90, consider either (a) slight further centralization (edge_margin 22) or (b) light action smoothing (low-pass on actions) before revisiting hover/descent gates.

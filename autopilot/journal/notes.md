@@ -127,3 +127,10 @@ Note (reverts applied after Run 2025-09-21T061611Z):
 - 2025-09-21 (Run 2025-09-21T190433Z): OOB≈0.960 persists; no hover/descend/grip events. Change staged for next run: (a) boundary-aware action softening near XY walls (scale actions 1.0→0.5 from 90–100% GRID) to cut fly-offs without soft walls; (b) increase spawn edge_margin 10→17 for drones/box/drop to centralize starts. Expect OOB −20–30pp; ho_pickup > 0.005; collisions ↔. Proposals `{}` (fresh).
  - 2025-09-21T19:39:21Z | Run 2025-09-21T193424Z: OOB≈0.955 (Δ vs prev −0.005), perfect_grip=0, perfect_deliv=0; ho_pickup≈0.013 (Δ +0.009), de_pickup≈0.012 (Δ +0.012); to_pickup≈2938 (Δ +340); to_drop/ho_drop=0.
    Decision: OOB still the primary blocker. Keep relaxed hover gate; slow early action ramp further (0.5→1.0 over ~800k global steps) in `drone_pp.h::c_step` to reduce early fly‑offs without physics helpers. Expected: OOB↓, episode_length↑, ho/de_pickup↗; collisions stable. Next: if ho/de improve but grips remain 0, consider slightly relaxing pickup descent gates.
+
+## 5) Decisions Log (2025‑09‑21)
+- 2025‑09‑21T19:49:13Z (iter 7, run 2025‑09‑21T194416Z)
+  • Result: oob≈0.952 (Δ vs prev −0.003), ho/de_pickup≈0.004/0.004 (Δ −0.009/−0.008), mean_reward≈31.14 (Δ +4.64), ep_len≈50.94 (Δ +3.13); perfect_grip/deliv=0.
+  • Change: Increase PP2 spawn edge_margin 17→20 for box/drop and drone spawns (no soft walls). Rationale: reduce immediate boundary fly‑offs; centralize early experience near pickup.
+  • Expected: OOB↓; ho/de_pickup↑; collisions ↔. Interactions: complements mild boundary proximity penalty (−0.15) without introducing helper forces.
+  • Next config: {autopilot.resume=continue latest, save=best}.

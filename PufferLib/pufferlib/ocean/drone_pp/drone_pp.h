@@ -510,8 +510,10 @@ float compute_reward(DronePP* env, Drone *agent, bool collision) {
 void reset_pp2(DronePP* env, Drone *agent, int idx) {
     // Keep box/drop spawns away from hard XY boundaries and slightly off the floor
     // to reduce early OOB and floor strikes while preserving pickup geometry.
-    // Increase margin to centralize initial tasks while OOB is high.
-    float edge_margin = 17.0f;
+    // Increase margin further to centralize starts while OOB remains high.
+    // Hypothesis: spawning farther from hard walls reduces immediate fly‑offs
+    // and gives policies more on‑policy experience near the pickup zone.
+    float edge_margin = 20.0f;
     agent->box_pos = (Vec3){
         rndf(-MARGIN_X + edge_margin, MARGIN_X - edge_margin),
         rndf(-MARGIN_Y + edge_margin, MARGIN_Y - edge_margin),
@@ -576,7 +578,8 @@ void reset_agent(DronePP* env, Drone *agent, int idx) {
     if (env->task == TASK_PP2) {
         // Spawn drones away from hard XY boundaries and a bit higher off the floor
         // for stability. Keep centralization but avoid overcrowding on the floor.
-        float edge_margin = 17.0f;
+        // Nudge margin up while OOB is dominant in recent runs.
+        float edge_margin = 20.0f;
         float z_min = -GRID_Z + 3.5f;
         float z_max = GRID_Z - 1.0f;
         agent->state.pos = (Vec3){
