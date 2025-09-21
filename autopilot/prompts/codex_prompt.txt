@@ -45,7 +45,13 @@ CREATIVE ESCALATION (When progress stalls)
 - Document which dimension you're exploring and why previous approach plateaued
 
 WHAT YOU CAN CHANGE
-- Environment code (primary): e.g., `PufferLib/pufferlib/ocean/drone_pp/drone_pp.h` and adjacent files when necessary.
+- Environment code (primary):
+  • `PufferLib/pufferlib/ocean/drone_pp/drone_pp.h` - Main environment logic
+  • `PufferLib/pufferlib/ocean/drone_pp/drone_pp.c` - C implementation
+  • `PufferLib/pufferlib/ocean/drone_pp/drone_pp.py` - Python wrapper (observation/action spaces)
+  • `PufferLib/pufferlib/ocean/drone_pp/binding.c` - Python-C interface
+  • `PufferLib/pufferlib/ocean/drone_pp/dronelib.h` - Drone physics utilities
+  • `PufferLib/pufferlib/config/ocean/drone_pp.ini` - Environment parameters (rewards, episode_length, etc.)
 - Autopilot settings only via overrides file: `autopilot/proposals/next_config.json` keys permitted: 
   • `autopilot.resume_mode` = `fresh` | `continue`
   • `autopilot.resume_from` = `latest` | `best` | explicit checkpoint path
@@ -58,8 +64,13 @@ WHAT YOU CANNOT CHANGE (Hard Rule)
 
 ENVIRONMENT DEBUGGING CHECKLIST
 1) Identify failure from behavioral_analysis and concrete metrics.
-2) Consult `autopilot/journal/notes.md` → “Header evolution: `drone_pp.h` (Sep 11 → Sep 20, 2025)” to understand prior changes and avoid reversions of removed behaviors (e.g., low‑altitude penalty) unless explicitly justified.
-3) Locate relevant code in `drone_pp.h` (hover targeting, grip gates, delivery checks, physics constants).
+2) Consult `autopilot/journal/notes.md` → "Header evolution: `drone_pp.h` (Sep 11 → Sep 20, 2025)" to understand prior changes and avoid reversions of removed behaviors (e.g., low‑altitude penalty) unless explicitly justified.
+3) Choose the right file to edit:
+   • `drone_pp.h` - Main logic, state machines, reward computation, physics
+   • `drone_pp.c` - Core simulation loop if needed
+   • `drone_pp.py` - To change observation/action spaces
+   • `binding.c` - To expose new metrics to Python
+   • `drone_pp.ini` - To tune rewards, episode_length (doesn't need rebuild)
 4) Make a minimal, documented change tied to the hypothesis and historical context.
 5) Rebuild: `cd PufferLib && NO_TRAIN=1 python3 setup.py build_ext --inplace --force`.
 6) Test: `pytest PufferLib/tests/test_env_binding.py -q` (if present) and ensure import works.
@@ -84,7 +95,11 @@ FAILSAFES
 - When in doubt, prefer smaller env edits and clearer logging over larger refactors.
 
 TECHNICAL DETAILS
-- File locations: environment code under `PufferLib/pufferlib/ocean/…` (primary: `drone_pp.h`), configs under `autopilot/configs/`, prompts under `autopilot/prompts/`.
+- File locations:
+  • Environment logic: `PufferLib/pufferlib/ocean/drone_pp/` (`.h`, `.c`, `.py`, `binding.c`, `dronelib.h`)
+  • Environment config: `PufferLib/pufferlib/config/ocean/drone_pp.ini` (rewards, episode params)
+  • Training configs: `autopilot/configs/`
+  • Prompts: `autopilot/prompts/`
 - Build: `cd PufferLib && NO_TRAIN=1 python3 setup.py build_ext --inplace --force` (rebuild native bindings after `.h` changes).
 - Tests: `pytest PufferLib/tests/test_env_binding.py -q` when available; otherwise smoke‑import.
 - Constraints the script enforces before training:
