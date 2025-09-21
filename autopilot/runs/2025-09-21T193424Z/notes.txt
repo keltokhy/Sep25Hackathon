@@ -1,0 +1,38 @@
+Run: 2025-09-21T193424Z (iteration 6)
+
+Summary (final epoch 85):
+- oob: 0.955
+- collision_rate: 0.0053
+- episode_length: 47.82
+- mean_reward (score): 26.51
+- perfect_grip: 0.000
+- perfect_deliv: 0.000
+- to_pickup: 2937.6
+- ho_pickup: 0.013
+- de_pickup: 0.012
+- to_drop: 0.000
+- ho_drop: 0.000
+- attempt_grip: 0.000
+- attempt_drop: 0.000
+
+Deltas:
+- vs previous (2025-09-21T192339Z): oob −0.005; ho_pickup +0.009; de_pickup +0.012; to_pickup +340; perfect_grip ↔ 0; perfect_deliv ↔ 0; mean_reward +2.53; episode_length −1.19
+- vs baseline (best.json → 2025-09-21T192339Z): oob +0.001; ho_pickup roughly +0.009; de_pickup roughly +0.012; others similar
+
+Diagnosis:
+- OOB remains the primary failure (>95%). Hover/descend signals emerged slightly after relaxing the pickup hover gate, but no grips/deliveries yet. Navigation still unstable enough that episodes terminate predominantly due to boundary violations before reaching (or staying at) hover.
+
+Change staged for next run (env/drone_pp.h):
+- Slow early action ramp: scale actions 0.5→1.0 over ~800k global steps (was ~400k). This reduces early saturation without adding soft walls or centralizing fields.
+
+Expected impact:
+- OOB ↓ (primary); episode_length ↑; ho_pickup/de_pickup ↗; collisions stable.
+
+Resume policy for next run:
+- autopilot.resume_mode: continue
+- autopilot.resume_from: latest
+- autopilot.save_strategy: best
+
+Notes:
+- Kept relaxed hover gate (dist_to_hidden 0.8; speed 0.6). Will only touch descent/grip gates if hover/descent signals improve but grips remain at 0.
+- Do NOT change training hparams. EXACT_CONFIG=1 remains in effect.

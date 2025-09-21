@@ -689,8 +689,10 @@ void c_step(DronePP *env) {
 
         float* atn = &env->actions[4*i];
             // Gentle early action scaling to curb saturation and OOB.
-            // Slower ramp: 0.5 → 1.0 over ~400k global steps.
-            float act_scale = 0.5f + 0.5f * fminf(1.0f, (float)env->global_tick / 400000.0f);
+            // Slow the ramp further: 0.5 → 1.0 over ~800k global steps.
+            // Rationale: OOB remains ~0.95; extending the low-gain window
+            // helps stabilize basic hover/approach without physics hacks.
+            float act_scale = 0.5f + 0.5f * fminf(1.0f, (float)env->global_tick / 800000.0f);
             atn[0] *= act_scale;
             atn[1] *= act_scale;
             atn[2] *= act_scale;
