@@ -44,6 +44,13 @@ OPERATING PRINCIPLES
 SINGLE‑RUN PER ITERATION
 - Launch training once per iteration. Edits apply to next iteration's run. No auto-retry on failures.
 
+EPOCH BUDGET (How to Run Longer)
+- Do NOT change `train.total_timesteps` or `update_epochs`.
+- To run longer safely:
+  • Prefer switching to full mode (longer baseline) when deeper evidence is needed.
+  • Or accumulate training across iterations: set `autopilot.resume_mode: "continue"` and `autopilot.resume_from: "latest"` in `proposals/next_config.json`. This extends effective epochs without touching hparams.
+- Always record cumulative epochs/steps in labbook and note any inflection points.
+
 WORKFLOW (Numbered Core Loop)
 1) Execute training using the script (ALWAYS use this method):
    - Sanity‑check that batch sizes obey the rule
@@ -60,6 +67,7 @@ WORKFLOW (Numbered Core Loop)
 6) Solution: Make minimal, targeted environment code changes to address the root cause, aligned with the historical intent captured in Notes. If recent changes made things worse, revert them first.
 7) Rebuild bindings and smoke‑test import if .h/.c files changed.
 8) Configure the next run using only `autopilot.*` overrides (or `{}`) in `autopilot/proposals/next_config.json`.
+   - If more epochs are required, set `{"autopilot": {"resume_mode": "continue", "resume_from": "latest"}}` rather than changing hparams.
 9) Record actions/observations/outcomes/next steps in labbook and notes; repeat.
 
 COMPARISON CHECKLIST (Per Run)
