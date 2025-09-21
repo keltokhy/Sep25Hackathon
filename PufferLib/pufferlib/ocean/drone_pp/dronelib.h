@@ -30,8 +30,8 @@
 #define BASE_B_DRAG 0.10f    // linear drag coefficient (revert heavy drag)
 #define BASE_GRAVITY 9.81f   // m/s^2
 #define BASE_MAX_RPM 750.0f  // rad/s
-#define BASE_MAX_VEL 50.0f   // m/s
-#define BASE_MAX_OMEGA 50.0f // rad/s
+#define BASE_MAX_VEL 20.0f   // m/s (reduce to curb OOB drift)
+#define BASE_MAX_OMEGA 25.0f // rad/s (reduce to curb spin-induced drift)
 #define BASE_K_MOT 0.1f      // s (Motor lag constant)
 #define BASE_J_MOT 1e-5f     // kgm^2 (Motor rotational inertia)
 

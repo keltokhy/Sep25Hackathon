@@ -118,3 +118,5 @@
 - 2025-09-21T05:56:52Z | run complete | Run 2025-09-21T054645Z (iteration 1) | metrics captured | 
 - 2025-09-21T06:05:55Z | run complete | Run 2025-09-21T055652Z (iteration 2) | metrics captured | 
 - 2025-09-21T06:16:11Z | run complete | Run 2025-09-21T060555Z (iteration 3) | metrics captured | 
+- 2025-09-21T06:24:50Z | run complete | Run 2025-09-21T061611Z (iteration 4) | metrics captured | 
+-  | run complete | Run  (iteration 5) | UI: oob≈0.952, collision_rate≈0.022, episode_len≈51.2, perfect_grip≈0.10, perfect_deliv=0.00; to_drop≈1.73k; ho_drop≈36 | env patch for next run: clamp max vel/omega (20 m/s, 25 rad/s) and widen spawn edge margin (6m). Hypothesis: reduce drift-induced OOB; lengthen episodes; improve hover stability and grip conversion.

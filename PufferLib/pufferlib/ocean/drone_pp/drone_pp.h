@@ -493,8 +493,8 @@ float compute_reward(DronePP* env, Drone *agent, bool collision) {
 }
 
 void reset_pp2(DronePP* env, Drone *agent, int idx) {
-    // Keep box/drop spawns away from hard XY boundaries to reduce early OOB
-    float edge_margin = 3.0f;
+    // Keep box/drop spawns farther from hard XY boundaries to reduce early OOB
+    float edge_margin = 6.0f;
     agent->box_pos = (Vec3){
         rndf(-MARGIN_X + edge_margin, MARGIN_X - edge_margin),
         rndf(-MARGIN_Y + edge_margin, MARGIN_Y - edge_margin),
